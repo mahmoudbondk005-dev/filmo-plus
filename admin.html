@@ -44,7 +44,7 @@ h1{color:#ffb000}.msg{margin-top:15px;padding:10px;border-radius:8px;display:non
 
 <script>
 const SUPABASE_URL = "https://axvibvssjizkrfdqlyow.supabase.co";
-const SUPABASE_KEY = "PUT_YOUR_SUPABASE_PUBLISHABLE_KEY_HERE";
+const SUPABASE_KEY = "sb_publishable_72qMAroeSPFAMXfL2AoVQA_5RnDslsh";
 const TABLE_URL = SUPABASE_URL + "/rest/v1/movies";
 
 function message(text, ok=false){
@@ -74,7 +74,6 @@ async function saveMovie(){
       method:"POST",
       headers:{
         "apikey":SUPABASE_KEY,
-        "Authorization":"Bearer "+SUPABASE_KEY,
         "Content-Type":"application/json",
         "Prefer":"return=minimal"
       },

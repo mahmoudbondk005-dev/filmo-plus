@@ -35,7 +35,7 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
   ممنوع وضع service_role key داخل هذا الملف.
 */
 const SUPABASE_URL = "https://axvibvssjizkrfdqlyow.supabase.co";
-const SUPABASE_KEY = "PUT_YOUR_SUPABASE_PUBLISHABLE_KEY_HERE";
+const SUPABASE_KEY = "sb_publishable_72qMAroeSPFAMXfL2AoVQA_5RnDslsh";
 const TABLE_URL = SUPABASE_URL + "/rest/v1/movies";
 
 let movies = [];
@@ -43,9 +43,7 @@ let series = [];
 
 function apiHeaders() {
   return {
-    "apikey": SUPABASE_KEY,
-    "Authorization": "Bearer " + SUPABASE_KEY
-  };
+    "apikey": SUPABASE_KEY,};
 }
 
 function safe(v) {
