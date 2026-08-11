@@ -54,7 +54,7 @@ function safe(v) {
 
 function normalize(row) {
   return {
-    id: row.id,
+    id: row.Id ?? row.id,
     name: row.title || "",
     type: row.category || "فيلم",
     year: row.year || "",
@@ -70,7 +70,7 @@ async function loadMovies() {
   grid.innerHTML = '<p class="muted">جاري تحميل الأفلام...</p>';
   try {
     const response = await fetch(
-      TABLE_URL + "?select=id,title,description,poster_url,movie_url,category,year,rating&order=id.desc",
+      TABLE_URL + "?select=Id,title,description,poster_url,movie_url,category,year,rating&order=Id.desc",
       { headers: apiHeaders() }
     );
     if (!response.ok) {
