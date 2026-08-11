@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>لوحة تحكم فيلمو+</title>
+<title>لوحة تحكم فيلمو</title>
 <style>
 *{box-sizing:border-box}
 body{font-family:Tahoma,Arial,sans-serif;background:#0b0d12;color:#fff;margin:0;min-height:100vh}
@@ -44,7 +44,7 @@ button.small{padding:8px 14px;font-size:13px;margin-left:6px}
 <body>
 
 <div id="loginScreen" class="box login-box">
-  <h1>فيلمو+</h1>
+  <h1>فيلمو</h1>
   <p class="sub">لوحة التحكم — للمسؤول فقط</p>
   <label>كلمة المرور</label>
   <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()">
@@ -91,7 +91,7 @@ button.small{padding:8px 14px;font-size:13px;margin-left:6px}
   <textarea id="description" rows="4" placeholder="قصة العمل باختصار"></textarea>
 
   <label>رابط الصورة (Poster) <span class="req">*</span></label>
-  <input id="poster_url" placeholder="https://..." value="https://via.placeholder.com/500x750?text=Filmo%2B">
+  <input id="poster_url" placeholder="https://..." value="https://via.placeholder.com/500x750?text=Filmo">
 
   <label>رابط الفيديو / المشاهدة <span class="req">*</span></label>
   <input id="movie_url" placeholder="https://..." value="https://example.com">
@@ -174,7 +174,7 @@ function getPayload() {
   let movieUrl = document.getElementById("movie_url").value.trim();
   let duration = document.getElementById("duration").value.trim();
 
-  if (!poster) poster = "https://via.placeholder.com/500x750?text=Filmo%2B";
+  if (!poster) poster = "https://via.placeholder.com/500x750?text=Filmo";
   if (!movieUrl) movieUrl = "https://example.com";
   if (!duration) duration = "—";
 
@@ -200,7 +200,7 @@ function resetForm() {
   document.getElementById("rating").value = "";
   document.getElementById("description").value = "";
   document.getElementById("duration").value = "—";
-  document.getElementById("poster_url").value = "https://via.placeholder.com/500x750?text=Filmo%2B";
+  document.getElementById("poster_url").value = "https://via.placeholder.com/500x750?text=Filmo";
   document.getElementById("movie_url").value = "https://example.com";
   document.getElementById("category").value = "فيلم";
 }
