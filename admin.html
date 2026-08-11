@@ -19,7 +19,7 @@ button:hover{filter:brightness(1.08)}
 button:disabled{opacity:.55;cursor:not-allowed}
 button.secondary{background:#252b35;color:#fff}
 button.danger{background:#5a2020;color:#fff}
-button.small{padding:8px 14px;font-size:13px;margin-left:6px}
+button.small{padding:8px 14px;font-size:13px}
 .msg{margin-top:16px;padding:12px 14px;border-radius:10px;display:none;font-size:14px}
 .login-box{max-width:400px;margin:12vh auto;text-align:center}
 .login-box input{text-align:center;letter-spacing:2px}
@@ -34,11 +34,16 @@ button.small{padding:8px 14px;font-size:13px;margin-left:6px}
 .item .actions{display:flex;gap:6px;flex-shrink:0}
 .badge{display:inline-block;background:#252b35;color:#ffb000;padding:3px 8px;border-radius:6px;font-size:11px}
 .logout{background:transparent;border:1px solid #444;color:#aaa;padding:8px 14px;font-size:13px}
-.logout:hover{border-color:#ffb000;color:#ffb000}
 .note{background:#1a1f2a;border:1px solid #2a3140;border-radius:10px;padding:12px 14px;font-size:13px;color:#9aa0ab;margin-bottom:20px;line-height:1.7}
 .req{color:#ff6b6b;font-size:12px}
 .form-title{font-size:18px;color:#ffb000;margin:0 0 16px}
 .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+.ep-box{background:#0d1016;border:1px solid #303744;border-radius:12px;padding:14px;margin-bottom:16px}
+.ep-box h3{margin:0 0 12px;font-size:15px;color:#ffb000}
+.ep-row{display:grid;grid-template-columns:80px 1fr 1.4fr 40px;gap:8px;margin-bottom:8px;align-items:center}
+.ep-row input{margin:0}
+.ep-row button{padding:10px;margin:0}
+@media(max-width:600px){.ep-row{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -62,18 +67,18 @@ button.small{padding:8px 14px;font-size:13px;margin-left:6px}
   </div>
 
   <div class="note">
-    اختار القسم المناسب قبل الحفظ.<br>
-    الحقول المعلّمة بـ <span class="req">*</span> مطلوبة.
+    للأفلام: حط رابط واحد للمشاهدة.<br>
+    للمسلسلات: ضيف الحلقات من قسم الحلقات بالأسفل.
   </div>
 
   <h2 class="form-title" id="formTitle">إضافة محتوى جديد</h2>
   <input type="hidden" id="editId" value="">
 
   <label>اسم المحتوى <span class="req">*</span></label>
-  <input id="title" placeholder="مثال: الفيل الأزرق">
+  <input id="title" placeholder="مثال: الفيل الأزرق / اختيار إجباري">
 
   <label>القسم <span class="req">*</span></label>
-  <select id="category">
+  <select id="category" onchange="toggleEpisodesUI()">
     <option value="أفلام عربي">أفلام عربي</option>
     <option value="أفلام أجنبي">أفلام أجنبي</option>
     <option value="مسلسلات عربي">مسلسلات عربي</option>
@@ -87,7 +92,7 @@ button.small{padding:8px 14px;font-size:13px;margin-left:6px}
   <input id="rating" type="number" step="0.1" min="0" max="10" placeholder="8.0">
 
   <label>المدة <span class="req">*</span></label>
-  <input id="duration" placeholder="مثال: 130 دقيقة" value="—">
+  <input id="duration" placeholder="مثال: 130 دقيقة / 20 حلقة" value="—">
 
   <label>الوصف</label>
   <textarea id="description" rows="4" placeholder="قصة العمل باختصار"></textarea>
@@ -95,8 +100,18 @@ button.small{padding:8px 14px;font-size:13px;margin-left:6px}
   <label>رابط الصورة (Poster) <span class="req">*</span></label>
   <input id="poster_url" placeholder="https://..." value="https://via.placeholder.com/500x750?text=Filmo">
 
-  <label>رابط الفيديو / المشاهدة <span class="req">*</span></label>
-  <input id="movie_url" placeholder="https://..." value="https://example.com">
+  <!-- للأفلام -->
+  <div id="movieUrlBox">
+    <label>رابط الفيديو / المشاهدة <span class="req">*</span></label>
+    <input id="movie_url" placeholder="https://..." value="https://example.com">
+  </div>
+
+  <!-- للمسلسلات -->
+  <div id="episodesBox" class="ep-box hidden">
+    <h3>الحلقات</h3>
+    <div id="episodesList"></div>
+    <button type="button" class="secondary small" onclick="addEpisodeRow()">+ إضافة حلقة</button>
+  </div>
 
   <div class="btns">
     <button id="saveBtn" onclick="saveMovie()">حفظ</button>
@@ -116,11 +131,15 @@ const SUPABASE_KEY = "sb_publishable_72qMAroeSPFAMXfL2AoVQA_5RnDslsh";
 const TABLE_URL = SUPABASE_URL + "/rest/v1/movies";
 const ADMIN_PASSWORD = "Filmo2026";
 const SESSION_KEY = "filmo_admin_ok";
-
 const VALID_CATEGORIES = ["أفلام عربي", "أفلام أجنبي", "مسلسلات عربي", "مسلسلات أجنبي"];
 
 let allMovies = [];
 let idColumn = "Id";
+let episodeCounter = 0;
+
+function isSeries(cat) {
+  return cat === "مسلسلات عربي" || cat === "مسلسلات أجنبي";
+}
 
 function isLoggedIn() {
   return sessionStorage.getItem(SESSION_KEY) === "1";
@@ -146,6 +165,7 @@ function logout() {
 function showAdmin() {
   document.getElementById("loginScreen").classList.add("hidden");
   document.getElementById("adminPanel").classList.remove("hidden");
+  toggleEpisodesUI();
   loadList();
 }
 
@@ -179,24 +199,102 @@ function mapOldCategory(cat) {
   return "أفلام عربي";
 }
 
+function toggleEpisodesUI() {
+  const cat = document.getElementById("category").value;
+  const series = isSeries(cat);
+  document.getElementById("episodesBox").classList.toggle("hidden", !series);
+  document.getElementById("movieUrlBox").classList.toggle("hidden", series);
+  if (series && !document.getElementById("episodesList").children.length) {
+    addEpisodeRow();
+    addEpisodeRow();
+  }
+}
+
+function addEpisodeRow(title, url) {
+  episodeCounter++;
+  const id = episodeCounter;
+  const row = document.createElement("div");
+  row.className = "ep-row";
+  row.id = "ep-" + id;
+  row.innerHTML =
+    '<input type="text" placeholder="رقم" value="' + escapeAttr(title ? "" : String(id)) + '" data-ep-num>' +
+    '<input type="text" placeholder="اسم الحلقة (اختياري)" value="' + escapeAttr(title || "") + '" data-ep-title>' +
+    '<input type="text" placeholder="رابط الحلقة https://..." value="' + escapeAttr(url || "") + '" data-ep-url>' +
+    '<button type="button" class="danger small" onclick="removeEpisodeRow(' + id + ')">×</button>';
+  // fix: first field should be episode number label style - simplify
+  row.innerHTML =
+    '<input type="text" placeholder="الحلقة 1" value="' + escapeAttr(title || ("الحلقة " + id)) + '" data-ep-title>' +
+    '<input type="text" placeholder="رابط الحلقة" value="' + escapeAttr(url || "") + '" data-ep-url style="grid-column: span 2">' +
+    '<button type="button" class="danger small" onclick="removeEpisodeRow(' + id + ')">×</button>';
+  document.getElementById("episodesList").appendChild(row);
+}
+
+function removeEpisodeRow(id) {
+  const el = document.getElementById("ep-" + id);
+  if (el) el.remove();
+}
+
+function getEpisodesFromForm() {
+  const rows = document.querySelectorAll("#episodesList .ep-row");
+  const list = [];
+  rows.forEach(row => {
+    const title = (row.querySelector("[data-ep-title]") || {}).value || "";
+    const url = (row.querySelector("[data-ep-url]") || {}).value || "";
+    if (url.trim()) {
+      list.push({ title: title.trim() || ("حلقة " + (list.length + 1)), url: url.trim() });
+    }
+  });
+  return list;
+}
+
+function setEpisodesForm(episodes) {
+  const box = document.getElementById("episodesList");
+  box.innerHTML = "";
+  episodeCounter = 0;
+  if (Array.isArray(episodes) && episodes.length) {
+    episodes.forEach(ep => addEpisodeRow(ep.title || "", ep.url || ""));
+  } else {
+    addEpisodeRow();
+  }
+}
+
+function parseEpisodes(val) {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  try {
+    const p = JSON.parse(val);
+    return Array.isArray(p) ? p : [];
+  } catch {
+    return [];
+  }
+}
+
 function getPayload() {
   const title = document.getElementById("title").value.trim();
   let poster = document.getElementById("poster_url").value.trim();
-  let movieUrl = document.getElementById("movie_url").value.trim();
   let duration = document.getElementById("duration").value.trim();
   if (!poster) poster = "https://via.placeholder.com/500x750?text=Filmo";
-  if (!movieUrl) movieUrl = "https://example.com";
   if (!duration) duration = "—";
+
+  const cat = document.getElementById("category").value;
+  let movieUrl = document.getElementById("movie_url").value.trim() || "https://example.com";
+  let episodes = [];
+
+  if (isSeries(cat)) {
+    episodes = getEpisodesFromForm();
+    movieUrl = episodes.length ? episodes[0].url : "https://example.com";
+  }
 
   return {
     title,
-    category: document.getElementById("category").value,
+    category: cat,
     year: document.getElementById("year").value ? Number(document.getElementById("year").value) : null,
     rating: document.getElementById("rating").value ? Number(document.getElementById("rating").value) : null,
     description: document.getElementById("description").value.trim() || null,
     poster_url: poster,
     movie_url: movieUrl,
-    duration: duration
+    duration: duration,
+    episodes: JSON.stringify(episodes)
   };
 }
 
@@ -213,6 +311,9 @@ function resetForm() {
   document.getElementById("poster_url").value = "https://via.placeholder.com/500x750?text=Filmo";
   document.getElementById("movie_url").value = "https://example.com";
   document.getElementById("category").value = "أفلام عربي";
+  document.getElementById("episodesList").innerHTML = "";
+  episodeCounter = 0;
+  toggleEpisodesUI();
 }
 
 function cancelEdit() {
@@ -238,6 +339,11 @@ function startEdit(id) {
   document.getElementById("poster_url").value = row.poster_url || "";
   document.getElementById("movie_url").value = row.movie_url || "";
 
+  toggleEpisodesUI();
+  if (isSeries(mapOldCategory(row.category))) {
+    setEpisodesForm(parseEpisodes(row.episodes));
+  }
+
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -246,6 +352,15 @@ async function saveMovie() {
   if (!title) {
     message("اكتب اسم المحتوى أولًا.");
     return;
+  }
+
+  const cat = document.getElementById("category").value;
+  if (isSeries(cat)) {
+    const eps = getEpisodesFromForm();
+    if (!eps.length) {
+      message("ضيف حلقة واحدة على الأقل مع رابطها.");
+      return;
+    }
   }
 
   const payload = getPayload();
@@ -268,14 +383,20 @@ async function saveMovie() {
         body: JSON.stringify(payload)
       });
     }
-    if (!res.ok) throw new Error(await res.text() || "فشل الحفظ");
+    if (!res.ok) {
+      const text = await res.text();
+      if (text.includes("episodes") || text.includes("PGRST204")) {
+        throw new Error("عمود episodes مش موجود. ضيفه من Supabase (شرح تحت).");
+      }
+      throw new Error(text || "فشل الحفظ");
+    }
 
     message(isEdit ? "تم تحديث المحتوى بنجاح ✅" : "تم حفظ المحتوى بنجاح ✅", true);
     resetForm();
     loadList();
   } catch (e) {
     console.error(e);
-    message("فشل الحفظ: " + (e.message || "خطأ غير معروف"));
+    message("فشل الحفظ: " + (e.message || "خطأ"));
   } finally {
     document.getElementById("saveBtn").disabled = false;
   }
@@ -305,9 +426,7 @@ async function loadList() {
     if (!res.ok) {
       res = await fetch(TABLE_URL + "?select=*&order=Id.desc", { headers: headers() });
       idColumn = "Id";
-    } else {
-      idColumn = "id";
-    }
+    } else idColumn = "id";
     if (!res.ok) throw new Error(await res.text());
 
     const rows = await res.json();
@@ -327,9 +446,11 @@ async function loadList() {
       const cat = mapOldCategory(r.category);
       const year = r.year || "—";
       const rating = r.rating != null ? r.rating : "—";
+      const eps = parseEpisodes(r.episodes);
+      const extra = isSeries(cat) ? (" • " + eps.length + " حلقة") : "";
       return '<div class="item">' +
         '<div class="info"><strong>' + escapeHtml(r.title || "") +
-        '</strong><div class="meta">' + escapeHtml(cat) + ' • ' + year + ' • ⭐ ' + rating +
+        '</strong><div class="meta">' + escapeHtml(cat) + ' • ' + year + ' • ⭐ ' + rating + extra +
         ' <span class="badge">#' + id + '</span></div></div>' +
         '<div class="actions">' +
         '<button class="secondary small" onclick="startEdit(\'' + id + '\')">تعديل</button>' +
@@ -346,6 +467,9 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
   }[c]));
+}
+function escapeAttr(s) {
+  return String(s).replace(/"/g, "&quot;");
 }
 
 if (isLoggedIn()) showAdmin();

@@ -22,6 +22,11 @@ section{margin:34px 0}.head{display:flex;justify-content:space-between;align-ite
 .player-wrap{display:none;margin-top:22px;background:#0a0c10;border-radius:14px;overflow:hidden;border:1px solid #242a35}
 .player-wrap.active{display:block}
 .player-wrap video,.player-wrap iframe{width:100%;aspect-ratio:16/9;border:0;display:block;background:#000}
+.episodes{margin-top:18px;display:none}
+.episodes h3{margin:0 0 12px;font-size:17px;color:#ffb000}
+.ep-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.ep-btn{background:#1a1f2a;border:1px solid #2a3140;color:#fff;padding:12px 10px;border-radius:10px;cursor:pointer;font-size:13px;text-align:center}
+.ep-btn:hover,.ep-btn.active{border-color:#ffb000;color:#ffb000;background:#1f2430}
 footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align:center;color:#777}
 @media(max-width:900px){.grid{grid-template-columns:repeat(4,1fr)}.links{display:none}}
 @media(max-width:600px){nav{padding:10px}.logo{font-size:20px}.hero{padding:24px;min-height:220px}.hero h1{font-size:26px}.grid{grid-template-columns:repeat(2,1fr);gap:11px}.detail{display:block}.detail img{width:170px;height:245px;margin-bottom:14px}}
@@ -52,17 +57,14 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
   <div class="head"><h2>🇪🇬 أفلام عربي</h2><span class="muted" id="count-ar-movies"></span></div>
   <div id="grid-ar-movies" class="grid"></div>
 </section>
-
 <section id="en-movies">
   <div class="head"><h2>🎬 أفلام أجنبي</h2><span class="muted" id="count-en-movies"></span></div>
   <div id="grid-en-movies" class="grid"></div>
 </section>
-
 <section id="ar-series">
   <div class="head"><h2>📺 مسلسلات عربي</h2><span class="muted" id="count-ar-series"></span></div>
   <div id="grid-ar-series" class="grid"></div>
 </section>
-
 <section id="en-series">
   <div class="head"><h2>📺 مسلسلات أجنبي</h2><span class="muted" id="count-en-series"></span></div>
   <div id="grid-en-series" class="grid"></div>
@@ -77,8 +79,12 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
       <h1 id="dtitle"></h1>
       <div id="dmeta" class="muted"></div>
       <p id="ddesc"></p>
-      <button class="btn" type="button" onclick="watch()">▶ مشاهدة</button>
+      <button class="btn" type="button" id="watchBtn" onclick="watch()">▶ مشاهدة</button>
     </div>
+  </div>
+  <div id="episodesBox" class="episodes">
+    <h3>الحلقات</h3>
+    <div id="epList" class="ep-list"></div>
   </div>
   <div id="playerWrap" class="player-wrap"><div id="playerInner"></div></div>
 </div>
@@ -109,13 +115,25 @@ function safe(v) {
   }[c]));
 }
 
+function isSeries(type) {
+  return type === "مسلسلات عربي" || type === "مسلسلات أجنبي";
+}
+
 function normalizeCategory(cat) {
   const c = (cat || "").trim();
-  // توافق مع القيم القديمة
   if (c === "فيلم" || c === "دراما") return "أفلام عربي";
   if (c === "مسلسل") return "مسلسلات عربي";
   if (CATEGORIES.some(x => x.key === c)) return c;
   return "أفلام عربي";
+}
+
+function parseEpisodes(val) {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  try {
+    const p = JSON.parse(val);
+    return Array.isArray(p) ? p : [];
+  } catch { return []; }
 }
 
 function normalize(row) {
@@ -127,7 +145,8 @@ function normalize(row) {
     rating: row.rating ?? "—",
     img: row.poster_url || "",
     movie_url: row.movie_url || "",
-    desc: row.description || ""
+    desc: row.description || "",
+    episodes: parseEpisodes(row.episodes)
   };
 }
 
@@ -137,14 +156,11 @@ async function loadMovies() {
   });
   try {
     let response = await fetch(
-      TABLE_URL + "?select=Id,title,description,poster_url,movie_url,category,year,rating&order=Id.desc",
+      TABLE_URL + "?select=*&order=Id.desc",
       { headers: apiHeaders() }
     );
     if (!response.ok) {
-      response = await fetch(
-        TABLE_URL + "?select=id,title,description,poster_url,movie_url,category,year,rating&order=id.desc",
-        { headers: apiHeaders() }
-      );
+      response = await fetch(TABLE_URL + "?select=*&order=id.desc", { headers: apiHeaders() });
     }
     if (!response.ok) throw new Error(await response.text());
 
@@ -205,6 +221,25 @@ function show(x) {
   document.getElementById("dmeta").textContent = x.type + " • " + x.year + " • ⭐ " + x.rating;
   document.getElementById("ddesc").textContent = x.desc;
   window.currentMovie = x;
+  window.currentEpisodeUrl = null;
+
+  const epBox = document.getElementById("episodesBox");
+  const epList = document.getElementById("epList");
+  const watchBtn = document.getElementById("watchBtn");
+
+  if (isSeries(x.type) && x.episodes && x.episodes.length) {
+    epBox.style.display = "block";
+    watchBtn.style.display = "none";
+    epList.innerHTML = x.episodes.map(function(ep, i) {
+      return '<button type="button" class="ep-btn" onclick="playEpisode(' + i + ', this)">' +
+        safe(ep.title || ("الحلقة " + (i + 1))) + "</button>";
+    }).join("");
+  } else {
+    epBox.style.display = "none";
+    epList.innerHTML = "";
+    watchBtn.style.display = "inline-block";
+  }
+
   scrollTo(0, 0);
 }
 
@@ -227,10 +262,9 @@ function isDirectVideo(url) {
   return /\.(mp4|webm|ogg|m3u8)(\?|$)/i.test(url);
 }
 
-function watch() {
-  const url = window.currentMovie && window.currentMovie.movie_url;
+function playUrl(url) {
   if (!url || url === "https://example.com") {
-    alert("رابط المشاهدة غير مضاف لهذا العمل.");
+    alert("رابط المشاهدة غير مضاف.");
     return;
   }
   const wrap = document.getElementById("playerWrap");
@@ -253,6 +287,19 @@ function watch() {
     inner.innerHTML = '<iframe src="' + safe(embedUrl) + '" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
   }
   wrap.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function playEpisode(index, btn) {
+  const eps = window.currentMovie && window.currentMovie.episodes;
+  if (!eps || !eps[index]) return;
+  document.querySelectorAll(".ep-btn").forEach(b => b.classList.remove("active"));
+  if (btn) btn.classList.add("active");
+  playUrl(eps[index].url);
+}
+
+function watch() {
+  const url = window.currentMovie && window.currentMovie.movie_url;
+  playUrl(url);
 }
 
 loadMovies();
