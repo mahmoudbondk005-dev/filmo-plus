@@ -11,29 +11,46 @@ nav{max-width:1200px;margin:auto;padding:14px 18px;display:flex;gap:16px;align-i
 .search{flex:1;display:flex;background:#171b24;border:1px solid #2a303c;border-radius:12px;overflow:hidden}.search input{flex:1;background:none;border:0;outline:0;color:#fff;padding:12px}.search button{border:0;background:#ffb000;padding:0 18px;font-weight:bold}
 .links{display:flex;gap:15px;color:#c7cad1;font-size:14px}.links a{text-decoration:none;color:inherit}
 .wrap{max-width:1200px;margin:auto;padding:0 18px}.hero{margin:24px 0;border-radius:22px;padding:38px;min-height:300px;background:linear-gradient(90deg,#12161f 20%,#12161f99),url("https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1500&q=80") center/cover}
-.hero h1{font-size:38px;margin:0 0 12px}.hero p{max-width:560px;color:#c8ccd4;line-height:1.9}.btn{display:inline-block;margin-top:12px;padding:12px 20px;background:#ffb000;color:#111;text-decoration:none;border-radius:10px;font-weight:bold}
+.hero h1{font-size:38px;margin:0 0 12px}.hero p{max-width:560px;color:#c8ccd4;line-height:1.9}.btn{display:inline-block;margin-top:12px;padding:12px 20px;background:#ffb000;color:#111;text-decoration:none;border-radius:10px;font-weight:bold;border:0;cursor:pointer;font-size:15px;font-weight:bold}
 section{margin:34px 0}.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.head h2{margin:0;font-size:22px}.muted{color:#8d929d}
 .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}.card{background:#141821;border:1px solid #202633;border-radius:13px;overflow:hidden;cursor:pointer;transition:.2s}.card:hover{transform:translateY(-4px)}.poster{aspect-ratio:2/3;background:#222 center/cover}.body{padding:10px}.body h3{font-size:14px;margin:0 0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.meta{font-size:11px;color:#9297a2}.rate{display:inline-block;margin-top:7px;background:#252b35;color:#ffb000;border-radius:6px;padding:3px 7px;font-size:11px}
-#details{display:none;margin:25px auto;max-width:1000px}.detail{background:#141821;border:1px solid #242a35;border-radius:18px;padding:20px;display:flex;gap:25px}.detail img{width:230px;border-radius:12px;object-fit:cover}.detail h1{margin:5px 0 10px}.detail p{line-height:1.9;color:#c0c4cc}.back{color:#ffb000;cursor:pointer;margin-bottom:14px;display:inline-block}
+#details{display:none;margin:25px auto;max-width:1000px}
+.detail{background:#141821;border:1px solid #242a35;border-radius:18px;padding:20px;display:flex;gap:25px}
+.detail img{width:230px;border-radius:12px;object-fit:cover;flex-shrink:0}
+.detail h1{margin:5px 0 10px}.detail p{line-height:1.9;color:#c0c4cc}
+.back{color:#ffb000;cursor:pointer;margin-bottom:14px;display:inline-block}
+.player-wrap{display:none;margin-top:22px;background:#0a0c10;border-radius:14px;overflow:hidden;border:1px solid #242a35}
+.player-wrap.active{display:block}
+.player-wrap video,.player-wrap iframe{width:100%;aspect-ratio:16/9;border:0;display:block;background:#000}
+.player-msg{padding:40px 20px;text-align:center;color:#8d929d}
 footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align:center;color:#777}
 @media(max-width:900px){.grid{grid-template-columns:repeat(4,1fr)}.links{display:none}}
-@media(max-width:600px){nav{padding:10px}.logo{font-size:20px}.hero{padding:24px;min-height:250px}.hero h1{font-size:28px}.grid{grid-template-columns:repeat(2,1fr);gap:11px}.detail{display:block}.detail img{width:170px;height:245px}}
+@media(max-width:600px){nav{padding:10px}.logo{font-size:20px}.hero{padding:24px;min-height:250px}.hero h1{font-size:28px}.grid{grid-template-columns:repeat(2,1fr);gap:11px}.detail{display:block}.detail img{width:170px;height:245px;margin-bottom:14px}}
 </style></head>
 <body>
-<header><nav><div class="logo">فيلمو<i>+</i></div><div class="search"><input id="q" placeholder="ابحث عن فيلم أو مسلسل..." oninput="search()"><button onclick="search()">بحث</button></div><div class="links"><a href="#" onclick="home()">الرئيسية</a><a href="#movies">الأفلام</a><a href="#series">المسلسلات</a></div></nav></header>
+<header><nav><div class="logo">فيلمو<i>+</i></div><div class="search"><input id="q" placeholder="ابحث عن فيلم أو مسلسل..." oninput="search()"><button onclick="search()">بحث</button></div><div class="links"><a href="#" onclick="home();return false">الرئيسية</a><a href="#movies">الأفلام</a><a href="#series">المسلسلات</a></div></nav></header>
 <main id="homePage" class="wrap">
 <div class="hero"><h1>المحتوى المصري في مكان واحد</h1><p>تجربة مشاهدة بسيطة وسريعة للمحتوى المصري المرخّص. ابحث عن العمل الذي تريده واستمتع.</p><a class="btn" href="#movies">ابدأ المشاهدة</a></div>
 <section id="movies"><div class="head"><h2>🇪🇬 الأفلام المصرية</h2><span class="muted" id="count"></span></div><div id="movieGrid" class="grid"></div></section>
 <section id="series"><div class="head"><h2>📺 المسلسلات المصرية</h2></div><div id="seriesGrid" class="grid"></div></section>
 </main>
-<div id="details" class="wrap"><span class="back" onclick="home()">← العودة</span><div class="detail"><img id="dimg"><div><h1 id="dtitle"></h1><div id="dmeta" class="muted"></div><p id="ddesc"></p><a class="btn" href="#" onclick="watch();return false">▶ مشاهدة</a></div></div></div>
+<div id="details" class="wrap">
+  <span class="back" onclick="home()">← العودة</span>
+  <div class="detail">
+    <img id="dimg" alt="">
+    <div>
+      <h1 id="dtitle"></h1>
+      <div id="dmeta" class="muted"></div>
+      <p id="ddesc"></p>
+      <button class="btn" type="button" onclick="watch()">▶ مشاهدة</button>
+    </div>
+  </div>
+  <div id="playerWrap" class="player-wrap">
+    <div id="playerInner"></div>
+  </div>
+</div>
 <footer>فيلمو+ © 2026 — منصة للمحتوى المرخّص | <a href="privacy.html" style="color:#aaa">الخصوصية</a> · <a href="terms.html" style="color:#aaa">الشروط</a> · <a href="contact.html" style="color:#aaa">تواصل معنا</a></footer>
 <script>
-/*
-  فيلمو+ + Supabase
-  مهم: استبدل SUPABASE_KEY بمفتاح Publishable/anon فقط.
-  ممنوع وضع service_role key داخل هذا الملف.
-*/
 const SUPABASE_URL = "https://axvibvssjizkrfdqlyow.supabase.co";
 const SUPABASE_KEY = "sb_publishable_72qMAroeSPFAMXfL2AoVQA_5RnDslsh";
 const TABLE_URL = SUPABASE_URL + "/rest/v1/movies";
@@ -42,8 +59,7 @@ let movies = [];
 let series = [];
 
 function apiHeaders() {
-  return {
-    "apikey": SUPABASE_KEY,};
+  return { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY };
 }
 
 function safe(v) {
@@ -69,10 +85,16 @@ async function loadMovies() {
   const grid = document.getElementById("movieGrid");
   grid.innerHTML = '<p class="muted">جاري تحميل الأفلام...</p>';
   try {
-    const response = await fetch(
+    let response = await fetch(
       TABLE_URL + "?select=Id,title,description,poster_url,movie_url,category,year,rating&order=Id.desc",
       { headers: apiHeaders() }
     );
+    if (!response.ok) {
+      response = await fetch(
+        TABLE_URL + "?select=id,title,description,poster_url,movie_url,category,year,rating&order=id.desc",
+        { headers: apiHeaders() }
+      );
+    }
     if (!response.ok) {
       const msg = await response.text();
       throw new Error(msg || "تعذر تحميل البيانات");
@@ -85,7 +107,7 @@ async function loadMovies() {
 
     render(movies, "movieGrid");
     render(series, "seriesGrid");
-    document.getElementById("count").textContent = `إجمالي: ${movies.length}`;
+    document.getElementById("count").textContent = "إجمالي: " + movies.length;
   } catch (error) {
     console.error(error);
     grid.innerHTML = '<p class="muted">حدث خطأ أثناء تحميل الأفلام من قاعدة البيانات.</p>';
@@ -96,14 +118,13 @@ async function loadMovies() {
 
 function card(x) {
   const poster = safe(x.img || "https://via.placeholder.com/500x750?text=Filmo%2B");
-  return `<div class="card" onclick='show(${JSON.stringify(x).replace(/</g,"\\u003c")})'>
-    <div class="poster" style="background-image:url('${poster}')"></div>
-    <div class="body">
-      <h3>${safe(x.name)}</h3>
-      <div class="meta">${safe(x.type)} • ${safe(x.year)}</div>
-      <span class="rate">⭐ ${safe(x.rating)}</span>
-    </div>
-  </div>`;
+  return '<div class="card" onclick=\'show(' + JSON.stringify(x).replace(/</g,"\\u003c") + ')\'>' +
+    '<div class="poster" style="background-image:url(\'' + poster + '\')"></div>' +
+    '<div class="body">' +
+    '<h3>' + safe(x.name) + '</h3>' +
+    '<div class="meta">' + safe(x.type) + ' • ' + safe(x.year) + '</div>' +
+    '<span class="rate">⭐ ' + safe(x.rating) + '</span>' +
+    '</div></div>';
 }
 
 function render(a, id) {
@@ -116,33 +137,81 @@ function search() {
   const q = document.getElementById("q").value.trim().toLowerCase();
   const a = movies.filter(x => x.name.toLowerCase().includes(q));
   render(a, "movieGrid");
-  document.getElementById("count").textContent = q ? `نتائج: ${a.length}` : `إجمالي: ${movies.length}`;
+  document.getElementById("count").textContent = q ? "نتائج: " + a.length : "إجمالي: " + movies.length;
+}
+
+function stopPlayer() {
+  const wrap = document.getElementById("playerWrap");
+  const inner = document.getElementById("playerInner");
+  wrap.classList.remove("active");
+  inner.innerHTML = "";
 }
 
 function show(x) {
+  stopPlayer();
   document.getElementById("homePage").style.display = "none";
   document.getElementById("details").style.display = "block";
   document.getElementById("dimg").src = x.img || "https://via.placeholder.com/500x750?text=Filmo%2B";
   document.getElementById("dtitle").textContent = x.name;
-  document.getElementById("dmeta").textContent = `${x.type} • ${x.year} • ⭐ ${x.rating}`;
+  document.getElementById("dmeta").textContent = x.type + " • " + x.year + " • ⭐ " + x.rating;
   document.getElementById("ddesc").textContent = x.desc;
   window.currentMovie = x;
   scrollTo(0, 0);
 }
 
 function home() {
+  stopPlayer();
   document.getElementById("details").style.display = "none";
   document.getElementById("homePage").style.display = "block";
   scrollTo(0, 0);
 }
 
+function getYouTubeId(url) {
+  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{6,})/);
+  return m ? m[1] : null;
+}
+
+function getVimeoId(url) {
+  const m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  return m ? m[1] : null;
+}
+
+function isDirectVideo(url) {
+  return /\.(mp4|webm|ogg|m3u8)(\?|$)/i.test(url);
+}
+
 function watch() {
   const url = window.currentMovie && window.currentMovie.movie_url;
-  if (!url) {
+  if (!url || url === "https://example.com") {
     alert("رابط المشاهدة غير مضاف لهذا العمل.");
     return;
   }
-  window.open(url, "_blank", "noopener,noreferrer");
+
+  const wrap = document.getElementById("playerWrap");
+  const inner = document.getElementById("playerInner");
+  wrap.classList.add("active");
+  inner.innerHTML = "";
+
+  const yt = getYouTubeId(url);
+  const vim = getVimeoId(url);
+
+  if (yt) {
+    inner.innerHTML = '<iframe src="https://www.youtube.com/embed/' + yt + '?autoplay=1&rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>';
+  } else if (vim) {
+    inner.innerHTML = '<iframe src="https://player.vimeo.com/video/' + vim + '?autoplay=1" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>';
+  } else if (isDirectVideo(url)) {
+    inner.innerHTML = '<video controls autoplay playsinline src="' + safe(url) + '"></video>';
+  } else {
+    // أي رابط تاني — نحاول نعرضه في iframe (Google Drive / مواقع أخرى)
+    let embedUrl = url;
+    // Google Drive: حول لـ preview
+    const gd = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+    if (gd) embedUrl = "https://drive.google.com/file/d/" + gd[1] + "/preview";
+
+    inner.innerHTML = '<iframe src="' + safe(embedUrl) + '" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
+  }
+
+  wrap.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 loadMovies();

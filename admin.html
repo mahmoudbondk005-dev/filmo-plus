@@ -8,7 +8,7 @@
 <style>
 *{box-sizing:border-box}
 body{font-family:Tahoma,Arial,sans-serif;background:#0b0d12;color:#fff;margin:0;min-height:100vh}
-.box{max-width:720px;margin:40px auto;padding:28px;background:#151922;border-radius:18px;border:1px solid #242a35}
+.box{max-width:760px;margin:40px auto;padding:28px;background:#151922;border-radius:18px;border:1px solid #242a35}
 h1{color:#ffb000;margin:0 0 8px;font-size:26px}
 .sub{color:#8d929d;margin:0 0 22px;font-size:14px}
 label{display:block;margin:4px 0 6px;color:#c7cad1;font-size:14px}
@@ -17,6 +17,9 @@ input:focus,textarea:focus,select:focus{outline:0;border-color:#ffb000}
 button{background:#ffb000;color:#111;border:0;padding:13px 22px;border-radius:10px;font-weight:bold;cursor:pointer;font-size:15px}
 button:hover{filter:brightness(1.08)}
 button:disabled{opacity:.55;cursor:not-allowed}
+button.secondary{background:#252b35;color:#fff}
+button.danger{background:#5a2020;color:#fff}
+button.small{padding:8px 14px;font-size:13px;margin-left:6px}
 .msg{margin-top:16px;padding:12px 14px;border-radius:10px;display:none;font-size:14px}
 .login-box{max-width:400px;margin:12vh auto;text-align:center}
 .login-box input{text-align:center;letter-spacing:2px}
@@ -24,15 +27,18 @@ button:disabled{opacity:.55;cursor:not-allowed}
 .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px}
 .list{margin-top:36px}
 .list h2{font-size:18px;margin:0 0 14px;color:#ffb000}
-.item{background:#0d1016;border:1px solid #242a35;border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.item{background:#0d1016;border:1px solid #242a35;border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .item .info{flex:1;min-width:0}
 .item .info strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .item .meta{font-size:12px;color:#8d929d;margin-top:4px}
+.item .actions{display:flex;gap:6px;flex-shrink:0}
 .badge{display:inline-block;background:#252b35;color:#ffb000;padding:3px 8px;border-radius:6px;font-size:11px}
 .logout{background:transparent;border:1px solid #444;color:#aaa;padding:8px 14px;font-size:13px}
 .logout:hover{border-color:#ffb000;color:#ffb000}
 .note{background:#1a1f2a;border:1px solid #2a3140;border-radius:10px;padding:12px 14px;font-size:13px;color:#9aa0ab;margin-bottom:20px;line-height:1.7}
 .req{color:#ff6b6b;font-size:12px}
+.form-title{font-size:18px;color:#ffb000;margin:0 0 16px}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
 </style>
 </head>
 <body>
@@ -50,15 +56,18 @@ button:disabled{opacity:.55;cursor:not-allowed}
   <div class="topbar">
     <div>
       <h1>لوحة التحكم</h1>
-      <p class="sub" style="margin:0">إضافة وإدارة المحتوى</p>
+      <p class="sub" style="margin:0">إضافة وتعديل وحذف المحتوى</p>
     </div>
     <button class="logout" onclick="logout()">تسجيل الخروج</button>
   </div>
 
   <div class="note">
-    الحقول المعلّمة بـ <span class="req">*</span> مطلوبة في قاعدة البيانات.<br>
-    الرابط: <code style="color:#ffb000">yoursite.com/admin.html</code>
+    الحقول المعلّمة بـ <span class="req">*</span> مطلوبة.<br>
+    اضغط <b>تعديل</b> على أي فيلم عشان تعدّل بياناته.
   </div>
+
+  <h2 class="form-title" id="formTitle">إضافة محتوى جديد</h2>
+  <input type="hidden" id="editId" value="">
 
   <label>اسم المحتوى <span class="req">*</span></label>
   <input id="title" placeholder="مثال: الفيل الأزرق">
@@ -87,7 +96,10 @@ button:disabled{opacity:.55;cursor:not-allowed}
   <label>رابط الفيديو / المشاهدة <span class="req">*</span></label>
   <input id="movie_url" placeholder="https://..." value="https://example.com">
 
-  <button id="saveBtn" onclick="saveMovie()">حفظ في قاعدة البيانات</button>
+  <div class="btns">
+    <button id="saveBtn" onclick="saveMovie()">حفظ</button>
+    <button id="cancelBtn" class="secondary hidden" onclick="cancelEdit()">إلغاء التعديل</button>
+  </div>
   <div id="msg" class="msg"></div>
 
   <div class="list">
@@ -102,6 +114,9 @@ const SUPABASE_KEY = "sb_publishable_72qMAroeSPFAMXfL2AoVQA_5RnDslsh";
 const TABLE_URL = SUPABASE_URL + "/rest/v1/movies";
 const ADMIN_PASSWORD = "Filmo2026";
 const SESSION_KEY = "filmo_admin_ok";
+
+let allMovies = [];
+let idColumn = "Id"; // هيتحدد تلقائي
 
 function isLoggedIn() {
   return sessionStorage.getItem(SESSION_KEY) === "1";
@@ -144,23 +159,26 @@ function message(text, ok = false) {
   el.textContent = text;
 }
 
-async function saveMovie() {
-  const title = document.getElementById("title").value.trim();
-  if (!title) {
-    message("اكتب اسم المحتوى أولًا.");
-    return;
-  }
+function headers(extra = {}) {
+  return {
+    "apikey": SUPABASE_KEY,
+    "Authorization": "Bearer " + SUPABASE_KEY,
+    "Content-Type": "application/json",
+    ...extra
+  };
+}
 
+function getPayload() {
+  const title = document.getElementById("title").value.trim();
   let poster = document.getElementById("poster_url").value.trim();
   let movieUrl = document.getElementById("movie_url").value.trim();
   let duration = document.getElementById("duration").value.trim();
 
-  // الأعمدة دي NOT NULL في الجدول
   if (!poster) poster = "https://via.placeholder.com/500x750?text=Filmo%2B";
   if (!movieUrl) movieUrl = "https://example.com";
   if (!duration) duration = "—";
 
-  const payload = {
+  return {
     title,
     category: document.getElementById("category").value,
     year: document.getElementById("year").value ? Number(document.getElementById("year").value) : null,
@@ -170,66 +188,159 @@ async function saveMovie() {
     movie_url: movieUrl,
     duration: duration
   };
+}
+
+function resetForm() {
+  document.getElementById("editId").value = "";
+  document.getElementById("formTitle").textContent = "إضافة محتوى جديد";
+  document.getElementById("saveBtn").textContent = "حفظ";
+  document.getElementById("cancelBtn").classList.add("hidden");
+  document.getElementById("title").value = "";
+  document.getElementById("year").value = "";
+  document.getElementById("rating").value = "";
+  document.getElementById("description").value = "";
+  document.getElementById("duration").value = "—";
+  document.getElementById("poster_url").value = "https://via.placeholder.com/500x750?text=Filmo%2B";
+  document.getElementById("movie_url").value = "https://example.com";
+  document.getElementById("category").value = "فيلم";
+}
+
+function cancelEdit() {
+  resetForm();
+  message("تم إلغاء التعديل", true);
+}
+
+function startEdit(id) {
+  const row = allMovies.find(r => String(r.Id ?? r.id) === String(id));
+  if (!row) return;
+
+  document.getElementById("editId").value = id;
+  document.getElementById("formTitle").textContent = "تعديل: " + (row.title || "");
+  document.getElementById("saveBtn").textContent = "حفظ التعديلات";
+  document.getElementById("cancelBtn").classList.remove("hidden");
+
+  document.getElementById("title").value = row.title || "";
+  document.getElementById("category").value = row.category === "مسلسل" ? "مسلسل" : "فيلم";
+  document.getElementById("year").value = row.year || "";
+  document.getElementById("rating").value = row.rating != null ? row.rating : "";
+  document.getElementById("duration").value = row.duration || "—";
+  document.getElementById("description").value = row.description || "";
+  document.getElementById("poster_url").value = row.poster_url || "";
+  document.getElementById("movie_url").value = row.movie_url || "";
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+async function saveMovie() {
+  const title = document.getElementById("title").value.trim();
+  if (!title) {
+    message("اكتب اسم المحتوى أولًا.");
+    return;
+  }
+
+  const payload = getPayload();
+  const editId = document.getElementById("editId").value;
+  const isEdit = !!editId;
 
   try {
     document.getElementById("saveBtn").disabled = true;
-    const res = await fetch(TABLE_URL, {
-      method: "POST",
-      headers: {
-        "apikey": SUPABASE_KEY,
-        "Authorization": "Bearer " + SUPABASE_KEY,
-        "Content-Type": "application/json",
-        "Prefer": "return=minimal"
-      },
-      body: JSON.stringify(payload)
-    });
+
+    let res;
+    if (isEdit) {
+      // تحديث
+      const col = idColumn;
+      res = await fetch(TABLE_URL + "?" + col + "=eq." + encodeURIComponent(editId), {
+        method: "PATCH",
+        headers: headers({ "Prefer": "return=minimal" }),
+        body: JSON.stringify(payload)
+      });
+    } else {
+      // إضافة
+      res = await fetch(TABLE_URL, {
+        method: "POST",
+        headers: headers({ "Prefer": "return=minimal" }),
+        body: JSON.stringify(payload)
+      });
+    }
+
     if (!res.ok) {
       const text = await res.text();
       console.error(text);
       throw new Error(text || "فشل الحفظ");
     }
-    message("تم حفظ المحتوى بنجاح ✅", true);
-    document.getElementById("title").value = "";
-    document.getElementById("year").value = "";
-    document.getElementById("rating").value = "";
-    document.getElementById("description").value = "";
-    document.getElementById("duration").value = "—";
-    document.getElementById("poster_url").value = "https://via.placeholder.com/500x750?text=Filmo%2B";
-    document.getElementById("movie_url").value = "https://example.com";
+
+    message(isEdit ? "تم تحديث المحتوى بنجاح ✅" : "تم حفظ المحتوى بنجاح ✅", true);
+    resetForm();
     loadList();
   } catch (e) {
     console.error(e);
-    message("فشل الحفظ: " + (e.message || "تأكد من الحقول المطلوبة"));
+    message("فشل الحفظ: " + (e.message || "خطأ غير معروف"));
   } finally {
     document.getElementById("saveBtn").disabled = false;
+  }
+}
+
+async function deleteMovie(id) {
+  if (!confirm("هل أنت متأكد من حذف هذا المحتوى؟")) return;
+
+  try {
+    const col = idColumn;
+    const res = await fetch(TABLE_URL + "?" + col + "=eq." + encodeURIComponent(id), {
+      method: "DELETE",
+      headers: headers({ "Prefer": "return=minimal" })
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || "فشل الحذف");
+    }
+    message("تم الحذف بنجاح ✅", true);
+    if (document.getElementById("editId").value === String(id)) resetForm();
+    loadList();
+  } catch (e) {
+    console.error(e);
+    message("فشل الحذف: " + (e.message || "خطأ"));
   }
 }
 
 async function loadList() {
   const box = document.getElementById("moviesList");
   try {
-    let res = await fetch(TABLE_URL + "?select=*&order=id.desc", {
-      headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY }
-    });
+    let res = await fetch(TABLE_URL + "?select=*&order=id.desc", { headers: headers() });
     if (!res.ok) {
-      res = await fetch(TABLE_URL + "?select=*&order=Id.desc", {
-        headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY }
-      });
+      res = await fetch(TABLE_URL + "?select=*&order=Id.desc", { headers: headers() });
+      idColumn = "Id";
+    } else {
+      idColumn = "id";
     }
     if (!res.ok) throw new Error(await res.text());
+
     const rows = await res.json();
+    allMovies = rows;
+
+    // حدد اسم عمود الـ id من أول صف
+    if (rows.length) {
+      if (rows[0].Id !== undefined) idColumn = "Id";
+      else if (rows[0].id !== undefined) idColumn = "id";
+    }
+
     if (!rows.length) {
       box.innerHTML = '<p style="color:#8d929d">لا يوجد محتوى بعد.</p>';
       return;
     }
+
     box.innerHTML = rows.map(r => {
-      const id = r.Id ?? r.id ?? "—";
+      const id = r.Id ?? r.id ?? "";
       const cat = r.category || "—";
       const year = r.year || "—";
       const rating = r.rating != null ? r.rating : "—";
-      return '<div class="item"><div class="info"><strong>' + escapeHtml(r.title || "") +
+      return '<div class="item">' +
+        '<div class="info"><strong>' + escapeHtml(r.title || "") +
         '</strong><div class="meta">' + escapeHtml(cat) + ' • ' + year + ' • ⭐ ' + rating +
-        '</div></div><span class="badge">#' + id + '</span></div>';
+        ' <span class="badge">#' + id + '</span></div></div>' +
+        '<div class="actions">' +
+        '<button class="secondary small" onclick="startEdit(\'' + id + '\')">تعديل</button>' +
+        '<button class="danger small" onclick="deleteMovie(\'' + id + '\')">حذف</button>' +
+        '</div></div>';
     }).join("");
   } catch (e) {
     console.error(e);
