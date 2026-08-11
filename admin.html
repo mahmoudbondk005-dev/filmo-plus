@@ -62,8 +62,8 @@ button.small{padding:8px 14px;font-size:13px;margin-left:6px}
   </div>
 
   <div class="note">
-    الحقول المعلّمة بـ <span class="req">*</span> مطلوبة.<br>
-    اضغط <b>تعديل</b> على أي فيلم عشان تعدّل بياناته.
+    اختار القسم المناسب قبل الحفظ.<br>
+    الحقول المعلّمة بـ <span class="req">*</span> مطلوبة.
   </div>
 
   <h2 class="form-title" id="formTitle">إضافة محتوى جديد</h2>
@@ -72,10 +72,12 @@ button.small{padding:8px 14px;font-size:13px;margin-left:6px}
   <label>اسم المحتوى <span class="req">*</span></label>
   <input id="title" placeholder="مثال: الفيل الأزرق">
 
-  <label>النوع</label>
+  <label>القسم <span class="req">*</span></label>
   <select id="category">
-    <option value="فيلم">فيلم</option>
-    <option value="مسلسل">مسلسل</option>
+    <option value="أفلام عربي">أفلام عربي</option>
+    <option value="أفلام أجنبي">أفلام أجنبي</option>
+    <option value="مسلسلات عربي">مسلسلات عربي</option>
+    <option value="مسلسلات أجنبي">مسلسلات أجنبي</option>
   </select>
 
   <label>السنة</label>
@@ -115,8 +117,10 @@ const TABLE_URL = SUPABASE_URL + "/rest/v1/movies";
 const ADMIN_PASSWORD = "Filmo2026";
 const SESSION_KEY = "filmo_admin_ok";
 
+const VALID_CATEGORIES = ["أفلام عربي", "أفلام أجنبي", "مسلسلات عربي", "مسلسلات أجنبي"];
+
 let allMovies = [];
-let idColumn = "Id"; // هيتحدد تلقائي
+let idColumn = "Id";
 
 function isLoggedIn() {
   return sessionStorage.getItem(SESSION_KEY) === "1";
@@ -168,12 +172,18 @@ function headers(extra = {}) {
   };
 }
 
+function mapOldCategory(cat) {
+  const c = (cat || "").trim();
+  if (VALID_CATEGORIES.includes(c)) return c;
+  if (c === "مسلسل") return "مسلسلات عربي";
+  return "أفلام عربي";
+}
+
 function getPayload() {
   const title = document.getElementById("title").value.trim();
   let poster = document.getElementById("poster_url").value.trim();
   let movieUrl = document.getElementById("movie_url").value.trim();
   let duration = document.getElementById("duration").value.trim();
-
   if (!poster) poster = "https://via.placeholder.com/500x750?text=Filmo";
   if (!movieUrl) movieUrl = "https://example.com";
   if (!duration) duration = "—";
@@ -202,7 +212,7 @@ function resetForm() {
   document.getElementById("duration").value = "—";
   document.getElementById("poster_url").value = "https://via.placeholder.com/500x750?text=Filmo";
   document.getElementById("movie_url").value = "https://example.com";
-  document.getElementById("category").value = "فيلم";
+  document.getElementById("category").value = "أفلام عربي";
 }
 
 function cancelEdit() {
@@ -220,7 +230,7 @@ function startEdit(id) {
   document.getElementById("cancelBtn").classList.remove("hidden");
 
   document.getElementById("title").value = row.title || "";
-  document.getElementById("category").value = row.category === "مسلسل" ? "مسلسل" : "فيلم";
+  document.getElementById("category").value = mapOldCategory(row.category);
   document.getElementById("year").value = row.year || "";
   document.getElementById("rating").value = row.rating != null ? row.rating : "";
   document.getElementById("duration").value = row.duration || "—";
@@ -244,30 +254,21 @@ async function saveMovie() {
 
   try {
     document.getElementById("saveBtn").disabled = true;
-
     let res;
     if (isEdit) {
-      // تحديث
-      const col = idColumn;
-      res = await fetch(TABLE_URL + "?" + col + "=eq." + encodeURIComponent(editId), {
+      res = await fetch(TABLE_URL + "?" + idColumn + "=eq." + encodeURIComponent(editId), {
         method: "PATCH",
         headers: headers({ "Prefer": "return=minimal" }),
         body: JSON.stringify(payload)
       });
     } else {
-      // إضافة
       res = await fetch(TABLE_URL, {
         method: "POST",
         headers: headers({ "Prefer": "return=minimal" }),
         body: JSON.stringify(payload)
       });
     }
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error(text);
-      throw new Error(text || "فشل الحفظ");
-    }
+    if (!res.ok) throw new Error(await res.text() || "فشل الحفظ");
 
     message(isEdit ? "تم تحديث المحتوى بنجاح ✅" : "تم حفظ المحتوى بنجاح ✅", true);
     resetForm();
@@ -282,17 +283,12 @@ async function saveMovie() {
 
 async function deleteMovie(id) {
   if (!confirm("هل أنت متأكد من حذف هذا المحتوى؟")) return;
-
   try {
-    const col = idColumn;
-    const res = await fetch(TABLE_URL + "?" + col + "=eq." + encodeURIComponent(id), {
+    const res = await fetch(TABLE_URL + "?" + idColumn + "=eq." + encodeURIComponent(id), {
       method: "DELETE",
       headers: headers({ "Prefer": "return=minimal" })
     });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(text || "فشل الحذف");
-    }
+    if (!res.ok) throw new Error(await res.text() || "فشل الحذف");
     message("تم الحذف بنجاح ✅", true);
     if (document.getElementById("editId").value === String(id)) resetForm();
     loadList();
@@ -316,8 +312,6 @@ async function loadList() {
 
     const rows = await res.json();
     allMovies = rows;
-
-    // حدد اسم عمود الـ id من أول صف
     if (rows.length) {
       if (rows[0].Id !== undefined) idColumn = "Id";
       else if (rows[0].id !== undefined) idColumn = "id";
@@ -330,7 +324,7 @@ async function loadList() {
 
     box.innerHTML = rows.map(r => {
       const id = r.Id ?? r.id ?? "";
-      const cat = r.category || "—";
+      const cat = mapOldCategory(r.category);
       const year = r.year || "—";
       const rating = r.rating != null ? r.rating : "—";
       return '<div class="item">' +

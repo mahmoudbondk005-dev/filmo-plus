@@ -2,18 +2,18 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>فيلمو | أفلام ومسلسلات مصرية</title>
-<meta name="description" content="فيلمو منصة لمشاهدة المحتوى المصري المرخص بسهولة.">
+<title>فيلمو | أفلام ومسلسلات</title>
+<meta name="description" content="فيلمو منصة لمشاهدة الأفلام والمسلسلات العربية والأجنبية.">
 <style>
 *{box-sizing:border-box}body{margin:0;background:#090b10;color:#f5f5f5;font-family:Tahoma,Arial,sans-serif}
 header{position:sticky;top:0;z-index:20;background:#0e1118f2;border-bottom:1px solid #202532;backdrop-filter:blur(12px)}
-nav{max-width:1200px;margin:auto;padding:14px 18px;display:flex;gap:16px;align-items:center}.logo{font-size:25px;font-weight:900;color:#ffb000}.logo i{color:#fff;font-style:normal}
-.search{flex:1;display:flex;background:#171b24;border:1px solid #2a303c;border-radius:12px;overflow:hidden}.search input{flex:1;background:none;border:0;outline:0;color:#fff;padding:12px}.search button{border:0;background:#ffb000;padding:0 18px;font-weight:bold}
-.links{display:flex;gap:15px;color:#c7cad1;font-size:14px}.links a{text-decoration:none;color:inherit}
-.wrap{max-width:1200px;margin:auto;padding:0 18px}.hero{margin:24px 0;border-radius:22px;padding:38px;min-height:300px;background:linear-gradient(90deg,#12161f 20%,#12161f99),url("https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1500&q=80") center/cover}
-.hero h1{font-size:38px;margin:0 0 12px}.hero p{max-width:560px;color:#c8ccd4;line-height:1.9}.btn{display:inline-block;margin-top:12px;padding:12px 20px;background:#ffb000;color:#111;text-decoration:none;border-radius:10px;font-weight:bold;border:0;cursor:pointer;font-size:15px;font-weight:bold}
-section{margin:34px 0}.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.head h2{margin:0;font-size:22px}.muted{color:#8d929d}
-.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}.card{background:#141821;border:1px solid #202633;border-radius:13px;overflow:hidden;cursor:pointer;transition:.2s}.card:hover{transform:translateY(-4px)}.poster{aspect-ratio:2/3;background:#222 center/cover}.body{padding:10px}.body h3{font-size:14px;margin:0 0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.meta{font-size:11px;color:#9297a2}.rate{display:inline-block;margin-top:7px;background:#252b35;color:#ffb000;border-radius:6px;padding:3px 7px;font-size:11px}
+nav{max-width:1200px;margin:auto;padding:14px 18px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}.logo{font-size:25px;font-weight:900;color:#ffb000}
+.search{flex:1;min-width:160px;display:flex;background:#171b24;border:1px solid #2a303c;border-radius:12px;overflow:hidden}.search input{flex:1;background:none;border:0;outline:0;color:#fff;padding:12px}.search button{border:0;background:#ffb000;padding:0 18px;font-weight:bold;cursor:pointer}
+.links{display:flex;gap:12px;color:#c7cad1;font-size:13px;flex-wrap:wrap}.links a{text-decoration:none;color:inherit;white-space:nowrap}.links a:hover{color:#ffb000}
+.wrap{max-width:1200px;margin:auto;padding:0 18px}.hero{margin:24px 0;border-radius:22px;padding:38px;min-height:260px;background:linear-gradient(90deg,#12161f 20%,#12161f99),url("https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1500&q=80") center/cover}
+.hero h1{font-size:36px;margin:0 0 12px}.hero p{max-width:560px;color:#c8ccd4;line-height:1.9}.btn{display:inline-block;margin-top:12px;padding:12px 20px;background:#ffb000;color:#111;text-decoration:none;border-radius:10px;font-weight:bold;border:0;cursor:pointer;font-size:15px}
+section{margin:34px 0}.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:10px;flex-wrap:wrap}.head h2{margin:0;font-size:20px}.muted{color:#8d929d}
+.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}.card{background:#141821;border:1px solid #202633;border-radius:13px;overflow:hidden;cursor:pointer;transition:.2s}.card:hover{transform:translateY(-4px)}.poster{aspect-ratio:2/3;background:#222 center/cover no-repeat}.body{padding:10px}.body h3{font-size:14px;margin:0 0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.meta{font-size:11px;color:#9297a2}.rate{display:inline-block;margin-top:7px;background:#252b35;color:#ffb000;border-radius:6px;padding:3px 7px;font-size:11px}
 #details{display:none;margin:25px auto;max-width:1000px}
 .detail{background:#141821;border:1px solid #242a35;border-radius:18px;padding:20px;display:flex;gap:25px}
 .detail img{width:230px;border-radius:12px;object-fit:cover;flex-shrink:0}
@@ -22,18 +22,53 @@ section{margin:34px 0}.head{display:flex;justify-content:space-between;align-ite
 .player-wrap{display:none;margin-top:22px;background:#0a0c10;border-radius:14px;overflow:hidden;border:1px solid #242a35}
 .player-wrap.active{display:block}
 .player-wrap video,.player-wrap iframe{width:100%;aspect-ratio:16/9;border:0;display:block;background:#000}
-.player-msg{padding:40px 20px;text-align:center;color:#8d929d}
 footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align:center;color:#777}
 @media(max-width:900px){.grid{grid-template-columns:repeat(4,1fr)}.links{display:none}}
-@media(max-width:600px){nav{padding:10px}.logo{font-size:20px}.hero{padding:24px;min-height:250px}.hero h1{font-size:28px}.grid{grid-template-columns:repeat(2,1fr);gap:11px}.detail{display:block}.detail img{width:170px;height:245px;margin-bottom:14px}}
+@media(max-width:600px){nav{padding:10px}.logo{font-size:20px}.hero{padding:24px;min-height:220px}.hero h1{font-size:26px}.grid{grid-template-columns:repeat(2,1fr);gap:11px}.detail{display:block}.detail img{width:170px;height:245px;margin-bottom:14px}}
 </style></head>
 <body>
-<header><nav><div class="logo">فيلمو</div><div class="search"><input id="q" placeholder="ابحث عن فيلم أو مسلسل..." oninput="search()"><button onclick="search()">بحث</button></div><div class="links"><a href="#" onclick="home();return false">الرئيسية</a><a href="#movies">الأفلام</a><a href="#series">المسلسلات</a></div></nav></header>
+<header>
+<nav>
+  <div class="logo">فيلمو</div>
+  <div class="search"><input id="q" placeholder="ابحث عن فيلم أو مسلسل..." oninput="search()"><button onclick="search()">بحث</button></div>
+  <div class="links">
+    <a href="#" onclick="home();return false">الرئيسية</a>
+    <a href="#ar-movies">أفلام عربي</a>
+    <a href="#en-movies">أفلام أجنبي</a>
+    <a href="#ar-series">مسلسلات عربي</a>
+    <a href="#en-series">مسلسلات أجنبي</a>
+  </div>
+</nav>
+</header>
+
 <main id="homePage" class="wrap">
-<div class="hero"><h1>المحتوى المصري في مكان واحد</h1><p>تجربة مشاهدة بسيطة وسريعة للمحتوى المصري المرخّص. ابحث عن العمل الذي تريده واستمتع.</p><a class="btn" href="#movies">ابدأ المشاهدة</a></div>
-<section id="movies"><div class="head"><h2>🇪🇬 الأفلام المصرية</h2><span class="muted" id="count"></span></div><div id="movieGrid" class="grid"></div></section>
-<section id="series"><div class="head"><h2>📺 المسلسلات المصرية</h2></div><div id="seriesGrid" class="grid"></div></section>
+<div class="hero">
+  <h1>الأفلام والمسلسلات في مكان واحد</h1>
+  <p>تصفح الأفلام والمسلسلات العربية والأجنبية بسهولة، وابحث عن اللي نفسك فيه.</p>
+  <a class="btn" href="#ar-movies">ابدأ المشاهدة</a>
+</div>
+
+<section id="ar-movies">
+  <div class="head"><h2>🇪🇬 أفلام عربي</h2><span class="muted" id="count-ar-movies"></span></div>
+  <div id="grid-ar-movies" class="grid"></div>
+</section>
+
+<section id="en-movies">
+  <div class="head"><h2>🎬 أفلام أجنبي</h2><span class="muted" id="count-en-movies"></span></div>
+  <div id="grid-en-movies" class="grid"></div>
+</section>
+
+<section id="ar-series">
+  <div class="head"><h2>📺 مسلسلات عربي</h2><span class="muted" id="count-ar-series"></span></div>
+  <div id="grid-ar-series" class="grid"></div>
+</section>
+
+<section id="en-series">
+  <div class="head"><h2>📺 مسلسلات أجنبي</h2><span class="muted" id="count-en-series"></span></div>
+  <div id="grid-en-series" class="grid"></div>
+</section>
 </main>
+
 <div id="details" class="wrap">
   <span class="back" onclick="home()">← العودة</span>
   <div class="detail">
@@ -45,18 +80,24 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
       <button class="btn" type="button" onclick="watch()">▶ مشاهدة</button>
     </div>
   </div>
-  <div id="playerWrap" class="player-wrap">
-    <div id="playerInner"></div>
-  </div>
+  <div id="playerWrap" class="player-wrap"><div id="playerInner"></div></div>
 </div>
-<footer>فيلمو © 2026 — منصة للمحتوى المرخّص | <a href="privacy.html" style="color:#aaa">الخصوصية</a> · <a href="terms.html" style="color:#aaa">الشروط</a> · <a href="contact.html" style="color:#aaa">تواصل معنا</a></footer>
+
+<footer>فيلمو © 2026 | <a href="privacy.html" style="color:#aaa">الخصوصية</a> · <a href="terms.html" style="color:#aaa">الشروط</a> · <a href="contact.html" style="color:#aaa">تواصل معنا</a></footer>
+
 <script>
 const SUPABASE_URL = "https://axvibvssjizkrfdqlyow.supabase.co";
 const SUPABASE_KEY = "sb_publishable_72qMAroeSPFAMXfL2AoVQA_5RnDslsh";
 const TABLE_URL = SUPABASE_URL + "/rest/v1/movies";
 
-let movies = [];
-let series = [];
+const CATEGORIES = [
+  { key: "أفلام عربي", grid: "grid-ar-movies", count: "count-ar-movies" },
+  { key: "أفلام أجنبي", grid: "grid-en-movies", count: "count-en-movies" },
+  { key: "مسلسلات عربي", grid: "grid-ar-series", count: "count-ar-series" },
+  { key: "مسلسلات أجنبي", grid: "grid-en-series", count: "count-en-series" }
+];
+
+let allItems = [];
 
 function apiHeaders() {
   return { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY };
@@ -68,11 +109,20 @@ function safe(v) {
   }[c]));
 }
 
+function normalizeCategory(cat) {
+  const c = (cat || "").trim();
+  // توافق مع القيم القديمة
+  if (c === "فيلم" || c === "دراما") return "أفلام عربي";
+  if (c === "مسلسل") return "مسلسلات عربي";
+  if (CATEGORIES.some(x => x.key === c)) return c;
+  return "أفلام عربي";
+}
+
 function normalize(row) {
   return {
     id: row.Id ?? row.id,
     name: row.title || "",
-    type: row.category || "فيلم",
+    type: normalizeCategory(row.category),
     year: row.year || "",
     rating: row.rating ?? "—",
     img: row.poster_url || "",
@@ -82,8 +132,9 @@ function normalize(row) {
 }
 
 async function loadMovies() {
-  const grid = document.getElementById("movieGrid");
-  grid.innerHTML = '<p class="muted">جاري تحميل الأفلام...</p>';
+  CATEGORIES.forEach(c => {
+    document.getElementById(c.grid).innerHTML = '<p class="muted">جاري التحميل...</p>';
+  });
   try {
     let response = await fetch(
       TABLE_URL + "?select=Id,title,description,poster_url,movie_url,category,year,rating&order=Id.desc",
@@ -95,24 +146,17 @@ async function loadMovies() {
         { headers: apiHeaders() }
       );
     }
-    if (!response.ok) {
-      const msg = await response.text();
-      throw new Error(msg || "تعذر تحميل البيانات");
-    }
+    if (!response.ok) throw new Error(await response.text());
 
     const rows = await response.json();
-    const all = rows.map(normalize);
-    movies = all.filter(x => !/مسلسل/i.test(x.type) && x.type !== "مسلسل");
-    series = all.filter(x => /مسلسل/i.test(x.type) || x.type === "مسلسل");
-
-    render(movies, "movieGrid");
-    render(series, "seriesGrid");
-    document.getElementById("count").textContent = "إجمالي: " + movies.length;
+    allItems = rows.map(normalize);
+    renderAll();
   } catch (error) {
     console.error(error);
-    grid.innerHTML = '<p class="muted">حدث خطأ أثناء تحميل الأفلام من قاعدة البيانات.</p>';
-    document.getElementById("seriesGrid").innerHTML = "";
-    document.getElementById("count").textContent = "";
+    CATEGORIES.forEach(c => {
+      document.getElementById(c.grid).innerHTML = '<p class="muted">حدث خطأ أثناء تحميل البيانات.</p>';
+      document.getElementById(c.count).textContent = "";
+    });
   }
 }
 
@@ -127,17 +171,22 @@ function card(x) {
     '</div></div>';
 }
 
-function render(a, id) {
-  document.getElementById(id).innerHTML = a.length
-    ? a.map(card).join("")
-    : '<p class="muted">لا توجد أعمال مضافة حتى الآن.</p>';
+function renderAll(filterText) {
+  const q = (filterText || "").trim().toLowerCase();
+  CATEGORIES.forEach(c => {
+    let list = allItems.filter(x => x.type === c.key);
+    if (q) list = list.filter(x => x.name.toLowerCase().includes(q));
+    document.getElementById(c.grid).innerHTML = list.length
+      ? list.map(card).join("")
+      : '<p class="muted">لا توجد أعمال في هذا القسم حالياً.</p>';
+    document.getElementById(c.count).textContent = q
+      ? ("نتائج: " + list.length)
+      : ("إجمالي: " + list.length);
+  });
 }
 
 function search() {
-  const q = document.getElementById("q").value.trim().toLowerCase();
-  const a = movies.filter(x => x.name.toLowerCase().includes(q));
-  render(a, "movieGrid");
-  document.getElementById("count").textContent = q ? "نتائج: " + a.length : "إجمالي: " + movies.length;
+  renderAll(document.getElementById("q").value);
 }
 
 function stopPlayer() {
@@ -170,12 +219,10 @@ function getYouTubeId(url) {
   const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{6,})/);
   return m ? m[1] : null;
 }
-
 function getVimeoId(url) {
   const m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
   return m ? m[1] : null;
 }
-
 function isDirectVideo(url) {
   return /\.(mp4|webm|ogg|m3u8)(\?|$)/i.test(url);
 }
@@ -186,7 +233,6 @@ function watch() {
     alert("رابط المشاهدة غير مضاف لهذا العمل.");
     return;
   }
-
   const wrap = document.getElementById("playerWrap");
   const inner = document.getElementById("playerInner");
   wrap.classList.add("active");
@@ -194,7 +240,6 @@ function watch() {
 
   const yt = getYouTubeId(url);
   const vim = getVimeoId(url);
-
   if (yt) {
     inner.innerHTML = '<iframe src="https://www.youtube.com/embed/' + yt + '?autoplay=1&rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>';
   } else if (vim) {
@@ -202,17 +247,15 @@ function watch() {
   } else if (isDirectVideo(url)) {
     inner.innerHTML = '<video controls autoplay playsinline src="' + safe(url) + '"></video>';
   } else {
-    // أي رابط تاني — نحاول نعرضه في iframe (Google Drive / مواقع أخرى)
     let embedUrl = url;
-    // Google Drive: حول لـ preview
     const gd = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
     if (gd) embedUrl = "https://drive.google.com/file/d/" + gd[1] + "/preview";
-
     inner.innerHTML = '<iframe src="' + safe(embedUrl) + '" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
   }
-
   wrap.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 loadMovies();
-</script></body></html>
+</script>
+</body>
+</html>
