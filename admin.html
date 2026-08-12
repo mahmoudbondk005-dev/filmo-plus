@@ -427,13 +427,19 @@ async function deleteMovie(id) {
 
 async function loadList() {
   const box = document.getElementById("moviesList");
+  box.innerHTML = '<p style="color:#8d929d">جاري التحميل...</p>';
   try {
-    let res = await fetch(TABLE_URL + "?select=*&order=id.desc", { headers: headers() });
+    // العمود في الجدول اسمه Id (حرف كبير) — نجرب ده أولاً
+    let res = await fetch(TABLE_URL + "?select=*&order=Id.desc", { headers: headers() });
+    idColumn = "Id";
     if (!res.ok) {
-      res = await fetch(TABLE_URL + "?select=*&order=Id.desc", { headers: headers() });
-      idColumn = "Id";
-    } else idColumn = "id";
-    if (!res.ok) throw new Error(await res.text());
+      res = await fetch(TABLE_URL + "?select=*&order=id.desc", { headers: headers() });
+      idColumn = "id";
+    }
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error("HTTP " + res.status + ": " + errText);
+    }
 
     const rows = await res.json();
     allMovies = rows;
@@ -465,7 +471,10 @@ async function loadList() {
     }).join("");
   } catch (e) {
     console.error(e);
-    box.innerHTML = '<p style="color:#c44">تعذر تحميل القائمة.</p>';
+    const msg = (e && e.message) ? e.message : "خطأ غير معروف";
+    box.innerHTML = '<p style="color:#c44">تعذر تحميل القائمة.</p>' +
+      '<p style="color:#8d929d;font-size:12px;margin-top:8px;word-break:break-all">' + escapeHtml(msg) + '</p>' +
+      '<button class="secondary small" style="margin-top:10px" onclick="loadList()">إعادة المحاولة</button>';
   }
 }
 
