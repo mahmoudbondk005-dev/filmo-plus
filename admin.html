@@ -44,6 +44,20 @@ button.small{padding:8px 14px;font-size:13px}
 .ep-row input{margin:0}
 .ep-row button{padding:10px;margin:0}
 @media(max-width:600px){.ep-row{grid-template-columns:1fr;}}
+.tmdb-box{background:#0d1016;border:1px solid #303744;border-radius:12px;padding:16px;margin-bottom:22px}
+.tmdb-box h3{margin:0 0 10px;font-size:15px;color:#ffb000}
+.tmdb-row{display:flex;gap:8px;flex-wrap:wrap}
+.tmdb-row input{flex:1;min-width:160px;margin:0}
+.tmdb-row select{width:auto;margin:0;min-width:110px}
+.tmdb-row button{margin:0;white-space:nowrap}
+.tmdb-results{margin-top:12px;max-height:280px;overflow-y:auto}
+.tmdb-item{display:flex;gap:12px;align-items:center;padding:10px;border-radius:10px;cursor:pointer;border:1px solid transparent;background:#151922;margin-bottom:6px}
+.tmdb-item:hover{border-color:#ffb000;background:#1a2030}
+.tmdb-item img{width:45px;height:67px;object-fit:cover;border-radius:6px;background:#222;flex-shrink:0}
+.tmdb-item .ti-info{flex:1;min-width:0}
+.tmdb-item .ti-title{font-size:14px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tmdb-item .ti-meta{font-size:12px;color:#8d929d;margin-top:3px}
+.tmdb-hint{font-size:12px;color:#8d929d;margin:8px 0 0;line-height:1.6}
 </style>
 </head>
 <body>
@@ -69,6 +83,20 @@ button.small{padding:8px 14px;font-size:13px}
   <div class="note">
     للأفلام: حط رابط واحد للمشاهدة.<br>
     للمسلسلات: ضيف الحلقات من قسم الحلقات بالأسفل.
+  </div>
+
+  <div class="tmdb-box">
+    <h3>🔍 جلب بيانات تلقائي من TMDB</h3>
+    <div class="tmdb-row">
+      <input id="tmdbQuery" type="search" placeholder="اكتب اسم الفيلم أو المسلسل..." onkeydown="if(event.key==='Enter'){event.preventDefault();searchTMDB()}">
+      <select id="tmdbType">
+        <option value="movie">فيلم</option>
+        <option value="tv">مسلسل</option>
+      </select>
+      <button type="button" class="secondary" onclick="searchTMDB()">بحث</button>
+    </div>
+    <div id="tmdbResults" class="tmdb-results"></div>
+    <p class="tmdb-hint">بعد الاختيار هيتملأ الاسم والصورة والسنة والتقييم والوصف تلقائيًا. رابط المشاهدة بتضيفه أنت.</p>
   </div>
 
   <h2 class="form-title" id="formTitle">إضافة محتوى جديد</h2>
@@ -132,6 +160,11 @@ const TABLE_URL = SUPABASE_URL + "/rest/v1/movies";
 const ADMIN_PASSWORD_HASH = "3443cb718c468231cce80e248227331c4358e049bd5fbb66e06008c3d3a3ecfb";
 const SESSION_KEY = "filmo_admin_ok";
 const VALID_CATEGORIES = ["أفلام عربي", "أفلام أجنبي", "مسلسلات عربي", "مسلسلات أجنبي"];
+
+// مفتاح TMDB المجاني — احصل عليه من https://www.themoviedb.org/settings/api
+// سجّل حساب → Settings → API → Create → انسخ الـ API Key (v3 auth)
+const TMDB_API_KEY = "7758991e727e12ea96a594d1e72a9819";
+const TMDB_IMG = "https://image.tmdb.org/t/p/w500";
 
 let allMovies = [];
 let idColumn = "Id";
@@ -203,6 +236,104 @@ function mapOldCategory(cat) {
   if (VALID_CATEGORIES.includes(c)) return c;
   if (c === "مسلسل") return "مسلسلات عربي";
   return "أفلام عربي";
+}
+
+
+/* ===== TMDB Auto Fill ===== */
+let tmdbCache = [];
+
+async function searchTMDB() {
+  const q = document.getElementById("tmdbQuery").value.trim();
+  const type = document.getElementById("tmdbType").value;
+  const box = document.getElementById("tmdbResults");
+  if (!q) {
+    message("اكتب اسم الفيلم أو المسلسل أولاً");
+    return;
+  }
+  if (!TMDB_API_KEY || TMDB_API_KEY === "YOUR_TMDB_API_KEY_HERE") {
+    box.innerHTML = '<p style="color:#ff6b6b;font-size:13px">ضع مفتاح TMDB في الكود أولاً (TMDB_API_KEY).<br>احصل عليه مجانًا من: <a href="https://www.themoviedb.org/settings/api" target="_blank" style="color:#ffb000">themoviedb.org</a></p>';
+    return;
+  }
+  box.innerHTML = '<p style="color:#8d929d;font-size:13px">جاري البحث...</p>';
+  try {
+    const url = "https://api.themoviedb.org/3/search/" + type +
+      "?api_key=" + encodeURIComponent(TMDB_API_KEY) +
+      "&query=" + encodeURIComponent(q) +
+      "&language=ar-EG&include_adult=false";
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("HTTP " + res.status + " — تأكد من صحة مفتاح API");
+    const data = await res.json();
+    tmdbCache = (data.results || []).slice(0, 8).map(function(r) {
+      return {
+        type: type,
+        id: r.id,
+        title: type === "movie" ? (r.title || r.original_title || "") : (r.name || r.original_name || ""),
+        year: (type === "movie" ? (r.release_date || "") : (r.first_air_date || "")).slice(0, 4) || "",
+        rating: r.vote_average ? Number(r.vote_average).toFixed(1) : "",
+        poster: r.poster_path ? (TMDB_IMG + r.poster_path) : "",
+        overview: r.overview || ""
+      };
+    });
+    if (!tmdbCache.length) {
+      box.innerHTML = '<p style="color:#8d929d;font-size:13px">لا توجد نتائج. جرّب اسمًا إنجليزيًا أو اسمًا مختلفًا.</p>';
+      return;
+    }
+    box.innerHTML = tmdbCache.map(function(item, i) {
+      return '<div class="tmdb-item" onclick="fillFromTMDB(' + i + ')">' +
+        (item.poster ? '<img src="' + item.poster + '" alt="">' : '<div style="width:45px;height:67px;background:#222;border-radius:6px"></div>') +
+        '<div class="ti-info"><div class="ti-title">' + escapeHtml(item.title) + '</div>' +
+        '<div class="ti-meta">' + (item.year || "—") + ' • ⭐ ' + (item.rating || "—") + '</div></div></div>';
+    }).join("");
+  } catch (e) {
+    console.error(e);
+    box.innerHTML = '<p style="color:#ff6b6b;font-size:13px">فشل البحث: ' + escapeHtml(e.message || "خطأ") + '</p>';
+  }
+}
+
+async function fillFromTMDB(index) {
+  const item = tmdbCache[index];
+  if (!item) return;
+
+  document.getElementById("title").value = item.title || "";
+  document.getElementById("year").value = item.year || "";
+  document.getElementById("rating").value = item.rating || "";
+  document.getElementById("poster_url").value = item.poster || "https://via.placeholder.com/500x750?text=Filmo";
+  document.getElementById("description").value = item.overview || "";
+
+  const catSelect = document.getElementById("category");
+  if (item.type === "tv") {
+    if (catSelect.value.indexOf("مسلسلات") === -1) catSelect.value = "مسلسلات أجنبي";
+  } else {
+    if (catSelect.value.indexOf("أفلام") === -1) catSelect.value = "أفلام أجنبي";
+  }
+  toggleEpisodesUI();
+
+  // تفاصيل أدق (المدة)
+  if (TMDB_API_KEY && TMDB_API_KEY !== "YOUR_TMDB_API_KEY_HERE" && item.id) {
+    try {
+      const detailUrl = "https://api.themoviedb.org/3/" + item.type + "/" + item.id +
+        "?api_key=" + encodeURIComponent(TMDB_API_KEY) + "&language=ar-EG";
+      const res = await fetch(detailUrl);
+      if (res.ok) {
+        const d = await res.json();
+        if (d.overview) document.getElementById("description").value = d.overview;
+        if (item.type === "movie" && d.runtime) {
+          document.getElementById("duration").value = d.runtime + " دقيقة";
+        } else if (item.type === "tv" && d.number_of_episodes) {
+          document.getElementById("duration").value = d.number_of_episodes + " حلقة";
+        }
+        if (d.poster_path) {
+          document.getElementById("poster_url").value = TMDB_IMG + d.poster_path;
+        }
+      }
+    } catch (e) {
+      console.warn("TMDB detail fetch failed", e);
+    }
+  }
+
+  document.getElementById("tmdbResults").innerHTML = '<p style="color:#4ade80;font-size:13px">✅ تم ملء البيانات. راجعها وأضف رابط المشاهدة ثم احفظ.</p>';
+  message("تم جلب البيانات من TMDB — أضف رابط المشاهدة واحفظ", true);
+  document.getElementById("title").scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 function toggleEpisodesUI() {
