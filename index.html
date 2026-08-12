@@ -442,6 +442,14 @@ function isDirectVideo(url) {
   return /\.(mp4|webm|ogg)(\?|#|$)/i.test(url);
 }
 
+function extractEmbedSrc(code) {
+  if (!code) return "";
+  const text = String(code).trim();
+  if (!/<iframe\b/i.test(text)) return "";
+  const match = text.match(/<iframe\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>/i);
+  return match ? match[1].trim() : "";
+}
+
 function hlsErrorText(data) {
   if (!data) return "تعذر تشغيل بث HLS.";
   if (data.response && (data.response.code === 401 || data.response.code === 403)) {
@@ -476,54 +484,25 @@ function playUrl(url) {
     const yt = getYouTubeId(url);
     const vim = getVimeoId(url);
 
-    if (yt) {
+    const embedSrc = extractEmbedSrc(url);
+    if (embedSrc) {
+      inner.innerHTML = '<iframe src="' + safe(embedSrc) + '" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>';
+    } else if (yt) {
       inner.innerHTML = '<iframe src="https://www.youtube.com/embed/' + yt + '?autoplay=1&rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>';
     } else if (vim) {
       inner.innerHTML = '<iframe src="https://player.vimeo.com/video/' + vim + '?autoplay=1" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>';
     } else if (isHls(url)) {
       const video = document.createElement("video");
       video.controls = true;
-      video.autoplay = false;
+      video.autoplay = true;
       video.playsInline = true;
       video.muted = false;
-      video.crossOrigin = "anonymous";
       video.setAttribute("playsinline", "");
       video.setAttribute("webkit-playsinline", "");
-      video.preload = "auto";
       video.style.width = "100%";
       video.style.height = "100%";
       video.style.background = "#000";
       inner.appendChild(video);
-
-      // Small status panel: this lets us distinguish "playlist loaded" from
-      // "segments/audio/video actually loaded".
-      const status = document.createElement("div");
-      status.style.cssText =
-        "position:absolute;left:10px;right:10px;bottom:10px;z-index:5;" +
-        "padding:8px 10px;border-radius:8px;background:rgba(0,0,0,.72);" +
-        "color:#fff;font:12px Arial;direction:rtl;text-align:right;";
-      status.textContent = "جاري الاتصال بالبث…";
-      inner.style.position = "relative";
-      inner.appendChild(status);
-
-      let started = false;
-      let manifestSeen = false;
-      let firstFragmentSeen = false;
-      let fatalShown = false;
-
-      function setStatus(t) {
-        status.textContent = t;
-        console.log("[Filmo HLS]", t);
-      }
-
-      function showHlsFailure(message, detail) {
-        if (fatalShown) return;
-        fatalShown = true;
-        console.error("[Filmo HLS] FAILURE:", message, detail || "");
-        status.innerHTML = message +
-          (detail ? "<br><small>" + String(detail).replace(/[<>]/g,"") + "</small>" : "");
-        status.style.background = "rgba(120,0,0,.85)";
-      }
 
       // Chrome/Android/Firefox: use hls.js.
       if (window.Hls && Hls.isSupported()) {
@@ -531,160 +510,79 @@ function playUrl(url) {
           enableWorker: true,
           lowLatencyMode: false,
           backBufferLength: 30,
-          maxBufferLength: 60,
-          maxMaxBufferLength: 120,
-          manifestLoadingMaxRetry: 3,
-          levelLoadingMaxRetry: 3,
+          maxBufferLength: 30,
+          maxMaxBufferLength: 60,
+          manifestLoadingMaxRetry: 2,
+          levelLoadingMaxRetry: 2,
           fragLoadingMaxRetry: 3,
           manifestLoadingRetryDelay: 1000,
           levelLoadingRetryDelay: 1000,
-          fragLoadingRetryDelay: 1000,
-          // Explicitly disable credentials. Cross-origin HLS should use
-          // anonymous requests unless the provider explicitly supports cookies.
-          xhrSetup: function(xhr) {
-            xhr.withCredentials = false;
-          }
+          fragLoadingRetryDelay: 1000
         });
 
         window._filmoHls = hls;
 
+        // Attach first, then load the source. This is the recommended hls.js order.
         hls.attachMedia(video);
 
         hls.on(Hls.Events.MEDIA_ATTACHED, function () {
-          setStatus("تم تجهيز مشغل HLS… جاري تحميل الـ m3u8");
           hls.loadSource(url);
         });
 
-        hls.on(Hls.Events.MANIFEST_LOADING, function () {
-          setStatus("جاري تحميل ملف البث الرئيسي…");
-        });
-
-        hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
-          manifestSeen = true;
-          const levels = (data && data.levels) ? data.levels.length : 0;
-          setStatus("تم تحميل الـ m3u8 (" + levels + " جودة). جاري تحميل الفيديو…");
-          // Don't force autoplay: mobile browsers can reject autoplay with audio.
-        });
-
-        hls.on(Hls.Events.LEVEL_LOADED, function () {
-          if (manifestSeen && !firstFragmentSeen) {
-            setStatus("تم تحميل جودة الفيديو… جاري تحميل أول مقطع…");
-          }
-        });
-
-        hls.on(Hls.Events.FRAG_LOADING, function () {
-          if (!firstFragmentSeen) setStatus("جاري تحميل أول مقطع فيديو/صوت…");
-        });
-
-        hls.on(Hls.Events.FRAG_LOADED, function () {
-          if (!firstFragmentSeen) {
-            firstFragmentSeen = true;
-            setStatus("تم تحميل أول مقطع. اضغط تشغيل إذا لم يبدأ تلقائيًا.");
-            video.play().then(function () {
-              started = true;
-              setStatus("الفيديو يعمل.");
-            }).catch(function () {
-              setStatus("البث جاهز. اضغط ▶ لتشغيل الفيديو.");
-            });
-          }
-        });
-
-        hls.on(Hls.Events.BUFFER_APPENDED, function () {
-          if (!started && video.readyState >= 2) {
-            video.play().then(function () {
-              started = true;
-              setStatus("الفيديو يعمل.");
-            }).catch(function () {});
-          }
-        });
-
-        video.addEventListener("playing", function () {
-          started = true;
-          setStatus("الفيديو يعمل.");
-        });
-
-        video.addEventListener("waiting", function () {
-          if (!fatalShown) setStatus("جاري تحميل البث…");
+        hls.on(Hls.Events.MANIFEST_PARSED, function () {
+          video.play().catch(function () {
+            // Mobile browsers may block autoplay with sound; controls remain available.
+          });
         });
 
         hls.on(Hls.Events.ERROR, function (event, data) {
           console.error("[Filmo HLS]", data);
 
-          // Non-fatal errors are useful for diagnosis but should not stop playback.
-          if (!data.fatal) {
-            if (data.details === Hls.ErrorDetails.FRAG_LOAD_ERROR ||
-                data.details === Hls.ErrorDetails.FRAG_LOAD_TIMEOUT) {
-              setStatus("إعادة محاولة تحميل مقطع البث…");
-            }
-            return;
-          }
+          if (!data.fatal) return;
 
+          // Try the built-in hls.js recovery mechanisms before giving up.
           if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            const code = data.response && data.response.code ? data.response.code : "";
-            if (code === 401 || code === 403) {
-              showHlsFailure(
-                "السيرفر رفض تحميل أحد ملفات البث (" + code + ").",
-                "هذا غالبًا صلاحية/Referer/CORS وليس مشكلة في المشغل."
-              );
-              return;
-            }
-
-            setStatus("حدث خطأ شبكي، جاري إعادة المحاولة…");
+            console.warn("[Filmo HLS] Recovering network error...");
             try {
               hls.startLoad();
-              setTimeout(function () {
-                if (!firstFragmentSeen && !fatalShown) {
-                  showHlsFailure(
-                    "لم يتم تحميل مقاطع الفيديو.",
-                    "تم تحميل المشغل، لكن الـsegments لم تصل للمتصفح. راجع Console."
-                  );
-                }
-              }, 8000);
               return;
             } catch (e) {}
           }
 
           if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-            setStatus("تم تحميل البث لكن يوجد خطأ في بيانات الوسائط، جاري الإصلاح…");
+            console.warn("[Filmo HLS] Recovering media error...");
             try {
               hls.recoverMediaError();
               return;
             } catch (e) {}
           }
 
-          showHlsFailure(
-            hlsErrorText(data),
-            data.details || data.type || "unknown"
-          );
+          inner.innerHTML =
+            '<div class="player-error">' + hlsErrorText(data) +
+            '<br><small>افتح Console لمعرفة تفاصيل الخطأ.</small></div>';
+          try { hls.destroy(); } catch (e) {}
+          window._filmoHls = null;
         });
 
       // Safari/iOS and browsers with native HLS.
       } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        setStatus("المتصفح يستخدم HLS الأصلي…");
         video.src = url;
 
         video.addEventListener("loadedmetadata", function () {
-          setStatus("تم تحميل بيانات البث. اضغط ▶ للتشغيل.");
-          video.play().then(function () {
-            setStatus("الفيديو يعمل.");
-          }).catch(function () {});
-        });
-
-        video.addEventListener("playing", function () {
-          setStatus("الفيديو يعمل.");
+          video.play().catch(function () {});
         });
 
         video.addEventListener("error", function () {
           const e = video.error;
           console.error("[Filmo Native HLS]", e);
-          showHlsFailure(
-            "تعذر تشغيل بث HLS من المتصفح.",
-            "قد تكون المشكلة CORS أو صلاحية الرابط أو توافق الترميز."
-          );
+          inner.innerHTML =
+            '<div class="player-error">تعذر تشغيل بث HLS من المتصفح.' +
+            '<br><small>قد تكون المشكلة CORS أو صلاحية الرابط.</small></div>';
         });
 
       } else {
-        showHlsFailure("المتصفح لا يدعم تشغيل روابط m3u8.", "");
+        inner.innerHTML =
+          '<div class="player-error">المتصفح لا يدعم تشغيل روابط m3u8.</div>';
       }
 
     } else if (isDirectVideo(url)) {

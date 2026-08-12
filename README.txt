@@ -16,6 +16,3 @@
 
 4) للإطلاق: دومين + HTTPS + تفعيل RLS على Supabase.
 5) لا تضع روابط محتوى محمي بحقوق إلا بترخيص.
-
-
-HLS v3 diagnostic update: player now reports manifest/level/fragment stages, uses anonymous cross-origin requests, avoids forced autoplay, and distinguishes network/HTTP 401/403/media failures.

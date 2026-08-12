@@ -130,8 +130,11 @@ button.small{padding:8px 14px;font-size:13px}
 
   <!-- للأفلام -->
   <div id="movieUrlBox">
-    <label>رابط الفيديو / المشاهدة <span class="req">*</span></label>
-    <input id="movie_url" placeholder="https://..." value="https://example.com">
+    <label>كود الفيديو / Embed Code <span class="req">*</span></label>
+    <textarea id="movie_url" rows="6" placeholder="الصق كود iframe كامل هنا، مثال:&#10;&lt;iframe src=&quot;https://example.com/e/xxxxx&quot; ...&gt;&lt;/iframe&gt;"></textarea>
+    <div style="color:#8d929d;font-size:12px;margin-top:6px">
+      الصق كود التضمين كاملًا (iframe) من موقع الاستضافة، ولا تحتاج أن يكون الرابط MP4.
+    </div>
   </div>
 
   <!-- للمسلسلات -->
@@ -446,7 +449,7 @@ function resetForm() {
   document.getElementById("description").value = "";
   document.getElementById("duration").value = "—";
   document.getElementById("poster_url").value = "https://via.placeholder.com/500x750?text=Filmo";
-  document.getElementById("movie_url").value = "https://example.com";
+  document.getElementById("movie_url").value = "";
   document.getElementById("category").value = "أفلام عربي";
   document.getElementById("episodesList").innerHTML = "";
   episodeCounter = 0;
