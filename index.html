@@ -436,10 +436,24 @@ function getVimeoId(url) {
   return m ? m[1] : null;
 }
 function isHls(url) {
-  return /\.m3u8(\?|$)/i.test(url) || /\/manifest\/.*m3u8/i.test(url) || /boltdns\.net/i.test(url);
+  return /\.m3u8(?:[?#]|$)/i.test(url) || /\/manifest\/.*(?:m3u8|hls)/i.test(url) || /(?:boltdns\.net|bcovlive\.io)/i.test(url);
 }
 function isDirectVideo(url) {
-  return /\.(mp4|webm|ogg)(\?|$)/i.test(url);
+  return /\.(mp4|webm|ogg)(\?|#|$)/i.test(url);
+}
+
+function hlsErrorText(data) {
+  if (!data) return "تعذر تشغيل بث HLS.";
+  if (data.response && (data.response.code === 401 || data.response.code === 403)) {
+    return "السيرفر رفض طلب البث (401/403). الرابط قد يحتاج صلاحية أو Referer.";
+  }
+  if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+    return "تعذر تحميل بث HLS. قد تكون المشكلة CORS أو أن رابط البث/أحد ملفاته غير متاح.";
+  }
+  if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+    return "تم تحميل البث لكن المتصفح واجه مشكلة في بيانات الفيديو.";
+  }
+  return "تعذر تشغيل بث HLS. راجع Console لمعرفة الخطأ بالتفصيل.";
 }
 
 function playUrl(url) {
@@ -447,12 +461,12 @@ function playUrl(url) {
     toast("رابط المشاهدة غير مضاف.");
     return;
   }
+
   const wrap = document.getElementById("playerWrap");
   const inner = document.getElementById("playerInner");
   wrap.classList.add("active");
   inner.innerHTML = "";
 
-  // stop previous hls instance
   if (window._filmoHls) {
     try { window._filmoHls.destroy(); } catch (e) {}
     window._filmoHls = null;
@@ -461,52 +475,115 @@ function playUrl(url) {
   try {
     const yt = getYouTubeId(url);
     const vim = getVimeoId(url);
+
     if (yt) {
       inner.innerHTML = '<iframe src="https://www.youtube.com/embed/' + yt + '?autoplay=1&rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>';
     } else if (vim) {
       inner.innerHTML = '<iframe src="https://player.vimeo.com/video/' + vim + '?autoplay=1" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>';
     } else if (isHls(url)) {
-      // HLS / m3u8 (Brightcove Bolt, etc.)
       const video = document.createElement("video");
       video.controls = true;
       video.autoplay = true;
       video.playsInline = true;
+      video.muted = false;
+      video.setAttribute("playsinline", "");
+      video.setAttribute("webkit-playsinline", "");
       video.style.width = "100%";
       video.style.height = "100%";
-      video.setAttribute("playsinline", "");
+      video.style.background = "#000";
       inner.appendChild(video);
 
+      // Chrome/Android/Firefox: use hls.js.
       if (window.Hls && Hls.isSupported()) {
         const hls = new Hls({
           enableWorker: true,
-          lowLatencyMode: false
+          lowLatencyMode: false,
+          backBufferLength: 30,
+          maxBufferLength: 30,
+          maxMaxBufferLength: 60,
+          manifestLoadingMaxRetry: 2,
+          levelLoadingMaxRetry: 2,
+          fragLoadingMaxRetry: 3,
+          manifestLoadingRetryDelay: 1000,
+          levelLoadingRetryDelay: 1000,
+          fragLoadingRetryDelay: 1000
         });
+
         window._filmoHls = hls;
-        hls.loadSource(url);
+
+        // Attach first, then load the source. This is the recommended hls.js order.
         hls.attachMedia(video);
+
+        hls.on(Hls.Events.MEDIA_ATTACHED, function () {
+          hls.loadSource(url);
+        });
+
         hls.on(Hls.Events.MANIFEST_PARSED, function () {
-          video.play().catch(function () {});
+          video.play().catch(function () {
+            // Mobile browsers may block autoplay with sound; controls remain available.
+          });
         });
+
         hls.on(Hls.Events.ERROR, function (event, data) {
-          if (data.fatal) {
-            console.error("HLS error", data);
-            inner.innerHTML = '<div class="player-error">تعذر تشغيل البث (HLS). الرابط قد يكون منتهي أو محمي.</div>';
+          console.error("[Filmo HLS]", data);
+
+          if (!data.fatal) return;
+
+          // Try the built-in hls.js recovery mechanisms before giving up.
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            console.warn("[Filmo HLS] Recovering network error...");
+            try {
+              hls.startLoad();
+              return;
+            } catch (e) {}
           }
+
+          if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            console.warn("[Filmo HLS] Recovering media error...");
+            try {
+              hls.recoverMediaError();
+              return;
+            } catch (e) {}
+          }
+
+          inner.innerHTML =
+            '<div class="player-error">' + hlsErrorText(data) +
+            '<br><small>افتح Console لمعرفة تفاصيل الخطأ.</small></div>';
+          try { hls.destroy(); } catch (e) {}
+          window._filmoHls = null;
         });
+
+      // Safari/iOS and browsers with native HLS.
       } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        // Safari native HLS
         video.src = url;
+
         video.addEventListener("loadedmetadata", function () {
           video.play().catch(function () {});
         });
-        video.onerror = function () {
-          inner.innerHTML = '<div class="player-error">تعذر تشغيل البث. الرابط قد يكون منتهي أو محمي.</div>';
-        };
+
+        video.addEventListener("error", function () {
+          const e = video.error;
+          console.error("[Filmo Native HLS]", e);
+          inner.innerHTML =
+            '<div class="player-error">تعذر تشغيل بث HLS من المتصفح.' +
+            '<br><small>قد تكون المشكلة CORS أو صلاحية الرابط.</small></div>';
+        });
+
       } else {
-        inner.innerHTML = '<div class="player-error">المتصفح لا يدعم تشغيل روابط m3u8.</div>';
+        inner.innerHTML =
+          '<div class="player-error">المتصفح لا يدعم تشغيل روابط m3u8.</div>';
       }
+
     } else if (isDirectVideo(url)) {
-      inner.innerHTML = '<video controls autoplay playsinline src="' + safe(url) + '" onerror="this.parentNode.innerHTML=\'<div class=player-error>تعذر تشغيل الفيديو. جرب رابط آخر.</div>\'"></video>';
+      const video = document.createElement("video");
+      video.controls = true;
+      video.autoplay = true;
+      video.playsInline = true;
+      video.src = url;
+      inner.appendChild(video);
+      video.onerror = function () {
+        inner.innerHTML = '<div class="player-error">تعذر تشغيل الفيديو. جرب رابط آخر.</div>';
+      };
     } else {
       let embedUrl = url;
       const gd = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
@@ -514,9 +591,10 @@ function playUrl(url) {
       inner.innerHTML = '<iframe src="' + safe(embedUrl) + '" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
     }
   } catch (e) {
-    console.error(e);
+    console.error("[Filmo Player]", e);
     inner.innerHTML = '<div class="player-error">حدث خطأ أثناء فتح المشغل.</div>';
   }
+
   wrap.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
