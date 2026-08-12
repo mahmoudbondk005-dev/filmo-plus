@@ -129,7 +129,7 @@ button.small{padding:8px 14px;font-size:13px}
 const SUPABASE_URL = "https://axvibvssjizkrfdqlyow.supabase.co";
 const SUPABASE_KEY = "sb_publishable_72qMAroeSPFAMXfL2AoVQA_5RnDslsh";
 const TABLE_URL = SUPABASE_URL + "/rest/v1/movies";
-const ADMIN_PASSWORD = "Filmo2026";
+const ADMIN_PASSWORD_HASH = "3443cb718c468231cce80e248227331c4358e049bd5fbb66e06008c3d3a3ecfb";
 const SESSION_KEY = "filmo_admin_ok";
 const VALID_CATEGORIES = ["أفلام عربي", "أفلام أجنبي", "مسلسلات عربي", "مسلسلات أجنبي"];
 
@@ -145,9 +145,15 @@ function isLoggedIn() {
   return sessionStorage.getItem(SESSION_KEY) === "1";
 }
 
-function login() {
+async function sha256(str) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function login() {
   const pass = document.getElementById("password").value;
-  if (pass === ADMIN_PASSWORD) {
+  const hash = await sha256(pass);
+  if (hash === ADMIN_PASSWORD_HASH) {
     sessionStorage.setItem(SESSION_KEY, "1");
     showAdmin();
   } else {
