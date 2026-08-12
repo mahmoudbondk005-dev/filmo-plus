@@ -64,6 +64,7 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
   .detail{display:block}.detail img{width:170px;height:245px;margin-bottom:14px}
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
 </head>
 <body>
 <header>
@@ -358,6 +359,10 @@ function showHistory() {
 }
 
 function stopPlayer() {
+  if (window._filmoHls) {
+    try { window._filmoHls.destroy(); } catch (e) {}
+    window._filmoHls = null;
+  }
   const wrap = document.getElementById("playerWrap");
   const inner = document.getElementById("playerInner");
   wrap.classList.remove("active");
@@ -430,8 +435,11 @@ function getVimeoId(url) {
   const m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
   return m ? m[1] : null;
 }
+function isHls(url) {
+  return /\.m3u8(\?|$)/i.test(url) || /\/manifest\/.*m3u8/i.test(url) || /boltdns\.net/i.test(url);
+}
 function isDirectVideo(url) {
-  return /\.(mp4|webm|ogg|m3u8)(\?|$)/i.test(url);
+  return /\.(mp4|webm|ogg)(\?|$)/i.test(url);
 }
 
 function playUrl(url) {
@@ -444,6 +452,12 @@ function playUrl(url) {
   wrap.classList.add("active");
   inner.innerHTML = "";
 
+  // stop previous hls instance
+  if (window._filmoHls) {
+    try { window._filmoHls.destroy(); } catch (e) {}
+    window._filmoHls = null;
+  }
+
   try {
     const yt = getYouTubeId(url);
     const vim = getVimeoId(url);
@@ -451,6 +465,46 @@ function playUrl(url) {
       inner.innerHTML = '<iframe src="https://www.youtube.com/embed/' + yt + '?autoplay=1&rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>';
     } else if (vim) {
       inner.innerHTML = '<iframe src="https://player.vimeo.com/video/' + vim + '?autoplay=1" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>';
+    } else if (isHls(url)) {
+      // HLS / m3u8 (Brightcove Bolt, etc.)
+      const video = document.createElement("video");
+      video.controls = true;
+      video.autoplay = true;
+      video.playsInline = true;
+      video.style.width = "100%";
+      video.style.height = "100%";
+      video.setAttribute("playsinline", "");
+      inner.appendChild(video);
+
+      if (window.Hls && Hls.isSupported()) {
+        const hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: false
+        });
+        window._filmoHls = hls;
+        hls.loadSource(url);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, function () {
+          video.play().catch(function () {});
+        });
+        hls.on(Hls.Events.ERROR, function (event, data) {
+          if (data.fatal) {
+            console.error("HLS error", data);
+            inner.innerHTML = '<div class="player-error">تعذر تشغيل البث (HLS). الرابط قد يكون منتهي أو محمي.</div>';
+          }
+        });
+      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        // Safari native HLS
+        video.src = url;
+        video.addEventListener("loadedmetadata", function () {
+          video.play().catch(function () {});
+        });
+        video.onerror = function () {
+          inner.innerHTML = '<div class="player-error">تعذر تشغيل البث. الرابط قد يكون منتهي أو محمي.</div>';
+        };
+      } else {
+        inner.innerHTML = '<div class="player-error">المتصفح لا يدعم تشغيل روابط m3u8.</div>';
+      }
     } else if (isDirectVideo(url)) {
       inner.innerHTML = '<video controls autoplay playsinline src="' + safe(url) + '" onerror="this.parentNode.innerHTML=\'<div class=player-error>تعذر تشغيل الفيديو. جرب رابط آخر.</div>\'"></video>';
     } else {
@@ -460,6 +514,7 @@ function playUrl(url) {
       inner.innerHTML = '<iframe src="' + safe(embedUrl) + '" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
     }
   } catch (e) {
+    console.error(e);
     inner.innerHTML = '<div class="player-error">حدث خطأ أثناء فتح المشغل.</div>';
   }
   wrap.scrollIntoView({ behavior: "smooth", block: "start" });
