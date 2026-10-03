@@ -31,7 +31,7 @@ section{margin:34px 0}
 .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
 .card{background:#141821;border:1px solid #202633;border-radius:13px;overflow:hidden;cursor:pointer;transition:.2s;position:relative}
 .card:hover{transform:translateY(-4px);border-color:#ffb00055}
-.poster{aspect-ratio:2/3;background:#222 center/cover no-repeat}
+.poster{aspect-ratio:2/3;background:#222 center/cover no-repeat;position:relative}.poster-watermark{position:absolute;left:9px;bottom:9px;background:rgba(0,0,0,.48);color:#fff;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:800;letter-spacing:.2px;backdrop-filter:blur(3px);pointer-events:none;z-index:2}
 .body{padding:10px}
 .body h3{font-size:14px;margin:0 0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .meta{font-size:11px;color:#9297a2}
@@ -51,7 +51,7 @@ section{margin:34px 0}
 .ep-btn:hover,.ep-btn.active{border-color:#ffb000;color:#ffb000;background:#1f2430}
 .player-wrap{display:none;margin-top:22px;background:#000;border-radius:14px;overflow:hidden;aspect-ratio:16/9}
 .player-wrap.active{display:block}
-.player-wrap iframe,.player-wrap video{width:100%;height:100%;border:0;display:block}
+.player-wrap iframe,.player-wrap video{width:100%;height:100%;border:0;display:block}.player-stage{position:relative;width:100%;height:100%;overflow:hidden}.video-watermark{position:absolute;z-index:20;background:rgba(0,0,0,.48);color:#fff;padding:5px 9px;border-radius:6px;font-size:13px;font-weight:800;line-height:1;pointer-events:none;user-select:none;backdrop-filter:blur(3px);text-shadow:0 1px 2px #000}.wm-tl{top:12px;left:12px}.wm-tc{top:12px;left:50%;transform:translateX(-50%)}.wm-tr{top:12px;right:12px}.wm-ml{top:50%;left:12px;transform:translateY(-50%)}.wm-mc{top:50%;left:50%;transform:translate(-50%,-50%)}.wm-mr{top:50%;right:12px;transform:translateY(-50%)}.wm-bl{bottom:12px;left:12px}.wm-bc{bottom:12px;left:50%;transform:translateX(-50%)}.wm-br{bottom:12px;right:12px}
 .player-error{padding:40px;text-align:center;color:#ff6b6b}
 footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align:center;color:#777}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1f2a;border:1px solid #ffb000;color:#fff;padding:12px 22px;border-radius:10px;z-index:100;font-size:14px;display:none;box-shadow:0 8px 24px #0008}
@@ -121,9 +121,9 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 </main>
 
 <div id="details" class="wrap">
-  <span class="back" onclick="home()">← العودة</span>
+  <span class="back" onclick="backToPrevious()">← العودة</span>
   <div class="detail">
-    <img id="dimg" alt="">
+    <div class="detail-poster" style="position:relative"><img id="dimg" alt="" style="display:block;width:100%;height:auto"><span class="poster-watermark">سيما سيما</span></div>
     <div>
       <h1 id="dtitle"></h1>
       <div id="dmeta" class="muted"></div>
@@ -136,7 +136,7 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
     <h3>الحلقات</h3>
     <div id="epList" class="ep-list"></div>
   </div>
-  <div id="playerWrap" class="player-wrap"><div id="playerInner"></div></div>
+  <div id="playerWrap" class="player-wrap"><div id="playerInner" class="player-stage"></div></div>
 </div>
 
 <footer>سيما سيما © 2026 | <a href="privacy.html" style="color:#aaa">الخصوصية</a> · <a href="terms.html" style="color:#aaa">الشروط</a> · <a href="contact.html" style="color:#aaa">تواصل معنا</a></footer>
@@ -184,11 +184,19 @@ function normalizeCategory(cat) {
 
 function parseEpisodes(val) {
   if (!val) return [];
-  if (Array.isArray(val)) return val;
+  if (Array.isArray(val)) return val.filter(x => x && !x.__cimaOverlay);
   try {
     const p = JSON.parse(val);
-    return Array.isArray(p) ? p : [];
+    return Array.isArray(p) ? p.filter(x => x && !x.__cimaOverlay) : [];
   } catch { return []; }
+}
+
+function parseOverlay(val) {
+  if (!val) return { enabled:true, pos:"br" };
+  let arr = Array.isArray(val) ? val : [];
+  if (!arr.length && typeof val === "string") { try { arr = JSON.parse(val) || []; } catch { arr=[]; } }
+  const item = Array.isArray(arr) ? arr.find(x => x && x.__cimaOverlay) : null;
+  return item && item.__cimaOverlay ? { enabled:item.__cimaOverlay.enabled !== false, pos:item.__cimaOverlay.pos || "br" } : { enabled:false, pos:"br" };
 }
 
 function normalize(row) {
@@ -201,7 +209,8 @@ function normalize(row) {
     img: row.poster_url || "",
     movie_url: row.movie_url || "",
     desc: row.description || "",
-    episodes: parseEpisodes(row.episodes)
+    episodes: parseEpisodes(row.episodes),
+    overlay: parseOverlay(row.episodes)
   };
 }
 
@@ -247,7 +256,8 @@ function addToHistory(item) {
     img: item.img,
     movie_url: item.movie_url,
     desc: item.desc,
-    episodes: item.episodes || []
+    episodes: item.episodes || [],
+    overlay: item.overlay || { enabled:true, pos:"br" }
   });
   if (hist.length > MAX_HISTORY) hist = hist.slice(0, MAX_HISTORY);
   localStorage.setItem(HIST_KEY, JSON.stringify(hist));
@@ -278,6 +288,7 @@ async function loadMovies() {
     const rows = await response.json();
     allItems = rows.map(normalize);
     renderAll();
+    restoreRoute();
   } catch (error) {
     console.error(error);
     CATEGORIES.forEach(c => {
@@ -293,7 +304,7 @@ function card(x) {
   const heart = isFav(x.id) ? "♥" : "♡";
   return '<div class="card" onclick=\'show(' + JSON.stringify(x).replace(/</g,"\\u003c") + ')\'>' +
     '<button type="button" class="fav-btn' + favClass + '" onclick=\'toggleFav(' + JSON.stringify(String(x.id)) + ',event)\' title="مفضلة">' + heart + '</button>' +
-    '<div class="poster" style="background-image:url(\'' + poster + '\')"></div>' +
+    '<div class="poster" style="background-image:url(\'' + poster + '\')"><span class="poster-watermark">سيما سيما</span></div>' +
     '<div class="body">' +
     '<h3>' + safe(x.name) + '</h3>' +
     '<div class="meta">' + safe(x.type) + ' • ' + safe(x.year) + '</div>' +
@@ -320,6 +331,7 @@ function renderAll(filterText) {
 
 function search() {
   const q = document.getElementById("q").value;
+  history.replaceState({ cimaRoute: "search=" + encodeURIComponent(q) }, "", "#search=" + encodeURIComponent(q));
   document.getElementById("favoritesSection").style.display = "none";
   document.getElementById("historySection").style.display = "none";
   renderAll(q);
@@ -386,8 +398,14 @@ function toggleFavFromDetail() {
   toggleFav(window.currentMovie.id);
 }
 
-function show(x) {
+function saveRoute(route) {
+  const hash = route || "home";
+  history.pushState({ cimaRoute: hash }, "", "#" + hash);
+}
+
+function show(x, pushRoute = true) {
   stopPlayer();
+  if (pushRoute && x && x.id != null) saveRoute("movie=" + encodeURIComponent(String(x.id)));
   document.getElementById("homePage").style.display = "none";
   document.getElementById("details").style.display = "block";
   document.getElementById("dimg").src = x.img || "https://via.placeholder.com/500x750?text=Cima+Cima";
@@ -418,14 +436,44 @@ function show(x) {
   scrollTo(0, 0);
 }
 
-function home() {
+function backToPrevious() {
+  if (location.hash.startsWith("#movie=") && history.length > 1) { history.back(); return; }
+  home(false);
+}
+
+function home(pushRoute = true) {
   stopPlayer();
+  if (pushRoute) saveRoute("home");
   document.getElementById("details").style.display = "none";
   document.getElementById("homePage").style.display = "block";
   document.getElementById("favoritesSection").style.display = "none";
   document.getElementById("historySection").style.display = "none";
   scrollTo(0, 0);
 }
+
+function restoreRoute() {
+  const raw = location.hash.replace(/^#/, "");
+  if (!raw || raw === "home") { home(false); return; }
+  if (raw.startsWith("movie=")) {
+    const id = decodeURIComponent(raw.slice(6));
+    const item = allItems.find(x => String(x.id) === String(id));
+    if (item) { show(item, false); return; }
+  }
+  if (raw.startsWith("search=")) {
+    const q = decodeURIComponent(raw.slice(7));
+    document.getElementById("q").value = q;
+    document.getElementById("details").style.display = "none";
+    document.getElementById("homePage").style.display = "block";
+    document.getElementById("favoritesSection").style.display = "none";
+    document.getElementById("historySection").style.display = "none";
+    renderAll(q);
+    return;
+  }
+  home(false);
+}
+
+window.addEventListener("popstate", restoreRoute);
+window.addEventListener("hashchange", function() { if (!history.state || history.state.cimaRoute !== location.hash.slice(1)) restoreRoute(); });
 
 function getYouTubeId(url) {
   const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{6,})/);
@@ -481,6 +529,7 @@ function playUrl(url) {
   }
 
   try {
+    inner.classList.add("player-stage");
     const yt = getYouTubeId(url);
     const vim = getVimeoId(url);
 
@@ -536,13 +585,13 @@ function playUrl(url) {
         });
 
         hls.on(Hls.Events.ERROR, function (event, data) {
-          console.error("[Cima Cima HLS]", data);
+          console.error("[Cima+Cima HLS]", data);
 
           if (!data.fatal) return;
 
           // Try the built-in hls.js recovery mechanisms before giving up.
           if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            console.warn("[Cima Cima HLS] Recovering network error...");
+            console.warn("[Cima+Cima HLS] Recovering network error...");
             try {
               hls.startLoad();
               return;
@@ -550,7 +599,7 @@ function playUrl(url) {
           }
 
           if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-            console.warn("[Cima Cima HLS] Recovering media error...");
+            console.warn("[Cima+Cima HLS] Recovering media error...");
             try {
               hls.recoverMediaError();
               return;
@@ -574,7 +623,7 @@ function playUrl(url) {
 
         video.addEventListener("error", function () {
           const e = video.error;
-          console.error("[Cima Cima Native HLS]", e);
+          console.error("[Cima+Cima Native HLS]", e);
           inner.innerHTML =
             '<div class="player-error">تعذر تشغيل بث HLS من المتصفح.' +
             '<br><small>قد تكون المشكلة CORS أو صلاحية الرابط.</small></div>';
@@ -601,8 +650,16 @@ function playUrl(url) {
       if (gd) embedUrl = "https://drive.google.com/file/d/" + gd[1] + "/preview";
       inner.innerHTML = '<iframe src="' + safe(embedUrl) + '" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
     }
+
+    const wm = window.currentMovie && window.currentMovie.overlay;
+    if (wm && wm.enabled !== false) {
+      const mark = document.createElement("div");
+      mark.className = "video-watermark wm-" + (wm.pos || "br");
+      mark.textContent = "سيما سيما";
+      inner.appendChild(mark);
+    }
   } catch (e) {
-    console.error("[Cima Cima Player]", e);
+    console.error("[Cima+Cima Player]", e);
     inner.innerHTML = '<div class="player-error">حدث خطأ أثناء فتح المشغل.</div>';
   }
 
