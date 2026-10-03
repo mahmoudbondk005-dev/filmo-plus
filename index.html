@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>فيلمو | أفلام ومسلسلات</title>
-<meta name="description" content="فيلمو منصة لمشاهدة الأفلام والمسلسلات العربية والأجنبية.">
+<title>سيما سيما | أفلام ومسلسلات</title>
+<meta name="description" content="سيما سيما منصة لمشاهدة الأفلام والمسلسلات العربية والأجنبية.">
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#090b10;color:#f5f5f5;font-family:Tahoma,Arial,sans-serif}
@@ -69,7 +69,7 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 <body>
 <header>
 <nav>
-  <div class="logo" onclick="home()">فيلمو</div>
+  <div class="logo" onclick="home()">سيما سيما</div>
   <div class="search">
     <input id="q" type="search" placeholder="ابحث عن فيلم أو مسلسل..." oninput="search()" autocomplete="off">
     <button type="button" onclick="search()">بحث</button>
@@ -139,7 +139,7 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
   <div id="playerWrap" class="player-wrap"><div id="playerInner"></div></div>
 </div>
 
-<footer>فيلمو © 2026 | <a href="privacy.html" style="color:#aaa">الخصوصية</a> · <a href="terms.html" style="color:#aaa">الشروط</a> · <a href="contact.html" style="color:#aaa">تواصل معنا</a></footer>
+<footer>سيما سيما © 2026 | <a href="privacy.html" style="color:#aaa">الخصوصية</a> · <a href="terms.html" style="color:#aaa">الشروط</a> · <a href="contact.html" style="color:#aaa">تواصل معنا</a></footer>
 <div id="toast" class="toast"></div>
 
 <script>
@@ -288,7 +288,7 @@ async function loadMovies() {
 }
 
 function card(x) {
-  const poster = safe(x.img || "https://via.placeholder.com/500x750?text=Filmo");
+  const poster = safe(x.img || "https://via.placeholder.com/500x750?text=Cima+Cima");
   const favClass = isFav(x.id) ? " on" : "";
   const heart = isFav(x.id) ? "♥" : "♡";
   return '<div class="card" onclick=\'show(' + JSON.stringify(x).replace(/</g,"\\u003c") + ')\'>' +
@@ -390,7 +390,7 @@ function show(x) {
   stopPlayer();
   document.getElementById("homePage").style.display = "none";
   document.getElementById("details").style.display = "block";
-  document.getElementById("dimg").src = x.img || "https://via.placeholder.com/500x750?text=Filmo";
+  document.getElementById("dimg").src = x.img || "https://via.placeholder.com/500x750?text=Cima+Cima";
   document.getElementById("dtitle").textContent = x.name;
   document.getElementById("dmeta").textContent = x.type + " • " + x.year + " • ⭐ " + x.rating;
   document.getElementById("ddesc").textContent = x.desc || "لا يوجد وصف متاح.";
@@ -536,13 +536,13 @@ function playUrl(url) {
         });
 
         hls.on(Hls.Events.ERROR, function (event, data) {
-          console.error("[Filmo HLS]", data);
+          console.error("[Cima Cima HLS]", data);
 
           if (!data.fatal) return;
 
           // Try the built-in hls.js recovery mechanisms before giving up.
           if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            console.warn("[Filmo HLS] Recovering network error...");
+            console.warn("[Cima Cima HLS] Recovering network error...");
             try {
               hls.startLoad();
               return;
@@ -550,7 +550,7 @@ function playUrl(url) {
           }
 
           if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-            console.warn("[Filmo HLS] Recovering media error...");
+            console.warn("[Cima Cima HLS] Recovering media error...");
             try {
               hls.recoverMediaError();
               return;
@@ -574,7 +574,7 @@ function playUrl(url) {
 
         video.addEventListener("error", function () {
           const e = video.error;
-          console.error("[Filmo Native HLS]", e);
+          console.error("[Cima Cima Native HLS]", e);
           inner.innerHTML =
             '<div class="player-error">تعذر تشغيل بث HLS من المتصفح.' +
             '<br><small>قد تكون المشكلة CORS أو صلاحية الرابط.</small></div>';
@@ -602,7 +602,7 @@ function playUrl(url) {
       inner.innerHTML = '<iframe src="' + safe(embedUrl) + '" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
     }
   } catch (e) {
-    console.error("[Filmo Player]", e);
+    console.error("[Cima Cima Player]", e);
     inner.innerHTML = '<div class="player-error">حدث خطأ أثناء فتح المشغل.</div>';
   }
 
