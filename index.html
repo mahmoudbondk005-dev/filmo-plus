@@ -49,7 +49,7 @@ section{margin:34px 0}
 .ep-list{display:flex;flex-wrap:wrap;gap:8px}
 .ep-btn{padding:10px 14px;background:#1a1f2a;border:1px solid #303744;border-radius:8px;color:#eee;cursor:pointer;font-size:13px}
 .ep-btn:hover,.ep-btn.active{border-color:#ffb000;color:#ffb000;background:#1f2430}
-.detail-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.detail-actions .btn{margin-top:0;min-width:150px;text-align:center}.download-box{display:none}.download-modal{position:fixed;inset:0;background:#0009;z-index:90;align-items:center;justify-content:center;padding:20px}.download-modal.open{display:flex}.download-card{width:min(430px,100%);background:#11151d;border:1px solid #303744;border-radius:18px;padding:18px;box-shadow:0 20px 60px #000b}.download-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}.download-card-head h3{margin:0;color:#fff;font-size:18px}.download-close{border:0;background:#252b35;color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:18px}.download-list{display:grid;gap:9px}.download-btn{display:flex;align-items:center;justify-content:center;padding:12px 14px;background:#171c25;border:1px solid #303744;border-radius:11px;color:#fff;text-decoration:none;font-weight:800;font-size:14px}.download-btn:hover{border-color:#ffb000;color:#ffb000;background:#1b2029}
+.detail-actions{display:flex;gap:8px;flex-wrap:nowrap;margin-top:14px}.detail-actions .btn{margin-top:0;flex:1 1 0;min-width:0;text-align:center;white-space:nowrap}.download-box{display:none}.download-modal{position:fixed;inset:0;background:#0009;z-index:90;align-items:center;justify-content:center;padding:20px}.download-modal.open{display:flex}.download-card{width:min(430px,100%);background:#11151d;border:1px solid #303744;border-radius:18px;padding:18px;box-shadow:0 20px 60px #000b}.download-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}.download-card-head h3{margin:0;color:#fff;font-size:18px}.download-close{border:0;background:#252b35;color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:18px}.download-list{display:grid;gap:9px}.download-btn{display:flex;align-items:center;justify-content:center;padding:12px 14px;background:#171c25;border:1px solid #303744;border-radius:11px;color:#fff;text-decoration:none;font-weight:800;font-size:14px}.download-btn:hover{border-color:#ffb000;color:#ffb000;background:#1b2029}
 .player-wrap{display:none;margin-top:22px;background:#000;border-radius:14px;overflow:hidden;aspect-ratio:16/9}
 .player-wrap.active{display:block}
 .player-wrap iframe,.player-wrap video{width:100%;height:100%;border:0;display:block}.player-stage{position:relative;width:100%;height:100%;overflow:hidden;background:#000}.player-stage:fullscreen{width:100vw;height:100vh}.fullscreen-btn{position:absolute;right:12px;bottom:12px;z-index:30;border:1px solid #ffffff30;background:#000b;color:#fff;width:40px;height:40px;border-radius:10px;cursor:pointer;font-size:18px}.video-watermark{position:absolute;z-index:20;background:rgba(0,0,0,.48);color:#fff;padding:5px 9px;border-radius:6px;font-size:13px;font-weight:800;line-height:1;pointer-events:none;user-select:none;backdrop-filter:blur(3px);text-shadow:0 1px 2px #000}.wm-tl{top:12px;left:12px}.wm-tc{top:12px;left:50%;transform:translateX(-50%)}.wm-tr{top:12px;right:12px}.wm-ml{top:50%;left:12px;transform:translateY(-50%)}.wm-mc{top:50%;left:50%;transform:translate(-50%,-50%)}.wm-mr{top:50%;right:12px;transform:translateY(-50%)}.wm-bl{bottom:12px;left:12px}.wm-bc{bottom:12px;left:50%;transform:translateX(-50%)}.wm-br{bottom:12px;right:12px}
@@ -434,7 +434,7 @@ function show(x, pushRoute = true) {
   const downloadBtn = document.getElementById("downloadBtn");
   const downloadList = document.getElementById("downloadListModal");
   const downloads = Array.isArray(x.downloads) ? x.downloads : [];
-  downloadBtn.style.display = downloads.length ? "inline-block" : "none";
+  downloadBtn.style.display = "inline-block";
   downloadList.innerHTML = downloads.map(function(d,i){ return '<a class="download-btn" href="'+safe(d.url)+'" target="_blank" rel="noopener noreferrer">'+safe(d.name || ("سيرفر " + (i+1)))+'</a>'; }).join("");
 
   const epBox = document.getElementById("episodesBox");
@@ -677,8 +677,6 @@ function playUrl(url) {
       inner.innerHTML = '<iframe src="' + safe(embedUrl) + '" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
     }
 
-    // علامة سيما سيما تظهر دائمًا فوق المشغل، وليس على البوستر فقط.
-    // المشغل نفسه هو الذي يدخل ملء الشاشة عبر زر ⛶، لذلك تظل العلامة ظاهرة داخله.
     const wm = window.currentMovie && window.currentMovie.overlay;
     const mark = document.createElement("div");
     mark.className = "video-watermark wm-" + ((wm && wm.pos) || "br");
