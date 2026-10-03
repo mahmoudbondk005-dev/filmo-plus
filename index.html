@@ -10,10 +10,10 @@
 body{margin:0;background:#090b10;color:#f5f5f5;font-family:Tahoma,Arial,sans-serif}
 header{position:sticky;top:0;z-index:20;background:#0e1118f2;border-bottom:1px solid #202532;backdrop-filter:blur(12px)}
 nav{max-width:1200px;margin:auto;padding:14px 18px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
-.logo{font-size:25px;font-weight:900;color:#ffb000;cursor:pointer}
-.search{flex:1;min-width:160px;display:flex;background:#171b24;border:1px solid #2a303c;border-radius:12px;overflow:hidden}
-.search input{flex:1;background:none;border:0;outline:0;color:#fff;padding:12px}
-.search button{border:0;background:#ffb000;padding:0 18px;font-weight:bold;cursor:pointer}
+.logo{font-size:25px;font-weight:900;color:#ffb000;cursor:pointer;white-space:nowrap}.menu-toggle{width:44px;height:44px;border:1px solid #303744;background:#171b24;color:#fff;border-radius:10px;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.search{flex:1;min-width:240px;display:flex;background:#171b24;border:1px solid #2a303c;border-radius:14px;overflow:hidden;height:46px;box-shadow:0 5px 18px #0002}
+.search input{flex:1;background:none;border:0;outline:0;color:#fff;padding:12px 15px;font-size:14px;text-align:right}
+.search button{border:0;background:#ffb000;color:#111;padding:0 18px;font-weight:900;cursor:pointer}.menu-panel{display:none;position:absolute;top:calc(100% + 10px);right:18px;left:18px;max-width:1164px;margin:auto;background:#11151d;border:1px solid #292f3b;border-radius:16px;padding:12px;box-shadow:0 18px 45px #0009}.menu-panel.open{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.menu-panel a{display:block;padding:12px 14px;border-radius:10px;color:#dfe3eb;text-decoration:none;background:#171c25;border:1px solid #242b38;font-weight:700}.menu-panel a:hover{border-color:#ffb000;color:#ffb000}
 .links{display:flex;gap:12px;color:#c7cad1;font-size:13px;flex-wrap:wrap}
 .links a{text-decoration:none;color:inherit;white-space:nowrap;cursor:pointer}
 .links a:hover{color:#ffb000}
@@ -31,7 +31,7 @@ section{margin:34px 0}
 .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
 .card{background:#141821;border:1px solid #202633;border-radius:13px;overflow:hidden;cursor:pointer;transition:.2s;position:relative}
 .card:hover{transform:translateY(-4px);border-color:#ffb00055}
-.poster{aspect-ratio:2/3;background:#222 center/cover no-repeat;position:relative}.poster-watermark{position:absolute;left:9px;bottom:9px;background:rgba(0,0,0,.48);color:#fff;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:800;letter-spacing:.2px;backdrop-filter:blur(3px);pointer-events:none;z-index:2}
+.poster{aspect-ratio:2/3;background:#222 center/cover no-repeat;position:relative}.poster::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 70%,rgba(0,0,0,.55));pointer-events:none}.poster-watermark{position:absolute;left:10px;bottom:10px;background:rgba(0,0,0,.58);color:#fff;padding:5px 9px;border-radius:8px;font-size:10px;font-weight:900;backdrop-filter:blur(5px);pointer-events:none;z-index:3}.poster-rating{position:absolute;top:10px;right:10px;background:rgba(10,12,17,.82);color:#ffca28;padding:6px 9px;border-radius:9px;font-size:12px;font-weight:900;z-index:3;border:1px solid #ffffff18;backdrop-filter:blur(5px)}
 .body{padding:10px}
 .body h3{font-size:14px;margin:0 0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .meta{font-size:11px;color:#9297a2}
@@ -40,7 +40,7 @@ section{margin:34px 0}
 .fav-btn.on{color:#ff4d6d}
 #details{display:none;margin:25px auto;max-width:1000px}
 .back{display:inline-block;margin-bottom:18px;color:#ffb000;cursor:pointer;font-size:15px}
-.detail{display:flex;gap:28px;align-items:flex-start}.detail-info{flex:1;min-width:0}.detail-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.detail-actions .btn{min-width:130px;text-align:center}.download-box{margin-top:14px;background:#11151d;border:1px solid #242b38;border-radius:14px;padding:14px;display:none}.download-box h3{margin:0 0 12px;color:#ffb000;font-size:15px}.download-list{display:flex;gap:9px;flex-wrap:wrap}.download-btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 15px;background:#1a1f2a;border:1px solid #303744;border-radius:9px;color:#fff;text-decoration:none;font-weight:700;font-size:13px;transition:.18s}.download-btn:hover{border-color:#ffb000;color:#ffb000;transform:translateY(-1px)}
+.detail{display:flex;gap:28px;align-items:flex-start}
 .detail img{width:220px;height:320px;object-fit:cover;border-radius:14px;background:#222;flex-shrink:0}
 .detail h1{margin:0 0 10px;font-size:28px}
 .detail p{line-height:1.85;color:#c8ccd4}
@@ -49,46 +49,34 @@ section{margin:34px 0}
 .ep-list{display:flex;flex-wrap:wrap;gap:8px}
 .ep-btn{padding:10px 14px;background:#1a1f2a;border:1px solid #303744;border-radius:8px;color:#eee;cursor:pointer;font-size:13px}
 .ep-btn:hover,.ep-btn.active{border-color:#ffb000;color:#ffb000;background:#1f2430}
-
+.detail-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.detail-actions .btn{margin-top:0;min-width:150px;text-align:center}.download-box{display:none}.download-modal{position:fixed;inset:0;background:#0009;z-index:90;align-items:center;justify-content:center;padding:20px}.download-modal.open{display:flex}.download-card{width:min(430px,100%);background:#11151d;border:1px solid #303744;border-radius:18px;padding:18px;box-shadow:0 20px 60px #000b}.download-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}.download-card-head h3{margin:0;color:#fff;font-size:18px}.download-close{border:0;background:#252b35;color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:18px}.download-list{display:grid;gap:9px}.download-btn{display:flex;align-items:center;justify-content:center;padding:12px 14px;background:#171c25;border:1px solid #303744;border-radius:11px;color:#fff;text-decoration:none;font-weight:800;font-size:14px}.download-btn:hover{border-color:#ffb000;color:#ffb000;background:#1b2029}
 .player-wrap{display:none;margin-top:22px;background:#000;border-radius:14px;overflow:hidden;aspect-ratio:16/9}
 .player-wrap.active{display:block}
-.player-wrap iframe,.player-wrap video{width:100%;height:100%;border:0;display:block}.player-stage{position:relative;width:100%;height:100%;overflow:hidden}.video-watermark{position:absolute;z-index:20;background:rgba(0,0,0,.48);color:#fff;padding:5px 9px;border-radius:6px;font-size:13px;font-weight:800;line-height:1;pointer-events:none;user-select:none;backdrop-filter:blur(3px);text-shadow:0 1px 2px #000}.wm-tl{top:12px;left:12px}.wm-tc{top:12px;left:50%;transform:translateX(-50%)}.wm-tr{top:12px;right:12px}.wm-ml{top:50%;left:12px;transform:translateY(-50%)}.wm-mc{top:50%;left:50%;transform:translate(-50%,-50%)}.wm-mr{top:50%;right:12px;transform:translateY(-50%)}.wm-bl{bottom:12px;left:12px}.wm-bc{bottom:12px;left:50%;transform:translateX(-50%)}.wm-br{bottom:12px;right:12px}
+.player-wrap iframe,.player-wrap video{width:100%;height:100%;border:0;display:block}.player-stage{position:relative;width:100%;height:100%;overflow:hidden;background:#000}.player-stage:fullscreen{width:100vw;height:100vh}.fullscreen-btn{position:absolute;right:12px;bottom:12px;z-index:30;border:1px solid #ffffff30;background:#000b;color:#fff;width:40px;height:40px;border-radius:10px;cursor:pointer;font-size:18px}.video-watermark{position:absolute;z-index:20;background:rgba(0,0,0,.48);color:#fff;padding:5px 9px;border-radius:6px;font-size:13px;font-weight:800;line-height:1;pointer-events:none;user-select:none;backdrop-filter:blur(3px);text-shadow:0 1px 2px #000}.wm-tl{top:12px;left:12px}.wm-tc{top:12px;left:50%;transform:translateX(-50%)}.wm-tr{top:12px;right:12px}.wm-ml{top:50%;left:12px;transform:translateY(-50%)}.wm-mc{top:50%;left:50%;transform:translate(-50%,-50%)}.wm-mr{top:50%;right:12px;transform:translateY(-50%)}.wm-bl{bottom:12px;left:12px}.wm-bc{bottom:12px;left:50%;transform:translateX(-50%)}.wm-br{bottom:12px;right:12px}
 .player-error{padding:40px;text-align:center;color:#ff6b6b}
 footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align:center;color:#777}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1f2a;border:1px solid #ffb000;color:#fff;padding:12px 22px;border-radius:10px;z-index:100;font-size:14px;display:none;box-shadow:0 8px 24px #0008}
 .empty-box{text-align:center;padding:30px;color:#8d929d;background:#141821;border-radius:12px;border:1px dashed #303744}
-@media(max-width:900px){.grid{grid-template-columns:repeat(4,1fr)}.links{display:none}.search{max-width:none}.nav-menu{right:10px}}
+@media(max-width:900px){.grid{grid-template-columns:repeat(4,1fr)}.links{display:none}}
 @media(max-width:600px){
-  nav{padding:9px 10px;gap:8px}.logo{font-size:19px}.menu-btn{width:40px;height:40px}.search{height:40px;min-width:0}.search button{padding:0 13px}.search input{font-size:13px}
+  nav{padding:10px 12px;display:grid;grid-template-columns:1fr auto;gap:9px}.logo{font-size:21px;grid-column:1}.menu-toggle{grid-column:2}.search{grid-column:1 / -1;min-width:0;width:100%;height:44px}.search button{display:none}.menu-panel{top:calc(100% + 8px);right:10px;left:10px}.menu-panel.open{grid-template-columns:1fr 1fr}
   .hero{padding:24px;min-height:220px}.hero h1{font-size:26px}
   .grid{grid-template-columns:repeat(2,1fr);gap:11px}
-  .detail{display:block}.detail img{width:170px;height:245px;margin-bottom:14px}
+  .detail{display:block}.detail img{width:170px;height:245px;margin-bottom:14px}.detail-actions{display:grid;grid-template-columns:1fr 1fr}.detail-actions .btn{min-width:0}
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
 </head>
 <body>
 <header>
-<nav style="position:relative">
-  <button type="button" class="menu-btn" aria-label="الأقسام" onclick="toggleMenu()">☰</button>
+<nav>
   <div class="logo" onclick="home()">سيما سيما</div>
-  <div class="search">
-    <input id="q" type="search" placeholder="ابحث عن فيلم أو مسلسل..." oninput="search()" autocomplete="off">
-    <button type="button" onclick="search()">بحث</button>
-  </div>
-  <div class="links">
-    <a href="#ar-movies">أفلام عربي</a>
-    <a href="#en-movies">أفلام أجنبي</a>
-    <a href="#ar-series">مسلسلات عربي</a>
-    <a href="#en-series">مسلسلات أجنبي</a>
-  </div>
-  <div id="navMenu" class="nav-menu">
-    <a href="#ar-movies" onclick="closeMenu()">🇪🇬 أفلام عربي</a>
-    <a href="#en-movies" onclick="closeMenu()">🎬 أفلام أجنبي</a>
-    <a href="#ar-series" onclick="closeMenu()">📺 مسلسلات عربي</a>
-    <a href="#en-series" onclick="closeMenu()">📺 مسلسلات أجنبي</a>
-    <a onclick="showFavorites();closeMenu()">❤️ المفضلة</a>
-    <a onclick="showHistory();closeMenu()">🕒 المشاهدة الأخيرة</a>
+  <button class="menu-toggle" type="button" onclick="toggleMenu()">☰</button>
+  <div class="search"><input id="q" type="search" placeholder="ابحث عن فيلم أو مسلسل..." oninput="search()" autocomplete="off"><button type="button" onclick="search()">بحث</button></div>
+  <div id="menuPanel" class="menu-panel">
+    <a href="#ar-movies" onclick="closeMenu()">🇪🇬 أفلام عربي</a><a href="#en-movies" onclick="closeMenu()">🎬 أفلام أجنبي</a>
+    <a href="#ar-series" onclick="closeMenu()">📺 مسلسلات عربي</a><a href="#en-series" onclick="closeMenu()">📺 مسلسلات أجنبي</a>
+    <a onclick="showFavorites();closeMenu()">❤️ المفضلة</a><a onclick="showHistory();closeMenu()">🕒 المشاهدة الأخيرة</a>
   </div>
 </nav>
 </header>
@@ -131,25 +119,26 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 <div id="details" class="wrap">
   <span class="back" onclick="backToPrevious()">← العودة</span>
   <div class="detail">
-    <div class="detail-poster" style="position:relative"><img id="dimg" alt="" style="display:block;width:100%;height:auto"><span class="poster-watermark">سيما سيما</span></div>
-    <div class="detail-info">
+    <div class="detail-poster" style="position:relative"><img id="dimg" alt="" style="display:block;width:100%;height:auto"><span class="poster-rating" id="dRating">⭐ —</span><span class="poster-watermark">سيما سيما</span></div>
+    <div>
       <h1 id="dtitle"></h1>
       <div id="dmeta" class="muted"></div>
       <p id="ddesc"></p>
       <div class="detail-actions">
         <button class="btn" type="button" id="watchBtn" onclick="watch()">▶ مشاهدة</button>
-        <button class="btn btn-outline" type="button" id="downloadBtn" onclick="toggleDownloads()" style="display:none">⬇ تحميل</button>
+        <button class="btn btn-outline" type="button" id="downloadBtn" onclick="openDownloads()" style="display:none">⬇ تحميل</button>
         <button class="btn btn-outline" type="button" id="favDetailBtn" onclick="toggleFavFromDetail()">♡ إضافة للمفضلة</button>
       </div>
-      <div id="downloadBox" class="download-box"><h3>اختر سيرفر التحميل</h3><div id="downloadList" class="download-list"></div></div>
     </div>
   </div>
+  <div id="downloadBox" class="download-box"></div>
   <div id="episodesBox" class="episodes">
     <h3>الحلقات</h3>
     <div id="epList" class="ep-list"></div>
   </div>
   <div id="playerWrap" class="player-wrap"><div id="playerInner" class="player-stage"></div></div>
 </div>
+<div id="downloadModal" class="download-modal" style="display:none" onclick="if(event.target===this)closeDownloads()"><div class="download-card"><div class="download-card-head"><h3>اختار سيرفر التحميل</h3><button class="download-close" onclick="closeDownloads()">×</button></div><div id="downloadListModal" class="download-list"></div></div></div>
 
 <footer>سيما سيما © 2026 | <a href="privacy.html" style="color:#aaa">الخصوصية</a> · <a href="terms.html" style="color:#aaa">الشروط</a> · <a href="contact.html" style="color:#aaa">تواصل معنا</a></footer>
 <div id="toast" class="toast"></div>
@@ -327,11 +316,10 @@ function card(x) {
   const heart = isFav(x.id) ? "♥" : "♡";
   return '<div class="card" onclick=\'show(' + JSON.stringify(x).replace(/</g,"\\u003c") + ')\'>' +
     '<button type="button" class="fav-btn' + favClass + '" onclick=\'toggleFav(' + JSON.stringify(String(x.id)) + ',event)\' title="مفضلة">' + heart + '</button>' +
-    '<div class="poster" style="background-image:url(\'' + poster + '\')"><span class="poster-watermark">سيما سيما</span></div>' +
+    '<div class="poster" style="background-image:url(\'' + poster + '\')"><span class="poster-rating">⭐ ' + safe(x.rating) + '</span><span class="poster-watermark">سيما سيما</span></div>' +
     '<div class="body">' +
     '<h3>' + safe(x.name) + '</h3>' +
     '<div class="meta">' + safe(x.type) + ' • ' + safe(x.year) + '</div>' +
-    '<span class="rate">⭐ ' + safe(x.rating) + '</span>' +
     '</div></div>';
 }
 
@@ -352,6 +340,10 @@ function renderAll(filterText) {
   });
 }
 
+function toggleMenu(){document.getElementById("menuPanel").classList.toggle("open");}
+function closeMenu(){document.getElementById("menuPanel").classList.remove("open");}
+function openDownloads(){const m=document.getElementById("downloadModal");if(!window.currentMovie||!window.currentMovie.downloads||!window.currentMovie.downloads.length){toast("لا توجد سيرفرات تحميل متاحة حالياً.");return;}m.style.display="flex";m.classList.add("open");}
+function closeDownloads(){const m=document.getElementById("downloadModal");m.classList.remove("open");m.style.display="none";}
 function search() {
   const q = document.getElementById("q").value;
   history.replaceState({ cimaRoute: "search=" + encodeURIComponent(q) }, "", "#search=" + encodeURIComponent(q));
@@ -426,24 +418,6 @@ function saveRoute(route) {
   history.pushState({ cimaRoute: hash }, "", "#" + hash);
 }
 
-function toggleDownloads() {
-  const box = document.getElementById("downloadBox");
-  if (!box || !document.getElementById("downloadList").innerHTML) return;
-  box.style.display = box.style.display === "block" ? "none" : "block";
-}
-
-function toggleMenu() {
-  document.getElementById("navMenu").classList.toggle("open");
-}
-function closeMenu() {
-  document.getElementById("navMenu").classList.remove("open");
-}
-document.addEventListener("click", function(e) {
-  const menu = document.getElementById("navMenu");
-  const btn = document.querySelector(".menu-btn");
-  if (menu && menu.classList.contains("open") && !menu.contains(e.target) && !btn.contains(e.target)) closeMenu();
-});
-
 function show(x, pushRoute = true) {
   stopPlayer();
   if (pushRoute && x && x.id != null) saveRoute("movie=" + encodeURIComponent(String(x.id)));
@@ -451,22 +425,18 @@ function show(x, pushRoute = true) {
   document.getElementById("details").style.display = "block";
   document.getElementById("dimg").src = x.img || "https://via.placeholder.com/500x750?text=Cima+Cima";
   document.getElementById("dtitle").textContent = x.name;
-  document.getElementById("dmeta").textContent = x.type + " • " + x.year + " • ⭐ " + x.rating;
+  document.getElementById("dmeta").textContent = x.type + " • " + x.year + " • ⭐ " + x.rating; document.getElementById("dRating").textContent = "⭐ " + x.rating;
   document.getElementById("ddesc").textContent = x.desc || "لا يوجد وصف متاح.";
   window.currentMovie = x;
   updateFavDetailBtn();
   addToHistory(x);
 
-  const downloadBox = document.getElementById("downloadBox");
-  const downloadList = document.getElementById("downloadList");
   const downloadBtn = document.getElementById("downloadBtn");
+  const downloadList = document.getElementById("downloadListModal");
   const downloads = Array.isArray(x.downloads) ? x.downloads : [];
-  downloadBox.style.display = "none";
   downloadBtn.style.display = downloads.length ? "inline-block" : "none";
-  downloadList.innerHTML = downloads.map(function(d, i) {
-    const label = safe(d.name || ("سيرفر " + (i + 1)));
-    return '<a class="download-btn" href="' + safe(d.url) + '" target="_blank" rel="noopener noreferrer">' + label + '</a>';
-  }).join("");
+  downloadList.innerHTML = downloads.map(function(d,i){ return '<a class="download-btn" href="'+safe(d.url)+'" target="_blank" rel="noopener noreferrer">'+safe(d.name || ("سيرفر " + (i+1)))+'</a>'; }).join("");
+
   const epBox = document.getElementById("episodesBox");
   const epList = document.getElementById("epList");
   const watchBtn = document.getElementById("watchBtn");
@@ -597,6 +567,7 @@ function playUrl(url) {
     } else if (isHls(url)) {
       const video = document.createElement("video");
       video.controls = true;
+      video.controlsList = "nofullscreen";
       video.autoplay = true;
       video.playsInline = true;
       video.muted = false;
@@ -691,6 +662,7 @@ function playUrl(url) {
     } else if (isDirectVideo(url)) {
       const video = document.createElement("video");
       video.controls = true;
+      video.controlsList = "nofullscreen";
       video.autoplay = true;
       video.playsInline = true;
       video.src = url;
@@ -712,6 +684,7 @@ function playUrl(url) {
       mark.textContent = "سيما سيما";
       inner.appendChild(mark);
     }
+    const fsBtn=document.createElement("button"); fsBtn.type="button"; fsBtn.className="fullscreen-btn"; fsBtn.textContent="⛶"; fsBtn.onclick=function(e){e.stopPropagation();if(document.fullscreenElement){document.exitFullscreen&&document.exitFullscreen();}else if(inner.requestFullscreen){inner.requestFullscreen();}}; inner.appendChild(fsBtn);
   } catch (e) {
     console.error("[Cima+Cima Player]", e);
     inner.innerHTML = '<div class="player-error">حدث خطأ أثناء فتح المشغل.</div>';
