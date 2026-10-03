@@ -58,6 +58,7 @@ button.small{padding:8px 14px;font-size:13px}
 .tmdb-item .ti-title{font-size:14px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tmdb-item .ti-meta{font-size:12px;color:#8d929d;margin-top:3px}
 .tmdb-hint{font-size:12px;color:#8d929d;margin:8px 0 0;line-height:1.6}
+.download-row{display:grid;grid-template-columns:1fr 2fr 42px;gap:8px;margin-bottom:8px;align-items:center}.download-row input{margin:0}.download-row button{padding:10px;margin:0}@media(max-width:600px){.download-row{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -142,6 +143,13 @@ button.small{padding:8px 14px;font-size:13px}
     <h3>الحلقات</h3>
     <div id="episodesList"></div>
     <button type="button" class="secondary small" onclick="addEpisodeRow()">+ إضافة حلقة</button>
+  </div>
+
+  <div id="downloadsBox" class="ep-box" style="margin-top:4px">
+    <h3>⬇️ روابط تحميل الفيلم</h3>
+    <div id="downloadsList"></div>
+    <button type="button" class="secondary small" onclick="addDownloadRow()">+ إضافة سيرفر تحميل</button>
+    <div style="color:#8d929d;font-size:12px;margin-top:8px">عدد السيرفرات مرن: أضف سيرفرًا واحدًا أو أكثر، وكل سيرفر له اسم ورابط.</div>
   </div>
 
   <div class="ep-box" style="margin-top:4px">
@@ -433,6 +441,36 @@ function extractOverlayFromEpisodes(val) {
   return item && item.__cimaOverlay ? { enabled:item.__cimaOverlay.enabled !== false, pos:item.__cimaOverlay.pos || "br" } : { enabled:true, pos:"br" };
 }
 
+function parseDownloads(val) {
+  if (!val) return [];
+  if (Array.isArray(val)) return val.filter(x => x && x.url);
+  try { const p = JSON.parse(val); return Array.isArray(p) ? p.filter(x => x && x.url) : []; } catch { return []; }
+}
+
+let downloadCounter = 0;
+function addDownloadRow(name, url) {
+  downloadCounter++;
+  const id = downloadCounter;
+  const row = document.createElement("div");
+  row.className = "download-row";
+  row.id = "dl-" + id;
+  row.innerHTML = '<input type="text" placeholder="سيرفر 1" value="' + escapeAttr(name || ("سيرفر " + id)) + '" data-dl-name>' +
+    '<input type="url" placeholder="https://..." value="' + escapeAttr(url || "") + '" data-dl-url>' +
+    '<button type="button" class="danger small" onclick="removeDownloadRow(' + id + ')">×</button>';
+  document.getElementById("downloadsList").appendChild(row);
+}
+function removeDownloadRow(id) { const el=document.getElementById("dl-"+id); if(el) el.remove(); }
+function getDownloadsFromForm() {
+  const rows=document.querySelectorAll("#downloadsList .download-row");
+  const list=[];
+  rows.forEach(row=>{
+    const name=(row.querySelector("[data-dl-name]")||{}).value||"";
+    const url=(row.querySelector("[data-dl-url]")||{}).value||"";
+    if(url.trim()) list.push({name:name.trim() || ("سيرفر " + (list.length+1)), url:url.trim()});
+  });
+  return list;
+}
+
 function getPayload() {
   const title = document.getElementById("title").value.trim();
   let poster = document.getElementById("poster_url").value.trim();
@@ -462,7 +500,8 @@ function getPayload() {
     poster_url: poster,
     movie_url: movieUrl,
     duration: duration,
-    episodes: JSON.stringify(episodes)
+    episodes: JSON.stringify(episodes),
+    download_links: JSON.stringify(getDownloadsFromForm())
   };
 }
 
@@ -480,6 +519,8 @@ function resetForm() {
   document.getElementById("movie_url").value = "";
   document.getElementById("category").value = "أفلام عربي";
   document.getElementById("episodesList").innerHTML = "";
+  document.getElementById("downloadsList").innerHTML = "";
+  downloadCounter = 0;
   document.getElementById("overlay_enabled").checked = true;
   document.getElementById("overlay_pos").value = "br";
   episodeCounter = 0;
@@ -508,6 +549,10 @@ function startEdit(id) {
   document.getElementById("description").value = row.description || "";
   document.getElementById("poster_url").value = row.poster_url || "";
   document.getElementById("movie_url").value = row.movie_url || "";
+  document.getElementById("downloadsList").innerHTML = "";
+  downloadCounter = 0;
+  const oldDownloads = parseDownloads(row.download_links);
+  oldDownloads.forEach(d => addDownloadRow(d.name || "", d.url || ""));
   const ov = extractOverlayFromEpisodes(row.episodes);
   document.getElementById("overlay_enabled").checked = ov.enabled !== false;
   document.getElementById("overlay_pos").value = ov.pos || "br";
@@ -558,6 +603,9 @@ async function saveMovie() {
     }
     if (!res.ok) {
       const text = await res.text();
+      if (text.includes("download_links")) {
+        throw new Error("عمود download_links مش موجود في Supabase. نفّذ SQL الموجود في ملف setup-downloads.sql ثم جرّب الحفظ.");
+      }
       if (text.includes("episodes") || text.includes("PGRST204")) {
         throw new Error("عمود episodes مش موجود. ضيفه من Supabase (شرح تحت).");
       }
@@ -626,7 +674,8 @@ async function loadList() {
       const year = r.year || "—";
       const rating = r.rating != null ? r.rating : "—";
       const eps = parseEpisodes(r.episodes);
-      const extra = isSeries(cat) ? (" • " + eps.length + " حلقة") : "";
+      const downloads = parseDownloads(r.download_links);
+      const extra = isSeries(cat) ? (" • " + eps.length + " حلقة") : (downloads.length ? (" • " + downloads.length + " سيرفر تحميل") : "");
       return '<div class="item">' +
         '<div class="info"><strong>' + escapeHtml(r.title || "") +
         '</strong><div class="meta">' + escapeHtml(cat) + ' • ' + year + ' • ⭐ ' + rating + extra +

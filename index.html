@@ -49,6 +49,7 @@ section{margin:34px 0}
 .ep-list{display:flex;flex-wrap:wrap;gap:8px}
 .ep-btn{padding:10px 14px;background:#1a1f2a;border:1px solid #303744;border-radius:8px;color:#eee;cursor:pointer;font-size:13px}
 .ep-btn:hover,.ep-btn.active{border-color:#ffb000;color:#ffb000;background:#1f2430}
+.download-box{margin-top:22px;background:#11151d;border:1px solid #242b38;border-radius:14px;padding:16px}.download-box h3{margin:0 0 12px;color:#ffb000;font-size:17px}.download-list{display:flex;gap:9px;flex-wrap:wrap}.download-btn{display:inline-flex;align-items:center;gap:7px;padding:10px 14px;background:#1a1f2a;border:1px solid #303744;border-radius:9px;color:#fff;text-decoration:none;font-weight:700;font-size:13px}.download-btn:hover{border-color:#ffb000;color:#ffb000}
 .player-wrap{display:none;margin-top:22px;background:#000;border-radius:14px;overflow:hidden;aspect-ratio:16/9}
 .player-wrap.active{display:block}
 .player-wrap iframe,.player-wrap video{width:100%;height:100%;border:0;display:block}.player-stage{position:relative;width:100%;height:100%;overflow:hidden}.video-watermark{position:absolute;z-index:20;background:rgba(0,0,0,.48);color:#fff;padding:5px 9px;border-radius:6px;font-size:13px;font-weight:800;line-height:1;pointer-events:none;user-select:none;backdrop-filter:blur(3px);text-shadow:0 1px 2px #000}.wm-tl{top:12px;left:12px}.wm-tc{top:12px;left:50%;transform:translateX(-50%)}.wm-tr{top:12px;right:12px}.wm-ml{top:50%;left:12px;transform:translateY(-50%)}.wm-mc{top:50%;left:50%;transform:translate(-50%,-50%)}.wm-mr{top:50%;right:12px;transform:translateY(-50%)}.wm-bl{bottom:12px;left:12px}.wm-bc{bottom:12px;left:50%;transform:translateX(-50%)}.wm-br{bottom:12px;right:12px}
@@ -132,6 +133,7 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
       <button class="btn btn-outline" type="button" id="favDetailBtn" onclick="toggleFavFromDetail()">♡ إضافة للمفضلة</button>
     </div>
   </div>
+  <div id="downloadBox" class="download-box" style="display:none"><h3>⬇️ تحميل الفيلم</h3><div id="downloadList" class="download-list"></div></div>
   <div id="episodesBox" class="episodes">
     <h3>الحلقات</h3>
     <div id="epList" class="ep-list"></div>
@@ -196,7 +198,16 @@ function parseOverlay(val) {
   let arr = Array.isArray(val) ? val : [];
   if (!arr.length && typeof val === "string") { try { arr = JSON.parse(val) || []; } catch { arr=[]; } }
   const item = Array.isArray(arr) ? arr.find(x => x && x.__cimaOverlay) : null;
-  return item && item.__cimaOverlay ? { enabled:item.__cimaOverlay.enabled !== false, pos:item.__cimaOverlay.pos || "br" } : { enabled:false, pos:"br" };
+  return item && item.__cimaOverlay ? { enabled:item.__cimaOverlay.enabled !== false, pos:item.__cimaOverlay.pos || "br" } : { enabled:true, pos:"br" };
+}
+
+function parseDownloads(val) {
+  if (!val) return [];
+  if (Array.isArray(val)) return val.filter(x => x && x.url);
+  try {
+    const p = JSON.parse(val);
+    return Array.isArray(p) ? p.filter(x => x && x.url) : [];
+  } catch { return []; }
 }
 
 function normalize(row) {
@@ -210,6 +221,7 @@ function normalize(row) {
     movie_url: row.movie_url || "",
     desc: row.description || "",
     episodes: parseEpisodes(row.episodes),
+    downloads: parseDownloads(row.download_links),
     overlay: parseOverlay(row.episodes)
   };
 }
@@ -257,6 +269,7 @@ function addToHistory(item) {
     movie_url: item.movie_url,
     desc: item.desc,
     episodes: item.episodes || [],
+    downloads: item.downloads || [],
     overlay: item.overlay || { enabled:true, pos:"br" }
   });
   if (hist.length > MAX_HISTORY) hist = hist.slice(0, MAX_HISTORY);
@@ -371,9 +384,9 @@ function showHistory() {
 }
 
 function stopPlayer() {
-  if (window._filmoHls) {
-    try { window._filmoHls.destroy(); } catch (e) {}
-    window._filmoHls = null;
+  if (window._cimaHls) {
+    try { window._cimaHls.destroy(); } catch (e) {}
+    window._cimaHls = null;
   }
   const wrap = document.getElementById("playerWrap");
   const inner = document.getElementById("playerInner");
@@ -416,6 +429,20 @@ function show(x, pushRoute = true) {
   updateFavDetailBtn();
   addToHistory(x);
 
+  const downloadBox = document.getElementById("downloadBox");
+  const downloadList = document.getElementById("downloadList");
+  const downloads = Array.isArray(x.downloads) ? x.downloads : [];
+  if (downloads.length) {
+    downloadBox.style.display = "block";
+    downloadList.innerHTML = downloads.map(function(d, i) {
+      const label = safe(d.name || ("سيرفر تحميل " + (i + 1)));
+      return '<a class="download-btn" href="' + safe(d.url) + '" target="_blank" rel="noopener noreferrer">⬇️ ' + label + '</a>';
+    }).join("");
+  } else {
+    downloadBox.style.display = "none";
+    downloadList.innerHTML = "";
+  }
+
   const epBox = document.getElementById("episodesBox");
   const epList = document.getElementById("epList");
   const watchBtn = document.getElementById("watchBtn");
@@ -437,7 +464,10 @@ function show(x, pushRoute = true) {
 }
 
 function backToPrevious() {
-  if (location.hash.startsWith("#movie=") && history.length > 1) { history.back(); return; }
+  if (location.hash.startsWith("#movie=") && history.state && history.state.cimaRoute) {
+    history.back();
+    return;
+  }
   home(false);
 }
 
@@ -523,9 +553,9 @@ function playUrl(url) {
   wrap.classList.add("active");
   inner.innerHTML = "";
 
-  if (window._filmoHls) {
-    try { window._filmoHls.destroy(); } catch (e) {}
-    window._filmoHls = null;
+  if (window._cimaHls) {
+    try { window._cimaHls.destroy(); } catch (e) {}
+    window._cimaHls = null;
   }
 
   try {
@@ -569,7 +599,7 @@ function playUrl(url) {
           fragLoadingRetryDelay: 1000
         });
 
-        window._filmoHls = hls;
+        window._cimaHls = hls;
 
         // Attach first, then load the source. This is the recommended hls.js order.
         hls.attachMedia(video);
@@ -610,7 +640,7 @@ function playUrl(url) {
             '<div class="player-error">' + hlsErrorText(data) +
             '<br><small>افتح Console لمعرفة تفاصيل الخطأ.</small></div>';
           try { hls.destroy(); } catch (e) {}
-          window._filmoHls = null;
+          window._cimaHls = null;
         });
 
       // Safari/iOS and browsers with native HLS.
