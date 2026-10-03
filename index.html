@@ -677,13 +677,13 @@ function playUrl(url) {
       inner.innerHTML = '<iframe src="' + safe(embedUrl) + '" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
     }
 
+    // علامة سيما سيما تظهر دائمًا فوق المشغل، وليس على البوستر فقط.
+    // المشغل نفسه هو الذي يدخل ملء الشاشة عبر زر ⛶، لذلك تظل العلامة ظاهرة داخله.
     const wm = window.currentMovie && window.currentMovie.overlay;
-    if (wm && wm.enabled !== false) {
-      const mark = document.createElement("div");
-      mark.className = "video-watermark wm-" + (wm.pos || "br");
-      mark.textContent = "سيما سيما";
-      inner.appendChild(mark);
-    }
+    const mark = document.createElement("div");
+    mark.className = "video-watermark wm-" + ((wm && wm.pos) || "br");
+    mark.textContent = "سيما سيما";
+    inner.appendChild(mark);
     const fsBtn=document.createElement("button"); fsBtn.type="button"; fsBtn.className="fullscreen-btn"; fsBtn.textContent="⛶"; fsBtn.onclick=function(e){e.stopPropagation();if(document.fullscreenElement){document.exitFullscreen&&document.exitFullscreen();}else if(inner.requestFullscreen){inner.requestFullscreen();}}; inner.appendChild(fsBtn);
   } catch (e) {
     console.error("[Cima+Cima Player]", e);
