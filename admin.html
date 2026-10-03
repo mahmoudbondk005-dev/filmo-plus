@@ -58,6 +58,7 @@ button.small{padding:8px 14px;font-size:13px}
 .tmdb-item .ti-title{font-size:14px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tmdb-item .ti-meta{font-size:12px;color:#8d929d;margin-top:3px}
 .tmdb-hint{font-size:12px;color:#8d929d;margin:8px 0 0;line-height:1.6}
+.download-row{display:grid;grid-template-columns:1fr 2fr 42px;gap:8px;margin-bottom:8px;align-items:center}.download-row input{margin:0}.download-row button{padding:10px;margin:0}@media(max-width:600px){.download-row{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -144,6 +145,25 @@ button.small{padding:8px 14px;font-size:13px}
     <button type="button" class="secondary small" onclick="addEpisodeRow()">+ إضافة حلقة</button>
   </div>
 
+  <div id="downloadsBox" class="ep-box" style="margin-top:4px">
+    <h3>⬇️ روابط تحميل الفيلم</h3>
+    <div id="downloadsList"></div>
+    <button type="button" class="secondary small" onclick="addDownloadRow()">+ إضافة سيرفر تحميل</button>
+    <div style="color:#8d929d;font-size:12px;margin-top:8px">عدد السيرفرات مرن: أضف سيرفرًا واحدًا أو أكثر، وكل سيرفر له اسم ورابط.</div>
+  </div>
+
+  <div class="ep-box" style="margin-top:4px">
+    <h3>🏷️ علامة سيما سيما على الفيديو</h3>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><input id="overlay_enabled" type="checkbox" checked style="width:auto;margin:0"> إظهار العلامة أثناء التشغيل</label>
+    <label>مكان العلامة</label>
+    <select id="overlay_pos">
+      <option value="tl">أعلى يسار</option><option value="tc">أعلى وسط</option><option value="tr">أعلى يمين</option>
+      <option value="ml">وسط يسار</option><option value="mc">منتصف الشاشة</option><option value="mr">وسط يمين</option>
+      <option value="bl">أسفل يسار</option><option value="bc">أسفل وسط</option><option value="br" selected>أسفل يمين</option>
+    </select>
+    <div style="color:#8d929d;font-size:12px;line-height:1.6">العلامة تظهر فوق المشغل فقط، ولا تعدّل الفيديو الأصلي.</div>
+  </div>
+
   <div class="btns">
     <button id="saveBtn" onclick="saveMovie()">حفظ</button>
     <button id="cancelBtn" class="secondary hidden" onclick="cancelEdit()">إلغاء التعديل</button>
@@ -160,7 +180,7 @@ button.small{padding:8px 14px;font-size:13px}
 const SUPABASE_URL = "https://axvibvssjizkrfdqlyow.supabase.co";
 const SUPABASE_KEY = "sb_publishable_72qMAroeSPFAMXfL2AoVQA_5RnDslsh";
 const TABLE_URL = SUPABASE_URL + "/rest/v1/movies";
-const ADMIN_PASSWORD_HASH = "3443cb718c468231cce80e248227331c4358e049bd5fbb66e06008c3d3a3ecfb";
+const ADMIN_PASSWORD_HASH = "10ad25ac126de350b2434d8b5b64c322eec20c24a063c61facd0f725317a591c";
 const SESSION_KEY = "filmo_admin_ok";
 const VALID_CATEGORIES = ["أفلام عربي", "أفلام أجنبي", "مسلسلات عربي", "مسلسلات أجنبي"];
 
@@ -357,6 +377,12 @@ function addEpisodeRow(title, url) {
   row.className = "ep-row";
   row.id = "ep-" + id;
   row.innerHTML =
+    '<input type="text" placeholder="رقم" value="' + escapeAttr(title ? "" : String(id)) + '" data-ep-num>' +
+    '<input type="text" placeholder="اسم الحلقة (اختياري)" value="' + escapeAttr(title || "") + '" data-ep-title>' +
+    '<input type="text" placeholder="رابط الحلقة https://..." value="' + escapeAttr(url || "") + '" data-ep-url>' +
+    '<button type="button" class="danger small" onclick="removeEpisodeRow(' + id + ')">×</button>';
+  // fix: first field should be episode number label style - simplify
+  row.innerHTML =
     '<input type="text" placeholder="الحلقة 1" value="' + escapeAttr(title || ("الحلقة " + id)) + '" data-ep-title>' +
     '<input type="text" placeholder="رابط الحلقة" value="' + escapeAttr(url || "") + '" data-ep-url style="grid-column: span 2">' +
     '<button type="button" class="danger small" onclick="removeEpisodeRow(' + id + ')">×</button>';
@@ -385,8 +411,9 @@ function setEpisodesForm(episodes) {
   const box = document.getElementById("episodesList");
   box.innerHTML = "";
   episodeCounter = 0;
-  if (Array.isArray(episodes) && episodes.length) {
-    episodes.forEach(ep => addEpisodeRow(ep.title || "", ep.url || ""));
+  const cleanEpisodes = Array.isArray(episodes) ? episodes.filter(ep => ep && !ep.__cimaOverlay) : [];
+  if (cleanEpisodes.length) {
+    cleanEpisodes.forEach(ep => addEpisodeRow(ep.title || "", ep.url || ""));
   } else {
     addEpisodeRow();
   }
@@ -394,13 +421,54 @@ function setEpisodesForm(episodes) {
 
 function parseEpisodes(val) {
   if (!val) return [];
-  if (Array.isArray(val)) return val;
+  if (Array.isArray(val)) return val.filter(x => x && !x.__cimaOverlay);
   try {
     const p = JSON.parse(val);
-    return Array.isArray(p) ? p : [];
+    return Array.isArray(p) ? p.filter(x => x && !x.__cimaOverlay) : [];
   } catch {
     return [];
   }
+}
+
+function getOverlayConfig() {
+  return { enabled: document.getElementById("overlay_enabled").checked, pos: document.getElementById("overlay_pos").value || "br" };
+}
+
+function extractOverlayFromEpisodes(val) {
+  let arr = Array.isArray(val) ? val : [];
+  if (!arr.length && typeof val === "string") { try { arr = JSON.parse(val) || []; } catch { arr=[]; } }
+  const item = Array.isArray(arr) ? arr.find(x => x && x.__cimaOverlay) : null;
+  return item && item.__cimaOverlay ? { enabled:item.__cimaOverlay.enabled !== false, pos:item.__cimaOverlay.pos || "br" } : { enabled:true, pos:"br" };
+}
+
+function parseDownloads(val) {
+  if (!val) return [];
+  if (Array.isArray(val)) return val.filter(x => x && x.url);
+  try { const p = JSON.parse(val); return Array.isArray(p) ? p.filter(x => x && x.url) : []; } catch { return []; }
+}
+
+let downloadCounter = 0;
+function addDownloadRow(name, url) {
+  downloadCounter++;
+  const id = downloadCounter;
+  const row = document.createElement("div");
+  row.className = "download-row";
+  row.id = "dl-" + id;
+  row.innerHTML = '<input type="text" placeholder="سيرفر 1" value="' + escapeAttr(name || ("سيرفر " + id)) + '" data-dl-name>' +
+    '<input type="url" placeholder="https://..." value="' + escapeAttr(url || "") + '" data-dl-url>' +
+    '<button type="button" class="danger small" onclick="removeDownloadRow(' + id + ')">×</button>';
+  document.getElementById("downloadsList").appendChild(row);
+}
+function removeDownloadRow(id) { const el=document.getElementById("dl-"+id); if(el) el.remove(); }
+function getDownloadsFromForm() {
+  const rows=document.querySelectorAll("#downloadsList .download-row");
+  const list=[];
+  rows.forEach(row=>{
+    const name=(row.querySelector("[data-dl-name]")||{}).value||"";
+    const url=(row.querySelector("[data-dl-url]")||{}).value||"";
+    if(url.trim()) list.push({name:name.trim() || ("سيرفر " + (list.length+1)), url:url.trim()});
+  });
+  return list;
 }
 
 function getPayload() {
@@ -419,6 +487,10 @@ function getPayload() {
     movieUrl = episodes.length ? episodes[0].url : "https://example.com";
   }
 
+  // نخزن إعداد العلامة داخل عمود episodes الحالي حتى لا نحتاج تعديل قاعدة البيانات.
+  episodes = episodes.filter(x => !x.__cimaOverlay);
+  episodes.push({ __cimaOverlay: getOverlayConfig() });
+
   return {
     title,
     category: cat,
@@ -428,7 +500,8 @@ function getPayload() {
     poster_url: poster,
     movie_url: movieUrl,
     duration: duration,
-    episodes: JSON.stringify(episodes)
+    episodes: JSON.stringify(episodes),
+    download_links: JSON.stringify(getDownloadsFromForm())
   };
 }
 
@@ -446,6 +519,10 @@ function resetForm() {
   document.getElementById("movie_url").value = "";
   document.getElementById("category").value = "أفلام عربي";
   document.getElementById("episodesList").innerHTML = "";
+  document.getElementById("downloadsList").innerHTML = "";
+  downloadCounter = 0;
+  document.getElementById("overlay_enabled").checked = true;
+  document.getElementById("overlay_pos").value = "br";
   episodeCounter = 0;
   toggleEpisodesUI();
 }
@@ -472,6 +549,13 @@ function startEdit(id) {
   document.getElementById("description").value = row.description || "";
   document.getElementById("poster_url").value = row.poster_url || "";
   document.getElementById("movie_url").value = row.movie_url || "";
+  document.getElementById("downloadsList").innerHTML = "";
+  downloadCounter = 0;
+  const oldDownloads = parseDownloads(row.download_links);
+  oldDownloads.forEach(d => addDownloadRow(d.name || "", d.url || ""));
+  const ov = extractOverlayFromEpisodes(row.episodes);
+  document.getElementById("overlay_enabled").checked = ov.enabled !== false;
+  document.getElementById("overlay_pos").value = ov.pos || "br";
 
   toggleEpisodesUI();
   if (isSeries(mapOldCategory(row.category))) {
@@ -519,6 +603,9 @@ async function saveMovie() {
     }
     if (!res.ok) {
       const text = await res.text();
+      if (text.includes("download_links")) {
+        throw new Error("عمود download_links مش موجود في Supabase. نفّذ SQL الموجود في ملف setup-downloads.sql ثم جرّب الحفظ.");
+      }
       if (text.includes("episodes") || text.includes("PGRST204")) {
         throw new Error("عمود episodes مش موجود. ضيفه من Supabase (شرح تحت).");
       }
@@ -587,7 +674,8 @@ async function loadList() {
       const year = r.year || "—";
       const rating = r.rating != null ? r.rating : "—";
       const eps = parseEpisodes(r.episodes);
-      const extra = isSeries(cat) ? (" • " + eps.length + " حلقة") : "";
+      const downloads = parseDownloads(r.download_links);
+      const extra = isSeries(cat) ? (" • " + eps.length + " حلقة") : (downloads.length ? (" • " + downloads.length + " سيرفر تحميل") : "");
       return '<div class="item">' +
         '<div class="info"><strong>' + escapeHtml(r.title || "") +
         '</strong><div class="meta">' + escapeHtml(cat) + ' • ' + year + ' • ⭐ ' + rating + extra +
