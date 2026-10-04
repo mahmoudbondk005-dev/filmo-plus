@@ -90,6 +90,7 @@ button.small{padding:8px 14px;font-size:13px}
 
   <div class="tmdb-box">
     <h3>🔍 جلب بيانات تلقائي من TMDB</h3>
+    <input id="tmdbKey" type="password" placeholder="مفتاح TMDB API (يُحفظ في متصفحك فقط)" autocomplete="off" oninput="TMDB_API_KEY=this.value.trim();localStorage.setItem('cima_tmdb_key',TMDB_API_KEY)" style="margin-bottom:10px">
     <div class="tmdb-row">
       <input id="tmdbQuery" type="search" placeholder="اكتب اسم الفيلم أو المسلسل..." onkeydown="if(event.key==='Enter'){event.preventDefault();searchTMDB()}">
       <select id="tmdbType">
@@ -129,7 +130,7 @@ button.small{padding:8px 14px;font-size:13px}
   <textarea id="description" rows="4" placeholder="قصة العمل باختصار"></textarea>
 
   <label>رابط الصورة (Poster) <span class="req">*</span></label>
-  <input id="poster_url" placeholder="https://..." value="https://via.placeholder.com/500x750?text=Cima+Cima">
+  <input id="poster_url" placeholder="https://..." value="">
 
   <!-- للأفلام -->
   <div id="movieUrlBox">
@@ -188,7 +189,7 @@ const VALID_CATEGORIES = ["أفلام عربي", "أفلام أجنبي", "مس�
 
 // مفتاح TMDB المجاني — احصل عليه من https://www.themoviedb.org/settings/api
 // سجّل حساب → Settings → API → Create → انسخ الـ API Key (v3 auth)
-const TMDB_API_KEY = "7758991e727e12ea96a594d1e72a9819";
+let TMDB_API_KEY = localStorage.getItem("cima_tmdb_key") || "";
 const TMDB_IMG = "https://image.tmdb.org/t/p/w500";
 
 let allMovies = [];
@@ -263,6 +264,7 @@ async function logout() {
 function showAdmin() {
   document.getElementById("loginScreen").classList.add("hidden");
   document.getElementById("adminPanel").classList.remove("hidden");
+  document.getElementById("tmdbKey").value = TMDB_API_KEY;
   toggleEpisodesUI();
   loadList();
 }
@@ -290,6 +292,8 @@ function headers(extra = {}) {
   };
 }
 
+function authMsg(res) { return (res.status === 401 || res.status === 403) ? "انتهت الجلسة أو لا تملك صلاحية. سجّل الخروج وادخل من جديد." : ""; }
+
 function mapOldCategory(cat) {
   const c = (cat || "").trim();
   if (VALID_CATEGORIES.includes(c)) return c;
@@ -310,7 +314,7 @@ async function searchTMDB() {
     return;
   }
   if (!TMDB_API_KEY || TMDB_API_KEY === "YOUR_TMDB_API_KEY_HERE") {
-    box.innerHTML = '<p style="color:#ff6b6b;font-size:13px">ضع مفتاح TMDB في الكود أولاً (TMDB_API_KEY).<br>احصل عليه مجانًا من: <a href="https://www.themoviedb.org/settings/api" target="_blank" style="color:#ffb000">themoviedb.org</a></p>';
+    box.innerHTML = '<p style="color:#ff6b6b;font-size:13px">اكتب مفتاح TMDB في الخانة أعلاه أولاً.<br>احصل عليه مجانًا من: <a href="https://www.themoviedb.org/settings/api" target="_blank" style="color:#ffb000">themoviedb.org</a></p>';
     return;
   }
   box.innerHTML = '<p style="color:#8d929d;font-size:13px">جاري البحث...</p>';
@@ -356,7 +360,7 @@ async function fillFromTMDB(index) {
   document.getElementById("title").value = item.title || "";
   document.getElementById("year").value = item.year || "";
   document.getElementById("rating").value = item.rating || "";
-  document.getElementById("poster_url").value = item.poster || "https://via.placeholder.com/500x750?text=Cima+Cima";
+  document.getElementById("poster_url").value = item.poster || "";
   document.getElementById("description").value = item.overview || "";
 
   const catSelect = document.getElementById("category");
@@ -505,7 +509,7 @@ function getPayload() {
   const title = document.getElementById("title").value.trim();
   let poster = document.getElementById("poster_url").value.trim();
   let duration = document.getElementById("duration").value.trim();
-  if (!poster) poster = "https://via.placeholder.com/500x750?text=Cima+Cima";
+  if (!poster) poster = "";
   if (!duration) duration = "—";
 
   const cat = document.getElementById("category").value;
@@ -545,7 +549,7 @@ function resetForm() {
   document.getElementById("rating").value = "";
   document.getElementById("description").value = "";
   document.getElementById("duration").value = "—";
-  document.getElementById("poster_url").value = "https://via.placeholder.com/500x750?text=Cima+Cima";
+  document.getElementById("poster_url").value = "";
   document.getElementById("movie_url").value = "";
   document.getElementById("category").value = "أفلام عربي";
   document.getElementById("episodesList").innerHTML = "";
@@ -633,6 +637,7 @@ async function saveMovie() {
     }
     if (!res.ok) {
       const text = await res.text();
+      if (authMsg(res)) throw new Error(authMsg(res));
       if (text.includes("download_links")) {
         throw new Error("عمود download_links مش موجود في Supabase. نفّذ SQL الموجود في ملف setup-downloads.sql ثم جرّب الحفظ.");
       }
@@ -660,7 +665,7 @@ async function deleteMovie(id) {
       method: "DELETE",
       headers: headers({ "Prefer": "return=minimal" })
     });
-    if (!res.ok) throw new Error(await res.text() || "فشل الحذف");
+    if (!res.ok) throw new Error(authMsg(res) || await res.text() || "فشل الحذف");
     message("تم الحذف بنجاح ✅", true);
     if (document.getElementById("editId").value === String(id)) resetForm();
     loadList();
@@ -730,7 +735,7 @@ function escapeHtml(s) {
   }[c]));
 }
 function escapeAttr(s) {
-  return String(s).replace(/"/g, "&quot;");
+  return escapeHtml(s);
 }
 
 (async function(){ const session=await getSession(); if(session&&session.access_token){currentAccessToken=session.access_token;sessionStorage.setItem(SESSION_KEY,currentAccessToken);showAdmin();} })();
