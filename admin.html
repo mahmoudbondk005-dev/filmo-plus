@@ -59,6 +59,7 @@ button.small{padding:8px 14px;font-size:13px}
 .tmdb-item .ti-meta{font-size:12px;color:#8d929d;margin-top:3px}
 .tmdb-hint{font-size:12px;color:#8d929d;margin:8px 0 0;line-height:1.6}
 .download-row{display:grid;grid-template-columns:1fr 2fr 42px;gap:8px;margin-bottom:8px;align-items:center}.download-row input{margin:0}.download-row button{padding:10px;margin:0}@media(max-width:600px){.download-row{grid-template-columns:1fr}}
+.reorder-actions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}.reorder-btn{min-width:38px!important;padding:8px 10px!important}.drag-handle{color:#9aa3b2;font-size:18px;margin-left:5px}.watch-row{display:grid;grid-template-columns:1fr 1.5fr auto;gap:8px;margin-bottom:8px;align-items:center}@media(max-width:600px){.watch-row{grid-template-columns:1fr}.reorder-actions{width:100%;justify-content:stretch}.reorder-actions button{flex:1}}
 </style>
 </head>
 <body>
@@ -133,12 +134,6 @@ button.small{padding:8px 14px;font-size:13px}
 
   <!-- للأفلام -->
   <div id="movieUrlBox">
-    <label>سيرفرات المشاهدة</label>
-    <div id="watchServersList"></div>
-    <button type="button" class="secondary small" onclick="addWatchServerRow()">+ إضافة سيرفر مشاهدة</button>
-    <div style="color:#8d929d;font-size:12px;margin-top:8px">أضف سيرفرًا واحدًا أو أكثر. الزائر سيختار السيرفر ثم يشاهد داخل الموقع.</div>
-  </div>
-  <div id="legacyMovieUrlBox" style="display:none">
     <label>كود الفيديو / Embed Code <span class="req">*</span></label>
     <textarea id="movie_url" rows="6" placeholder="الصق كود iframe كامل هنا، مثال:&#10;&lt;iframe src=&quot;https://example.com/e/xxxxx&quot; ...&gt;&lt;/iframe&gt;"></textarea>
     <div style="color:#8d929d;font-size:12px;margin-top:6px">
@@ -152,6 +147,8 @@ button.small{padding:8px 14px;font-size:13px}
     <div id="episodesList"></div>
     <button type="button" class="secondary small" onclick="addEpisodeRow()">+ إضافة حلقة</button>
   </div>
+
+  <div id="watchServersBox" class="ep-box" style="margin-top:4px"><h3>▶️ سيرفرات مشاهدة الفيلم</h3><div id="watchServersList"></div><button type="button" class="secondary small" onclick="addWatchRow()">+ إضافة سيرفر مشاهدة</button><div style="color:#8d929d;font-size:12px;margin-top:8px">أضف أكثر من سيرفر للمشاهدة، وسيظهر للزائر الاختيار تحت أزرار الفيلم.</div></div>
 
   <div id="downloadsBox" class="ep-box" style="margin-top:4px">
     <h3>⬇️ روابط تحميل الفيلم</h3>
@@ -463,10 +460,10 @@ function setEpisodesForm(episodes) {
 
 function parseEpisodes(val) {
   if (!val) return [];
-  if (Array.isArray(val)) return val.filter(x => x && !x.__cimaOverlay && !x.__cimaWatchServers);
+  if (Array.isArray(val)) return val.filter(x => x && !x.__cimaOverlay && !x.__cimaOrder);
   try {
     const p = JSON.parse(val);
-    return Array.isArray(p) ? p.filter(x => x && !x.__cimaOverlay && !x.__cimaWatchServers) : [];
+    return Array.isArray(p) ? p.filter(x => x && !x.__cimaOverlay && !x.__cimaOrder) : [];
   } catch {
     return [];
   }
@@ -489,37 +486,13 @@ function parseDownloads(val) {
   try { const p = JSON.parse(val); return Array.isArray(p) ? p.filter(x => x && x.url) : []; } catch { return []; }
 }
 
-let watchServerCounter = 0;
-function addWatchServerRow(name, url) {
-  watchServerCounter++;
-  const id = watchServerCounter;
-  const row = document.createElement("div");
-  row.className = "download-row";
-  row.id = "ws-" + id;
-  row.innerHTML = '<input type="text" placeholder="سيرفر 1" value="' + escapeAttr(name || ("سيرفر " + id)) + '" data-ws-name>' +
-    '<input type="url" placeholder="https://..." value="' + escapeAttr(url || "") + '" data-ws-url>' +
-    '<button type="button" class="danger small" onclick="removeWatchServerRow(' + id + ')">×</button>';
-  document.getElementById("watchServersList").appendChild(row);
-}
-function removeWatchServerRow(id) { const el=document.getElementById("ws-"+id); if(el) el.remove(); }
-function getWatchServersFromForm() {
-  const rows=document.querySelectorAll("#watchServersList .download-row");
-  const list=[];
-  rows.forEach(row=>{
-    const name=(row.querySelector("[data-ws-name]")||{}).value||"";
-    const url=(row.querySelector("[data-ws-url]")||{}).value||"";
-    if(url.trim()) list.push({name:name.trim() || ("سيرفر " + (list.length+1)), url:url.trim()});
-  });
-  return list;
-}
-
-function parseWatchServers(val) {
-  let arr = Array.isArray(val) ? val : [];
-  if (!arr.length && typeof val === "string") { try { arr = JSON.parse(val) || []; } catch { arr=[]; } }
-  const item = Array.isArray(arr) ? arr.find(x => x && x.__cimaWatchServers) : null;
-  return item && Array.isArray(item.__cimaWatchServers) ? item.__cimaWatchServers.filter(x => x && x.url) : [];
-}
-
+let watchCounter=0;
+function parseWatchServers(val){if(!val)return[];if(Array.isArray(val))return val.filter(x=>x&&x.url);const raw=String(val).trim();try{const p=JSON.parse(raw);if(Array.isArray(p))return p.filter(x=>x&&x.url)}catch(e){}return raw?[{name:"السيرفر الأساسي",url:raw}]:[]}
+function addWatchRow(name,url){watchCounter++;const id=watchCounter,row=document.createElement("div");row.className="watch-row";row.id="watch-"+id;row.innerHTML='<input type="text" placeholder="سيرفر 1" value="'+escapeAttr(name||("سيرفر "+id))+'" data-watch-name><input type="text" placeholder="رابط المشاهدة / iframe" value="'+escapeAttr(url||"")+'" data-watch-url><button type="button" class="danger small" onclick="removeWatchRow('+id+')">×</button>';document.getElementById("watchServersList").appendChild(row)}
+function removeWatchRow(id){const el=document.getElementById("watch-"+id);if(el)el.remove()}
+function getWatchServersFromForm(){const list=[];document.querySelectorAll("#watchServersList .watch-row").forEach(row=>{const name=(row.querySelector("[data-watch-name]")||{}).value||"",url=(row.querySelector("[data-watch-url]")||{}).value||"";if(url.trim())list.push({name:name.trim()||("سيرفر "+(list.length+1)),url:url.trim()})});return list}
+function getOrderFromEpisodes(val){let arr=[];if(Array.isArray(val))arr=val;else if(typeof val==="string"&&val.trim()){try{arr=JSON.parse(val)||[]}catch(e){}}const x=arr.find(v=>v&&v.__cimaOrder!==undefined),n=x?Number(x.__cimaOrder):NaN;return Number.isFinite(n)?n:null}
+function setOrderInEpisodes(val,order){let arr=[];if(Array.isArray(val))arr=val.slice();else if(typeof val==="string"&&val.trim()){try{arr=JSON.parse(val)||[]}catch(e){}}arr=arr.filter(v=>!(v&&v.__cimaOrder!==undefined));arr.push({__cimaOrder:Number(order)});return JSON.stringify(arr)}
 let downloadCounter = 0;
 function addDownloadRow(name, url) {
   downloadCounter++;
@@ -553,9 +526,9 @@ function getPayload() {
 
   const cat = document.getElementById("category").value;
   let movieUrl = document.getElementById("movie_url").value.trim() || "https://example.com";
+  const watchServers=getWatchServersFromForm();
+  if(!isSeries(cat)&&watchServers.length) movieUrl=JSON.stringify(watchServers);
   let episodes = [];
-  const watchServers = getWatchServersFromForm();
-  if (watchServers.length) movieUrl = watchServers[0].url;
 
   if (isSeries(cat)) {
     episodes = getEpisodesFromForm();
@@ -563,9 +536,9 @@ function getPayload() {
   }
 
   // نخزن إعداد العلامة داخل عمود episodes الحالي حتى لا نحتاج تعديل قاعدة البيانات.
-  episodes = episodes.filter(x => !x.__cimaOverlay && !x.__cimaWatchServers);
+  episodes = episodes.filter(x => !x.__cimaOverlay && !x.__cimaOrder);
   episodes.push({ __cimaOverlay: getOverlayConfig() });
-  if (watchServers.length) episodes.push({ __cimaWatchServers: watchServers });
+  if(window.editingOrder!=null) episodes.push({__cimaOrder:Number(window.editingOrder)});
 
   return {
     title,
@@ -593,8 +566,7 @@ function resetForm() {
   document.getElementById("duration").value = "—";
   document.getElementById("poster_url").value = "https://via.placeholder.com/500x750?text=Cima+Cima";
   document.getElementById("movie_url").value = "";
-  document.getElementById("watchServersList").innerHTML = "";
-  watchServerCounter = 0;
+  document.getElementById("watchServersList").innerHTML=""; watchCounter=0; window.editingOrder=null;
   document.getElementById("category").value = "أفلام عربي";
   document.getElementById("episodesList").innerHTML = "";
   document.getElementById("downloadsList").innerHTML = "";
@@ -627,11 +599,7 @@ function startEdit(id) {
   document.getElementById("description").value = row.description || "";
   document.getElementById("poster_url").value = row.poster_url || "";
   document.getElementById("movie_url").value = row.movie_url || "";
-  document.getElementById("watchServersList").innerHTML = "";
-  watchServerCounter = 0;
-  const oldWatch = parseWatchServers(row.episodes);
-  if (oldWatch.length) oldWatch.forEach(d => addWatchServerRow(d.name || "", d.url || ""));
-  else if (row.movie_url) addWatchServerRow("سيرفر 1", row.movie_url);
+  document.getElementById("watchServersList").innerHTML=""; watchCounter=0; parseWatchServers(row.movie_url).forEach(w=>addWatchRow(w.name||"",w.url||"")); window.editingOrder=getOrderFromEpisodes(row.episodes);
   document.getElementById("downloadsList").innerHTML = "";
   downloadCounter = 0;
   const oldDownloads = parseDownloads(row.download_links);
@@ -740,7 +708,7 @@ async function loadList() {
     }
 
     const rows = await res.json();
-    allMovies = rows;
+    allMovies = rows.slice().sort((a,b)=>{const ao=getOrderFromEpisodes(a.episodes),bo=getOrderFromEpisodes(b.episodes);if(ao!=null&&bo!=null)return ao-bo;if(ao!=null)return -1;if(bo!=null)return 1;return Number(b.Id??b.id??0)-Number(a.Id??a.id??0)});
     if (rows.length) {
       if (rows[0].Id !== undefined) idColumn = "Id";
       else if (rows[0].id !== undefined) idColumn = "id";
@@ -758,13 +726,14 @@ async function loadList() {
       const rating = r.rating != null ? r.rating : "—";
       const eps = parseEpisodes(r.episodes);
       const downloads = parseDownloads(r.download_links);
-      const watches = parseWatchServers(r.episodes);
-      const extra = isSeries(cat) ? (" • " + eps.length + " حلقة") : ((watches.length ? (" • " + watches.length + " سيرفر مشاهدة") : "") + (downloads.length ? (" • " + downloads.length + " سيرفر تحميل") : ""));
-      return '<div class="item">' +
-        '<div class="info"><strong>' + escapeHtml(r.title || "") +
-        '</strong><div class="meta">' + escapeHtml(cat) + ' • ' + year + ' • ⭐ ' + rating + extra +
-        ' <span class="badge">#' + id + '</span></div></div>' +
-        '<div class="actions">' +
+      const extra = isSeries(cat) ? (" • " + eps.length + " حلقة") : (downloads.length ? (" • " + downloads.length + " سيرفر تحميل") : "");
+      const pos=allMovies.findIndex(m=>String(m.Id??m.id)===String(id));
+      return '<div class="item" data-id="'+escapeAttr(id)+'">' +
+        '<div class="info"><strong>☰ <span class="drag-handle">↕</span> ' + escapeHtml(r.title || "") +
+        '</strong><div class="meta">' + escapeHtml(cat) + ' • ' + year + ' • ⭐ ' + rating + extra + ' <span class="badge">#' + id + '</span></div></div>' +
+        '<div class="actions reorder-actions">' +
+        '<button class="secondary small reorder-btn" onclick="moveMovie(\'' + id + '\',-1)" '+(pos<=0?'disabled':'')+'>↑</button>' +
+        '<button class="secondary small reorder-btn" onclick="moveMovie(\'' + id + '\',1)" '+(pos>=allMovies.length-1?'disabled':'')+'>↓</button>' +
         '<button class="secondary small" onclick="startEdit(\'' + id + '\')">تعديل</button>' +
         '<button class="danger small" onclick="deleteMovie(\'' + id + '\')">حذف</button>' +
         '</div></div>';
@@ -777,6 +746,8 @@ async function loadList() {
       '<button class="secondary small" style="margin-top:10px" onclick="loadList()">إعادة المحاولة</button>';
   }
 }
+
+async function moveMovie(id,direction){const i=allMovies.findIndex(m=>String(m.Id??m.id)===String(id)),j=i+direction;if(i<0||j<0||j>=allMovies.length)return;const a=allMovies[i],b=allMovies[j],ao=getOrderFromEpisodes(a.episodes),bo=getOrderFromEpisodes(b.episodes),newA=bo!=null?bo:j*10,newB=ao!=null?ao:i*10;try{for(const u of [{row:a,order:newA},{row:b,order:newB}]){const uid=u.row.Id??u.row.id,res=await fetch(TABLE_URL+"?"+idColumn+"=eq."+encodeURIComponent(uid),{method:"PATCH",headers:headers({"Prefer":"return=minimal"}),body:JSON.stringify({episodes:setOrderInEpisodes(u.row.episodes,u.order)})});if(!res.ok)throw new Error(await res.text())}message("تم تغيير ترتيب الفيلم ✅",true);await loadList()}catch(e){message("تعذر تغيير الترتيب: "+(e.message||"خطأ"))}}
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({

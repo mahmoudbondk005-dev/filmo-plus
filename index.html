@@ -49,7 +49,7 @@ section{margin:34px 0}
 .ep-list{display:flex;flex-wrap:wrap;gap:8px}
 .ep-btn{padding:10px 14px;background:#1a1f2a;border:1px solid #303744;border-radius:8px;color:#eee;cursor:pointer;font-size:13px}
 .ep-btn:hover,.ep-btn.active{border-color:#ffb000;color:#ffb000;background:#1f2430}
-.detail-actions{display:flex;gap:8px;flex-wrap:nowrap;margin-top:14px}.detail-actions .btn{margin-top:0;flex:1 1 0;min-width:0;text-align:center;white-space:nowrap}.download-box{display:none}.download-modal{position:fixed;inset:0;background:#0009;z-index:90;align-items:center;justify-content:center;padding:20px}.download-modal.open{display:flex}.download-card{width:min(430px,100%);background:#11151d;border:1px solid #303744;border-radius:18px;padding:18px;box-shadow:0 20px 60px #000b}.download-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}.download-card-head h3{margin:0;color:#fff;font-size:18px}.download-close{border:0;background:#252b35;color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:18px}.watch-modal{position:fixed;inset:0;background:#0009;z-index:91;align-items:center;justify-content:center;padding:20px}.watch-modal.open{display:flex}.watch-card{width:min(430px,100%);background:#11151d;border:1px solid #303744;border-radius:18px;padding:18px;box-shadow:0 20px 60px #000b}.watch-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}.watch-card-head h3{margin:0;color:#fff;font-size:18px}.watch-list{display:grid;gap:9px}.watch-server-btn{display:flex;align-items:center;justify-content:center;width:100%;padding:12px 14px;background:#171c25;border:1px solid #303744;border-radius:11px;color:#fff;font-weight:800;font-size:14px;cursor:pointer}.watch-server-btn:hover{border-color:#ffb000;color:#ffb000;background:#1b2029}.download-list{display:grid;gap:9px}.download-btn{display:flex;align-items:center;justify-content:center;padding:12px 14px;background:#171c25;border:1px solid #303744;border-radius:11px;color:#fff;text-decoration:none;font-weight:800;font-size:14px}.download-btn:hover{border-color:#ffb000;color:#ffb000;background:#1b2029}
+.detail-actions{display:flex;gap:8px;flex-wrap:nowrap;margin-top:14px}.detail-actions .btn{margin-top:0;flex:1 1 0;min-width:0;text-align:center;white-space:nowrap}.server-box{display:none;margin-top:14px}.server-section{background:#11151d;border:1px solid #303744;border-radius:14px;padding:12px;margin-top:10px}.server-section:first-child{margin-top:0}.server-section h3{margin:0 0 10px;color:#fff;font-size:15px}.download-list{display:grid;gap:9px}.download-btn{display:flex;align-items:center;justify-content:center;padding:12px 14px;background:#171c25;border:1px solid #303744;border-radius:11px;color:#fff;text-decoration:none;font-weight:800;font-size:14px;cursor:pointer}.download-btn:hover{border-color:#ffb000;color:#ffb000;background:#1b2029}
 .player-wrap{display:none;margin-top:22px;background:#000;border-radius:14px;overflow:hidden;aspect-ratio:16/9}
 .player-wrap.active{display:block}
 .player-wrap iframe,.player-wrap video{width:100%;height:100%;border:0;display:block}.player-stage{position:relative;width:100%;height:100%;overflow:hidden;background:#000}.player-stage:fullscreen{width:100vw;height:100vh}.fullscreen-btn{position:absolute;right:12px;bottom:12px;z-index:30;border:1px solid #ffffff30;background:#000b;color:#fff;width:40px;height:40px;border-radius:10px;cursor:pointer;font-size:18px}.video-watermark{position:absolute;z-index:20;background:rgba(0,0,0,.48);color:#fff;padding:5px 9px;border-radius:6px;font-size:13px;font-weight:800;line-height:1;pointer-events:none;user-select:none;backdrop-filter:blur(3px);text-shadow:0 1px 2px #000}.wm-tl{top:12px;left:12px}.wm-tc{top:12px;left:50%;transform:translateX(-50%)}.wm-tr{top:12px;right:12px}.wm-ml{top:50%;left:12px;transform:translateY(-50%)}.wm-mc{top:50%;left:50%;transform:translate(-50%,-50%)}.wm-mr{top:50%;right:12px;transform:translateY(-50%)}.wm-bl{bottom:12px;left:12px}.wm-bc{bottom:12px;left:50%;transform:translateX(-50%)}.wm-br{bottom:12px;right:12px}
@@ -131,16 +131,16 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
       </div>
     </div>
   </div>
-  <div id="downloadBox" class="download-box"></div>
+  <div id="serverBox" class="server-box" style="display:none">
+    <div id="watchServersBox" class="server-section" style="display:none"><h3>▶ اختر سيرفر المشاهدة</h3><div id="watchServersList" class="download-list"></div></div>
+    <div id="downloadServersBox" class="server-section" style="display:none"><h3>⬇ اختر سيرفر التحميل</h3><div id="downloadServersList" class="download-list"></div></div>
+  </div>
   <div id="episodesBox" class="episodes">
     <h3>الحلقات</h3>
     <div id="epList" class="ep-list"></div>
   </div>
   <div id="playerWrap" class="player-wrap"><div id="playerInner" class="player-stage"></div></div>
 </div>
-<div id="downloadModal" class="download-modal" style="display:none" onclick="if(event.target===this)closeDownloads()"><div class="download-card"><div class="download-card-head"><h3>اختار سيرفر التحميل</h3><button class="download-close" onclick="closeDownloads()">×</button></div><div id="downloadListModal" class="download-list"></div></div></div>
-<div id="watchModal" class="watch-modal" style="display:none" onclick="if(event.target===this)closeWatchServers()"><div class="watch-card"><div class="watch-card-head"><h3>اختار سيرفر المشاهدة</h3><button class="download-close" onclick="closeWatchServers()">×</button></div><div id="watchListModal" class="watch-list"></div></div></div>
-
 <footer>سيما سيما © 2026 | <a href="privacy.html" style="color:#aaa">الخصوصية</a> · <a href="terms.html" style="color:#aaa">الشروط</a> · <a href="contact.html" style="color:#aaa">تواصل معنا</a></footer>
 <div id="toast" class="toast"></div>
 
@@ -186,10 +186,10 @@ function normalizeCategory(cat) {
 
 function parseEpisodes(val) {
   if (!val) return [];
-  if (Array.isArray(val)) return val.filter(x => x && !x.__cimaOverlay && !x.__cimaWatchServers);
+  if (Array.isArray(val)) return val.filter(x => x && !x.__cimaOverlay);
   try {
     const p = JSON.parse(val);
-    return Array.isArray(p) ? p.filter(x => x && !x.__cimaOverlay && !x.__cimaWatchServers) : [];
+    return Array.isArray(p) ? p.filter(x => x && !x.__cimaOverlay) : [];
   } catch { return []; }
 }
 
@@ -201,13 +201,6 @@ function parseOverlay(val) {
   return item && item.__cimaOverlay ? { enabled:item.__cimaOverlay.enabled !== false, pos:item.__cimaOverlay.pos || "br" } : { enabled:true, pos:"br" };
 }
 
-function parseWatchServers(val) {
-  let arr = Array.isArray(val) ? val : [];
-  if (!arr.length && typeof val === "string") { try { arr = JSON.parse(val) || []; } catch { arr=[]; } }
-  const item = Array.isArray(arr) ? arr.find(x => x && x.__cimaWatchServers) : null;
-  return item && Array.isArray(item.__cimaWatchServers) ? item.__cimaWatchServers.filter(x => x && x.url) : [];
-}
-
 function parseDownloads(val) {
   if (!val) return [];
   if (Array.isArray(val)) return val.filter(x => x && x.url);
@@ -216,6 +209,9 @@ function parseDownloads(val) {
     return Array.isArray(p) ? p.filter(x => x && x.url) : [];
   } catch { return []; }
 }
+
+function parseWatchServers(val){if(!val)return[];if(Array.isArray(val))return val.filter(x=>x&&x.url);const raw=String(val).trim();try{const p=JSON.parse(raw);if(Array.isArray(p))return p.filter(x=>x&&x.url)}catch(e){}return raw?[{name:"السيرفر الأساسي",url:raw}]:[]}
+function parseOrder(val){let arr=Array.isArray(val)?val:[];if(!arr.length&&typeof val==="string"){try{arr=JSON.parse(val)||[]}catch(e){}}const x=arr.find(v=>v&&v.__cimaOrder!==undefined);const n=x?Number(x.__cimaOrder):NaN;return Number.isFinite(n)?n:null}
 
 function normalize(row) {
   return {
@@ -226,10 +222,11 @@ function normalize(row) {
     rating: row.rating ?? "—",
     img: row.poster_url || "",
     movie_url: row.movie_url || "",
+    watchServers: parseWatchServers(row.movie_url),
+    order: parseOrder(row.episodes),
     desc: row.description || "",
     episodes: parseEpisodes(row.episodes),
     downloads: parseDownloads(row.download_links),
-    watchServers: parseWatchServers(row.episodes),
     overlay: parseOverlay(row.episodes)
   };
 }
@@ -278,7 +275,6 @@ function addToHistory(item) {
     desc: item.desc,
     episodes: item.episodes || [],
     downloads: item.downloads || [],
-    watchServers: item.watchServers || [],
     overlay: item.overlay || { enabled:true, pos:"br" }
   });
   if (hist.length > MAX_HISTORY) hist = hist.slice(0, MAX_HISTORY);
@@ -309,6 +305,7 @@ async function loadMovies() {
 
     const rows = await response.json();
     allItems = rows.map(normalize);
+    allItems.sort((a,b)=>{const ao=a.order,bo=b.order;if(ao!=null&&bo!=null)return ao-bo;if(ao!=null)return -1;if(bo!=null)return 1;return Number(b.id||0)-Number(a.id||0)});
     renderAll();
     restoreRoute();
   } catch (error) {
@@ -352,12 +349,9 @@ function renderAll(filterText) {
 
 function toggleMenu(){document.getElementById("menuPanel").classList.toggle("open");}
 function closeMenu(){document.getElementById("menuPanel").classList.remove("open");}
-function openDownloads(){const m=document.getElementById("downloadModal");if(!window.currentMovie||!window.currentMovie.downloads||!window.currentMovie.downloads.length){toast("لا توجد سيرفرات تحميل متاحة حالياً.");return;}m.style.display="flex";m.classList.add("open");}
-function closeDownloads(){const m=document.getElementById("downloadModal");m.classList.remove("open");m.style.display="none";}
-function openWatchServers(){const m=document.getElementById("watchModal");const list=document.getElementById("watchListModal");const servers=(window.currentMovie&&window.currentMovie.watchServers)||[];if(!servers.length){watchDirect();return;}list.innerHTML=servers.map(function(d,i){return '<button type="button" class="watch-server-btn" onclick="selectWatchServer('+i+')">▶ ' + safe(d.name || ("سيرفر " + (i+1))) + '</button>';}).join("");m.style.display="flex";m.classList.add("open");}
-function closeWatchServers(){const m=document.getElementById("watchModal");m.classList.remove("open");m.style.display="none";}
-function selectWatchServer(i){const servers=(window.currentMovie&&window.currentMovie.watchServers)||[];if(!servers[i]||!servers[i].url)return;closeWatchServers();playUrl(servers[i].url);}
-function watchDirect(){const url=window.currentMovie&&window.currentMovie.movie_url;if(!url||url==="https://example.com"){toast("لا يوجد رابط مشاهدة لهذا المحتوى.");return;}playUrl(url);}
+function renderServers(){const box=document.getElementById("serverBox"),wb=document.getElementById("watchServersBox"),db=document.getElementById("downloadServersBox"),wl=document.getElementById("watchServersList"),dl=document.getElementById("downloadServersList"),m=window.currentMovie||{},ws=Array.isArray(m.watchServers)?m.watchServers:[],ds=Array.isArray(m.downloads)?m.downloads:[];wb.style.display="none";db.style.display="none";wl.innerHTML="";dl.innerHTML="";if(!ws.length&&!ds.length){box.style.display="none";return}box.style.display="block";if(ws.length){wb.style.display="block";wl.innerHTML=ws.map((d,i)=>'<button type="button" class="download-btn" onclick="playWatchServer('+i+')">▶ '+safe(d.name||("سيرفر "+(i+1)))+'</button>').join("")}if(ds.length){db.style.display="block";dl.innerHTML=ds.map((d,i)=>'<a class="download-btn" href="'+safe(d.url)+'" target="_blank" rel="noopener noreferrer">⬇ '+safe(d.name||("سيرفر "+(i+1)))+'</a>').join("")}}
+function openDownloads(){if(!window.currentMovie||!window.currentMovie.downloads||!window.currentMovie.downloads.length){toast("لا توجد سيرفرات تحميل متاحة حالياً.");return}renderServers();document.getElementById("downloadServersBox").scrollIntoView({behavior:"smooth",block:"nearest"})}
+function playWatchServer(index){const ws=window.currentMovie&&Array.isArray(window.currentMovie.watchServers)?window.currentMovie.watchServers:[],item=ws[index];if(item&&item.url)playUrl(item.url)}
 function search() {
   const q = document.getElementById("q").value;
   history.replaceState({ cimaRoute: "search=" + encodeURIComponent(q) }, "", "#search=" + encodeURIComponent(q));
@@ -433,8 +427,6 @@ function saveRoute(route) {
 }
 
 function show(x, pushRoute = true) {
-  closeWatchServers();
-  closeDownloads();
   stopPlayer();
   if (pushRoute && x && x.id != null) saveRoute("movie=" + encodeURIComponent(String(x.id)));
   document.getElementById("homePage").style.display = "none";
@@ -444,17 +436,13 @@ function show(x, pushRoute = true) {
   document.getElementById("dmeta").textContent = x.type + " • " + x.year + " • ⭐ " + x.rating; document.getElementById("dRating").textContent = "⭐ " + x.rating;
   document.getElementById("ddesc").textContent = x.desc || "لا يوجد وصف متاح.";
   window.currentMovie = x;
-  if (!Array.isArray(window.currentMovie.watchServers) || !window.currentMovie.watchServers.length) {
-    window.currentMovie.watchServers = window.currentMovie.movie_url && window.currentMovie.movie_url !== "https://example.com" ? [{name:"سيرفر 1", url:window.currentMovie.movie_url}] : [];
-  }
   updateFavDetailBtn();
   addToHistory(x);
 
   const downloadBtn = document.getElementById("downloadBtn");
-  const downloadList = document.getElementById("downloadListModal");
   const downloads = Array.isArray(x.downloads) ? x.downloads : [];
-  downloadBtn.style.display = "inline-block";
-  downloadList.innerHTML = downloads.map(function(d,i){ return '<a class="download-btn" href="'+safe(d.url)+'" target="_blank" rel="noopener noreferrer">'+safe(d.name || ("سيرفر " + (i+1)))+'</a>'; }).join("");
+  downloadBtn.style.display = downloads.length ? "inline-block" : "none";
+  renderServers();
 
   const epBox = document.getElementById("episodesBox");
   const epList = document.getElementById("epList");
@@ -721,11 +709,7 @@ function playEpisode(index, btn) {
   playUrl(eps[index].url);
 }
 
-function watch() {
-  const servers = window.currentMovie && window.currentMovie.watchServers;
-  if (servers && servers.length) { openWatchServers(); return; }
-  watchDirect();
-}
+function watch(){const m=window.currentMovie;if(!m)return;renderServers();if(m.watchServers&&m.watchServers.length){document.getElementById("watchServersBox").scrollIntoView({behavior:"smooth",block:"nearest"});return}if(m.movie_url)playUrl(m.movie_url)}
 
 loadMovies();
 </script>
