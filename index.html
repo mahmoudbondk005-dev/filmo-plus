@@ -62,6 +62,10 @@ section{margin:34px 0;scroll-margin-top:90px}
 footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align:center;color:#777}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1f2a;border:1px solid #ffb000;color:#fff;padding:12px 22px;border-radius:10px;z-index:100;font-size:14px;display:none;box-shadow:0 8px 24px #0008}
 .empty-box{text-align:center;padding:30px;color:#8d929d;background:#141821;border-radius:12px;border:1px dashed #303744}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.filters select{flex:1;min-width:120px;background:#171b24;color:#fff;border:1px solid #2a303c;border-radius:10px;padding:10px 12px;font-size:13px}
+.more{display:block;margin:16px auto 0}
+.ep-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}.ep-btn{text-align:center}.ep-btn.done{opacity:.65}.ep-btn.done::after{content:" ✓"}
+.hero.banner h1{font-size:30px}
 @media(max-width:900px){.grid{grid-template-columns:repeat(4,1fr)}.links{display:none}}
 @media(max-width:600px){
   nav{padding:10px 12px;display:grid;grid-template-columns:1fr auto;gap:9px}.logo{font-size:21px;grid-column:1}.menu-toggle{grid-column:2}.search{grid-column:1 / -1;min-width:0;width:100%;height:44px}.search button{display:none}.menu-panel{top:calc(100% + 8px);right:10px;left:10px}.menu-panel.open{grid-template-columns:1fr 1fr}
@@ -88,7 +92,7 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 </header>
 
 <main id="homePage" class="wrap">
-  <div class="hero">
+  <div class="hero" id="hero">
     <h1>الأفلام والمسلسلات في مكان واحد</h1>
     <p>تصفح الأفلام والمسلسلات العربية والأجنبية بسهولة، وابحث عن اللي نفسك فيه.</p>
     <a class="btn" href="#ar-movies">ابدأ المشاهدة</a>
@@ -103,6 +107,15 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
     <div class="head"><h2>🕒 المشاهدة الأخيرة</h2><span class="muted" id="count-hist"></span></div>
     <div id="grid-hist" class="grid"></div>
   </section>
+
+  <div class="filters" id="filters">
+    <select id="fCat" aria-label="القسم" onchange="applyFilters()"><option value="">كل الأقسام</option><option>أفلام عربي</option><option>أفلام أجنبي</option><option>مسلسلات عربي</option><option>مسلسلات أجنبي</option></select>
+    <select id="fYear" aria-label="السنة" onchange="applyFilters()"><option value="">كل السنوات</option></select>
+    <select id="fRate" aria-label="التقييم" onchange="applyFilters()"><option value="">أي تقييم</option><option value="6">6+</option><option value="7">7+</option><option value="8">8+</option></select>
+    <select id="fSort" aria-label="الترتيب" onchange="applyFilters()"><option value="new">الأحدث إضافة</option><option value="rate">الأعلى تقييمًا</option><option value="views">الأكثر مشاهدة</option><option value="year">الأحدث سنة</option></select>
+  </div>
+  <section id="latest"><div class="head"><h2>🆕 أضيف حديثًا</h2></div><div id="grid-latest" class="grid"></div></section>
+  <section id="popular" style="display:none"><div class="head"><h2>🔥 الأكثر مشاهدة</h2></div><div id="grid-popular" class="grid"></div></section>
 
   <section id="ar-movies">
     <div class="head"><h2>🇪🇬 أفلام عربي</h2><span class="muted" id="count-ar-movies"></span></div>
@@ -143,6 +156,7 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
     <div id="epList" class="ep-list"></div>
   </div>
   <div id="playerWrap" class="player-wrap"><div id="playerInner" class="player-stage"></div></div>
+  <button id="nextEp" class="btn" type="button" style="display:none;margin:12px auto 0" onclick="nextEpisode()">الحلقة التالية ⏭</button>
 </div>
 <div id="downloadModal" class="download-modal" style="display:none" onclick="if(event.target===this)closeDownloads()"><div class="download-card"><div class="download-card-head"><h3>اختار سيرفر التحميل</h3><button class="download-close" onclick="closeDownloads()">×</button></div><div id="downloadListModal" class="download-list"></div></div></div>
 
@@ -251,6 +265,7 @@ function normalize(row) {
     movie_url: row.movie_url || "",
     desc: row.description || "",
     duration: (row.duration && row.duration !== "—") ? row.duration : "",
+    views: Number(row.views) || 0,
     episodes: parseEpisodes(row.episodes),
     downloads: parseDownloads(row.download_links),
     overlay: parseOverlay(row.episodes)
@@ -318,7 +333,9 @@ async function loadMovies() {
 
     const rows = await response.json();
     allItems = rows.map(normalize);
+    fillYears();
     renderAll();
+    setupBanner();
     restoreRoute();
   } catch (error) {
     console.error(error);
@@ -348,21 +365,34 @@ function showById(id) {
   if (item) show(item);
 }
 
-function renderAll(filterText) {
-  const q = (filterText || "").trim().toLowerCase();
+const PAGE = 18, limits = {};
+function renderAll() {
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  const f = { cat: fCat.value, year: fYear.value, rate: Number(fRate.value) || 0, sort: fSort.value };
+  const filtering = !!(q || f.cat || f.year || f.rate);
+  const sorters = { rate: (a, b) => (+b.rating || 0) - (+a.rating || 0), views: (a, b) => b.views - a.views, year: (a, b) => (+b.year || 0) - (+a.year || 0) };
   CATEGORIES.forEach(c => {
-    let list = allItems.filter(x => x.type === c.key);
-    if (q) list = list.filter(x =>
-      (x.name || "").toLowerCase().includes(q) ||
-      (x.desc || "").toLowerCase().includes(q)
-    );
-    document.getElementById(c.grid).innerHTML = list.length
-      ? list.map(card).join("")
-      : '<p class="muted">لا توجد أعمال في هذا القسم حالياً.</p>';
-    document.getElementById(c.count).textContent = q
-      ? ("نتائج: " + list.length)
-      : ("إجمالي: " + list.length);
+    const sec = document.getElementById(c.grid.slice(5));
+    if (f.cat && f.cat !== c.key) { sec.style.display = "none"; return; }
+    sec.style.display = "";
+    let list = allItems.filter(x => x.type === c.key &&
+      (!q || (x.name || "").toLowerCase().includes(q) || (x.desc || "").toLowerCase().includes(q)) &&
+      (!f.year || String(x.year) === f.year) && (!f.rate || (+x.rating || 0) >= f.rate));
+    if (sorters[f.sort]) list = list.slice().sort(sorters[f.sort]);
+    const lim = limits[c.key] || PAGE, grid = document.getElementById(c.grid);
+    grid.innerHTML = list.length ? list.slice(0, lim).map(card).join("") : '<p class="muted">لا توجد أعمال في هذا القسم حالياً.</p>';
+    document.getElementById(c.count).textContent = (filtering ? "نتائج: " : "إجمالي: ") + list.length;
+    let m = document.getElementById("more-" + c.grid);
+    if (!m) { m = document.createElement("button"); m.id = "more-" + c.grid; m.type = "button"; m.className = "btn btn-outline more"; grid.after(m); }
+    m.style.display = list.length > lim ? "block" : "none";
+    m.textContent = "عرض المزيد (" + (list.length - lim) + ")";
+    m.onclick = function () { limits[c.key] = lim + PAGE; renderAll(); };
   });
+  const pop = allItems.filter(x => x.views > 0).sort((a, b) => b.views - a.views).slice(0, 12);
+  document.getElementById("latest").style.display = !filtering && allItems.length ? "" : "none";
+  document.getElementById("popular").style.display = !filtering && pop.length ? "" : "none";
+  document.getElementById("grid-latest").innerHTML = allItems.slice(0, 12).map(card).join("");
+  document.getElementById("grid-popular").innerHTML = pop.map(card).join("");
 }
 
 function toggleMenu(){document.getElementById("menuPanel").classList.toggle("open");}
@@ -372,7 +402,7 @@ function closeDownloads(){const m=document.getElementById("downloadModal");m.cla
 function search() {
   if (document.getElementById("details").style.display === "block") home(false);
   const q = document.getElementById("q").value;
-  history.replaceState({ cimaRoute: "search=" + encodeURIComponent(q) }, "", "#search=" + encodeURIComponent(q));
+  history.replaceState({ cimaRoute: "search=" + encodeURIComponent(q) }, "", location.pathname + "#search=" + encodeURIComponent(q));
   document.getElementById("favoritesSection").style.display = "none";
   document.getElementById("historySection").style.display = "none";
   renderAll(q);
@@ -419,6 +449,7 @@ function stopPlayer() {
   const inner = document.getElementById("playerInner");
   wrap.classList.remove("active");
   inner.innerHTML = "";
+  const nx = document.getElementById("nextEp"); if (nx) nx.style.display = "none";
 }
 
 function updateFavDetailBtn() {
@@ -440,7 +471,7 @@ function toggleFavFromDetail() {
 
 function saveRoute(route) {
   const hash = route || "home";
-  history.pushState({ cimaRoute: hash }, "", "#" + hash);
+  history.pushState({ cimaRoute: hash }, "", hash === "home" ? location.pathname : location.pathname + "?" + hash);
 }
 
 function show(x, pushRoute = true) {
@@ -455,6 +486,9 @@ function show(x, pushRoute = true) {
   document.getElementById("ddesc").textContent = x.desc || "لا يوجد وصف متاح.";
   window.currentMovie = x;
   document.title = x.name + " | سيما سيما";
+  const cu = document.querySelector("link[rel=canonical]"); if (cu) cu.href = "https://cimacima.online/?movie=" + encodeURIComponent(x.id);
+  const md = document.querySelector("meta[name=description]"); if (md) md.content = (x.desc || x.name).slice(0, 155);
+  countView(x);
   updateFavDetailBtn();
   addToHistory(x);
 
@@ -474,22 +508,25 @@ function show(x, pushRoute = true) {
 
   if (isSeries(x.type) && x.episodes && x.episodes.length) {
     epBox.style.display = "block";
-    watchBtn.style.display = "none";
+    const st = epState(x.id);
+    watchBtn.style.display = "inline-block";
+    watchBtn.textContent = st.last != null ? "▶ كمّل من الحلقة " + (st.last + 1) : "▶ ابدأ المشاهدة";
     epList.innerHTML = x.episodes.map(function(ep, i) {
-      return '<button type="button" class="ep-btn" onclick="playEpisode(' + i + ', this)">' +
+      return '<button type="button" class="ep-btn' + (epState(x.id).done.includes(i) ? " done" : "") + '" onclick="playEpisode(' + i + ', this)">' +
         safe(ep.title || ("الحلقة " + (i + 1))) + "</button>";
     }).join("");
   } else {
     epBox.style.display = "none";
     epList.innerHTML = "";
     watchBtn.style.display = "inline-block";
+    watchBtn.textContent = "▶ مشاهدة";
   }
 
   scrollTo(0, 0);
 }
 
 function backToPrevious() {
-  if (location.hash.startsWith("#movie=") && history.state && history.state.cimaRoute) {
+  if ((location.search.startsWith("?movie=") || location.hash.startsWith("#movie=")) && history.state && history.state.cimaRoute) {
     history.back();
     return;
   }
@@ -499,6 +536,7 @@ function backToPrevious() {
 function home(pushRoute = true) {
   stopPlayer();
   document.title = "سيما سيما | أفلام ومسلسلات";
+  const cu = document.querySelector("link[rel=canonical]"); if (cu) cu.href = "https://cimacima.online/";
   if (pushRoute) saveRoute("home");
   document.getElementById("details").style.display = "none";
   document.getElementById("homePage").style.display = "block";
@@ -509,6 +547,8 @@ function home(pushRoute = true) {
 
 function restoreRoute() {
   const raw = location.hash.replace(/^#/, "");
+  const mq = new URLSearchParams(location.search).get("movie");
+  if (mq && !raw) { const it = allItems.find(x => String(x.id) === mq); if (it) { show(it, false); return; } }
   if (!raw || raw === "home") { home(false); return; }
   if (raw.startsWith("movie=")) {
     const id = decodeURIComponent(raw.slice(6));
@@ -528,6 +568,7 @@ function restoreRoute() {
   const sec = document.getElementById(raw);
   if (sec && sec.tagName === "SECTION") {
     if (document.getElementById("details").style.display === "block") home(false);
+    history.replaceState(history.state, "", location.pathname + "#" + raw);
     setTimeout(function () { sec.scrollIntoView(); }, 0);
     return;
   }
@@ -740,20 +781,53 @@ function playUrl(url) {
   wrap.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function playEpisode(index, btn) {
-  const eps = window.currentMovie && window.currentMovie.episodes;
-  if (!eps || !eps[index]) {
-    toast("الحلقة غير متاحة.");
-    return;
-  }
-  document.querySelectorAll(".ep-btn").forEach(b => b.classList.remove("active"));
-  if (btn) btn.classList.add("active");
+const EP_KEY = "cima_eps";
+function getEps() { try { return JSON.parse(localStorage.getItem(EP_KEY) || "{}"); } catch { return {}; } }
+function epState(id) { const s = getEps()[id] || {}; return { done: s.done || [], last: s.last }; }
+function markEp(id, i) {
+  const all = getEps(), s = all[id] || { done: [] };
+  s.last = i; if (!s.done.includes(i)) s.done.push(i); all[id] = s;
+  try { localStorage.setItem(EP_KEY, JSON.stringify(all)); } catch (e) {}
+}
+function playEpisode(index) {
+  const m = window.currentMovie, eps = m && m.episodes;
+  if (!eps || !eps[index]) { toast("الحلقة غير متاحة."); return; }
+  window._epIdx = index; markEp(m.id, index);
+  document.querySelectorAll(".ep-btn").forEach((b, i) => { b.classList.remove("active"); if (i === index) b.classList.add("active", "done"); });
+  document.getElementById("nextEp").style.display = index < eps.length - 1 ? "block" : "none";
   playUrl(eps[index].url);
 }
-
+function nextEpisode() { playEpisode((window._epIdx || 0) + 1); }
 function watch() {
-  const url = window.currentMovie && window.currentMovie.movie_url;
-  playUrl(url);
+  const m = window.currentMovie;
+  if (m && isSeries(m.type) && m.episodes.length) { const st = epState(m.id); playEpisode(st.last != null ? st.last : 0); return; }
+  playUrl(m && m.movie_url);
+}
+function countView(x) {
+  try {
+    const k = "cima_v_" + x.id; if (sessionStorage.getItem(k)) return; sessionStorage.setItem(k, "1");
+    fetch(SUPABASE_URL + "/rest/v1/rpc/increment_views", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, apiHeaders()), body: JSON.stringify({ movie_id: x.id }) }).catch(function () {});
+  } catch (e) {}
+}
+function fillYears() {
+  const sel = document.getElementById("fYear"), cur = sel.value;
+  const ys = [...new Set(allItems.map(x => String(x.year)).filter(y => y && y !== "0"))].sort().reverse();
+  sel.innerHTML = '<option value="">كل السنوات</option>' + ys.map(y => "<option>" + safe(y) + "</option>").join("");
+  sel.value = cur;
+}
+function applyFilters() { Object.keys(limits).forEach(k => delete limits[k]); renderAll(); }
+let bannerT;
+function setupBanner() {
+  const pool = allItems.filter(x => x.img && (+x.rating || 0) >= 6).slice(0, 5);
+  if (!pool.length) return;
+  const hero = document.getElementById("hero"); let i = 0;
+  function paint() {
+    const x = pool[i++ % pool.length];
+    hero.classList.add("banner");
+    hero.style.background = 'linear-gradient(90deg,#090b10 30%,#090b1099),url("' + safe(x.img) + '") center 20%/cover';
+    hero.innerHTML = "<h1>" + safe(x.name) + '</h1><div class="muted">' + safe(x.type) + " • " + safe(x.year) + " • ⭐ " + safe(x.rating) + "</div><p>" + safe((x.desc || "").slice(0, 180)) + '</p><button class="btn" type="button" onclick="showById(\'' + safe(x.id) + '\')">▶ شاهد الآن</button>';
+  }
+  paint(); clearInterval(bannerT); bannerT = setInterval(paint, 7000);
 }
 
 document.addEventListener("click", function (e) { if (!e.target.closest("header")) closeMenu(); });

@@ -175,6 +175,7 @@ button.small{padding:8px 14px;font-size:13px}
 
   <div class="list">
     <h2>المحتوى الموجود حالياً</h2>
+    <button class="secondary small" type="button" onclick="downloadSitemap()" style="margin-bottom:12px">⬇ تحميل sitemap.xml</button>
     <div id="moviesList"><p style="color:#8d929d">جاري التحميل...</p></div>
   </div>
 </div>
@@ -729,6 +730,12 @@ async function loadList() {
   }
 }
 
+function downloadSitemap() {
+  const base = "https://cimacima.online/";
+  const urls = [base, base + "privacy.html", base + "terms.html", base + "contact.html"].concat(allMovies.map(r => base + "?movie=" + encodeURIComponent(r.Id ?? r.id)));
+  const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + urls.map(u => "  <url><loc>" + u.replace(/&/g, "&amp;") + "</loc></url>").join("\n") + "\n</urlset>\n";
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([xml], { type: "application/xml" })); a.download = "sitemap.xml"; a.click();
+}
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
