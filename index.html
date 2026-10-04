@@ -152,7 +152,7 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
       </div>
     </div>
   </div>
-  <div id="downloadBox" class="download-box"></div>
+  <div id="serverBox" class="download-box"></div>
   <div id="episodesBox" class="episodes">
     <h3>الحلقات</h3>
     <div id="epList" class="ep-list"></div>
@@ -160,7 +160,7 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
   <div id="playerWrap" class="player-wrap"><div id="playerInner" class="player-stage"></div></div>
   <button id="nextEp" class="btn" type="button" style="display:none;margin:12px auto 0" onclick="nextEpisode()">الحلقة التالية ⏭</button>
 </div>
-<div id="downloadModal" class="download-modal" style="display:none" onclick="if(event.target===this)closeDownloads()"><div class="download-card"><div class="download-card-head"><h3>اختار سيرفر التحميل</h3><button class="download-close" onclick="closeDownloads()">×</button></div><div id="downloadListModal" class="download-list"></div></div></div>
+
 
 <footer>سيما سيما © 2026 | <a href="privacy.html" style="color:#aaa">الخصوصية</a> · <a href="terms.html" style="color:#aaa">الشروط</a> · <a href="contact.html" style="color:#aaa">تواصل معنا</a></footer>
 <div id="toast" class="toast"></div>
@@ -247,6 +247,14 @@ function parseOverlay(val) {
   return item && item.__cimaOverlay ? { enabled:item.__cimaOverlay.enabled !== false, pos:item.__cimaOverlay.pos || "br" } : { enabled:true, pos:"br" };
 }
 
+function parseWatchServers(val) {
+  if (!val) return [];
+  if (Array.isArray(val)) return val.filter(x => x && x.url);
+  try { const p = JSON.parse(val); if (Array.isArray(p)) return p.filter(x => x && x.url); } catch {}
+  const href = safeHttpUrl(val);
+  return href ? [{name:"السيرفر الأساسي",url:href}] : [];
+}
+
 function parseDownloads(val) {
   if (!val) return [];
   if (Array.isArray(val)) return val.filter(x => x && x.url);
@@ -270,6 +278,7 @@ function normalize(row) {
     views: Number(row.views) || 0,
     episodes: parseEpisodes(row.episodes),
     downloads: parseDownloads(row.download_links),
+    watchServers: parseWatchServers(row.movie_url),
     overlay: parseOverlay(row.episodes)
   };
 }
@@ -409,8 +418,48 @@ function renderAll() {
 
 function toggleMenu(){document.getElementById("menuPanel").classList.toggle("open");}
 function closeMenu(){document.getElementById("menuPanel").classList.remove("open");}
-function openDownloads(){const m=document.getElementById("downloadModal");if(!window.currentMovie||!window.currentMovie.downloads||!window.currentMovie.downloads.length){toast("لا توجد سيرفرات تحميل متاحة حالياً.");return;}m.style.display="flex";m.classList.add("open");}
-function closeDownloads(){const m=document.getElementById("downloadModal");m.classList.remove("open");m.style.display="none";}
+function renderServerBox(title, list, mode) {
+  const box = document.getElementById("serverBox");
+  const items = (list || []).map(function(d,i){
+    const href = safeHttpUrl(d.url);
+    if (!href) return "";
+    if (mode === "watch") return '<button type="button" class="download-btn" onclick="playWatchServer(' + i + ')">' + safe(d.name || ("سيرفر " + (i+1))) + '</button>';
+    return '<a class="download-btn" href="' + safe(href) + '" target="_blank" rel="noopener noreferrer">' + safe(d.name || ("سيرفر " + (i+1))) + '</a>';
+  }).join("");
+  if (!items) { box.style.display = "none"; box.innerHTML = ""; return; }
+  box.innerHTML = '<div style="margin-top:18px"><h3 style="margin:0 0 10px;color:#ffb000;font-size:17px">' + title + '</h3><div class="download-list">' + items + '</div></div>';
+  box.style.display = "block";
+}
+function watch(){
+  const x = window.currentMovie;
+  if (!x) return;
+  const servers = Array.isArray(x.watchServers) ? x.watchServers : [];
+  if (servers.length) {
+    renderServerBox("▶ اختر سيرفر المشاهدة", servers, "watch");
+    document.getElementById("serverBox").scrollIntoView({behavior:"smooth",block:"nearest"});
+    return;
+  }
+  if (isSeries(x.type)) {
+    const st = epState(x.id);
+    const idx = st.last != null && x.episodes[st.last] ? st.last : 0;
+    if (x.episodes[idx]) playEpisode(idx);
+    return;
+  }
+  playUrl(x.movie_url);
+}
+function playWatchServer(index){
+  const x = window.currentMovie;
+  if (!x || !x.watchServers || !x.watchServers[index]) return;
+  playUrl(x.watchServers[index].url);
+}
+function openDownloads(){
+  const x = window.currentMovie;
+  const servers = x && Array.isArray(x.downloads) ? x.downloads : [];
+  if (!servers.length) { toast("لا توجد سيرفرات تحميل متاحة حالياً."); return; }
+  renderServerBox("⬇ اختر سيرفر التحميل", servers, "download");
+  document.getElementById("serverBox").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
 function search() {
   if (document.getElementById("details").style.display === "block") home(false);
   const q = document.getElementById("q").value;
@@ -510,14 +559,10 @@ function show(x, pushRoute = true) {
   addToHistory(x);
 
   const downloadBtn = document.getElementById("downloadBtn");
-  const downloadList = document.getElementById("downloadListModal");
   const downloads = Array.isArray(x.downloads) ? x.downloads : [];
   downloadBtn.style.display = downloads.length ? "inline-block" : "none";
-  downloadList.innerHTML = downloads.map(function(d,i){
-    const href = safeHttpUrl(d.url);
-    if (!href) return "";
-    return '<a class="download-btn" href="'+safe(href)+'" target="_blank" rel="noopener noreferrer">'+safe(d.name || ("سيرفر " + (i+1)))+'</a>';
-  }).join("");
+  document.getElementById("serverBox").style.display = "none";
+  document.getElementById("serverBox").innerHTML = "";
 
   const epBox = document.getElementById("episodesBox");
   const epList = document.getElementById("epList");
@@ -824,8 +869,11 @@ function playEpisode(index) {
 function nextEpisode() { playEpisode((window._epIdx || 0) + 1); }
 function watch() {
   const m = window.currentMovie;
+  if (!m) return;
   if (m && isSeries(m.type) && m.episodes.length) { const st = epState(m.id); playEpisode(st.last != null ? st.last : 0); return; }
-  playUrl(m && m.movie_url);
+  const servers = Array.isArray(m.watchServers) ? m.watchServers : [];
+  if (servers.length) { renderServerBox("▶ اختر سيرفر المشاهدة", servers, "watch"); document.getElementById("serverBox").scrollIntoView({behavior:"smooth",block:"nearest"}); return; }
+  playUrl(m.movie_url);
 }
 function countView(x) {
   try {
