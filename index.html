@@ -10,8 +10,8 @@
 body{margin:0;background:#090b10;color:#f5f5f5;font-family:Tahoma,Arial,sans-serif}
 header{position:sticky;top:0;z-index:20;background:#0e1118f2;border-bottom:1px solid #202532;backdrop-filter:blur(12px)}
 nav{max-width:1200px;margin:auto;padding:14px 18px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
-.logo{font-size:25px;font-weight:900;color:#ffb000;cursor:pointer;white-space:nowrap}.menu-toggle{width:44px;height:44px;border:1px solid #303744;background:#171b24;color:#fff;border-radius:10px;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.search{flex:1;min-width:240px;display:flex;background:#171b24;border:1px solid #2a303c;border-radius:14px;overflow:hidden;height:46px;box-shadow:0 5px 18px #0002}
+.logo{font-size:25px;font-weight:900;color:#ffb000;cursor:pointer;white-space:nowrap;text-align:center;flex:1}.menu-toggle,.search-toggle{width:42px;height:42px;border:1px solid #303744;background:#171b24;color:#fff;border-radius:11px;font-size:21px;cursor:pointer;display:flex;align-items:center;justify-content:center}.search-toggle{display:flex}
+.search{position:absolute;top:calc(100% + 10px);right:12px;left:12px;display:none;min-width:0;background:#171b24;border:1px solid #2a303c;border-radius:14px;overflow:hidden;height:46px;box-shadow:0 8px 25px #0005}.search.open{display:flex}
 .search input{flex:1;background:none;border:0;outline:0;color:#fff;padding:12px 15px;font-size:14px;text-align:right}
 .search button{border:0;background:#ffb000;color:#111;padding:0 18px;font-weight:900;cursor:pointer}.menu-panel{display:none;position:absolute;top:calc(100% + 10px);right:18px;left:18px;max-width:1164px;margin:auto;background:#11151d;border:1px solid #292f3b;border-radius:16px;padding:12px;box-shadow:0 18px 45px #0009}.menu-panel.open{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.menu-panel a{display:block;padding:12px 14px;border-radius:10px;color:#dfe3eb;text-decoration:none;background:#171c25;border:1px solid #242b38;font-weight:700}.menu-panel a:hover{border-color:#ffb000;color:#ffb000}
 .links{display:flex;gap:12px;color:#c7cad1;font-size:13px;flex-wrap:wrap}
@@ -59,7 +59,7 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 .empty-box{text-align:center;padding:30px;color:#8d929d;background:#141821;border-radius:12px;border:1px dashed #303744}
 @media(max-width:900px){.grid{grid-template-columns:repeat(4,1fr)}.links{display:none}}
 @media(max-width:600px){
-  nav{padding:10px 12px;display:grid;grid-template-columns:1fr auto;gap:9px}.logo{font-size:21px;grid-column:1}.menu-toggle{grid-column:2}.search{grid-column:1 / -1;min-width:0;width:100%;height:44px}.search button{display:none}.menu-panel{top:calc(100% + 8px);right:10px;left:10px}.menu-panel.open{grid-template-columns:1fr 1fr}
+  nav{padding:9px 12px;display:flex;align-items:center;gap:8px;min-height:58px}.logo{font-size:22px}.menu-toggle,.search-toggle{flex:0 0 40px;width:40px;height:40px}.search{top:calc(100% + 8px);right:10px;left:10px;height:44px}.search button{display:none}.menu-panel{top:calc(100% + 58px);right:10px;left:10px}.menu-panel.open{grid-template-columns:1fr 1fr}
   .hero{padding:24px;min-height:220px}.hero h1{font-size:26px}
   .grid{grid-template-columns:repeat(2,1fr);gap:11px}
   .detail{display:block}.detail img{width:170px;height:245px;margin-bottom:14px}.detail-actions{display:grid;grid-template-columns:1fr 1fr}.detail-actions .btn{min-width:0}
@@ -70,9 +70,10 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 <body>
 <header>
 <nav>
+  <button class="menu-toggle" type="button" onclick="toggleMenu()" aria-label="القائمة">☰</button>
   <div class="logo" onclick="home()">سيما سيما</div>
-  <button class="menu-toggle" type="button" onclick="toggleMenu()">☰</button>
-  <div class="search"><input id="q" type="search" placeholder="ابحث عن فيلم أو مسلسل..." oninput="search()" autocomplete="off"><button type="button" onclick="search()">بحث</button></div>
+  <button class="search-toggle" type="button" onclick="toggleSearch()" aria-label="البحث">⌕</button>
+  <div id="searchBox" class="search"><input id="q" type="search" placeholder="ابحث عن فيلم أو مسلسل..." oninput="search()" autocomplete="off"><button type="button" onclick="search()">بحث</button></div>
   <div id="menuPanel" class="menu-panel">
     <a href="#ar-movies" onclick="closeMenu()">🇪🇬 أفلام عربي</a><a href="#en-movies" onclick="closeMenu()">🎬 أفلام أجنبي</a>
     <a href="#ar-series" onclick="closeMenu()">📺 مسلسلات عربي</a><a href="#en-series" onclick="closeMenu()">📺 مسلسلات أجنبي</a>
@@ -349,8 +350,15 @@ function renderAll(filterText) {
 
 function toggleMenu(){document.getElementById("menuPanel").classList.toggle("open");}
 function closeMenu(){document.getElementById("menuPanel").classList.remove("open");}
-function renderServers(){const box=document.getElementById("serverBox"),wb=document.getElementById("watchServersBox"),db=document.getElementById("downloadServersBox"),wl=document.getElementById("watchServersList"),dl=document.getElementById("downloadServersList"),m=window.currentMovie||{},ws=Array.isArray(m.watchServers)?m.watchServers:[],ds=Array.isArray(m.downloads)?m.downloads:[];wb.style.display="none";db.style.display="none";wl.innerHTML="";dl.innerHTML="";if(!ws.length&&!ds.length){box.style.display="none";return}box.style.display="block";if(ws.length){wb.style.display="block";wl.innerHTML=ws.map((d,i)=>'<button type="button" class="download-btn" onclick="playWatchServer('+i+')">▶ '+safe(d.name||("سيرفر "+(i+1)))+'</button>').join("")}if(ds.length){db.style.display="block";dl.innerHTML=ds.map((d,i)=>'<a class="download-btn" href="'+safe(d.url)+'" target="_blank" rel="noopener noreferrer">⬇ '+safe(d.name||("سيرفر "+(i+1)))+'</a>').join("")}}
-function openDownloads(){if(!window.currentMovie||!window.currentMovie.downloads||!window.currentMovie.downloads.length){toast("لا توجد سيرفرات تحميل متاحة حالياً.");return}renderServers();document.getElementById("downloadServersBox").scrollIntoView({behavior:"smooth",block:"nearest"})}
+function renderServers(mode){
+  const box=document.getElementById("serverBox"),wb=document.getElementById("watchServersBox"),db=document.getElementById("downloadServersBox"),wl=document.getElementById("watchServersList"),dl=document.getElementById("downloadServersList"),m=window.currentMovie||{},ws=Array.isArray(m.watchServers)?m.watchServers:[],ds=Array.isArray(m.downloads)?m.downloads:[];
+  wb.style.display="none"; db.style.display="none"; wl.innerHTML=""; dl.innerHTML="";
+  if(mode==="watch" && ws.length){ wb.style.display="block"; wl.innerHTML=ws.map((d,i)=>'<button type="button" class="download-btn" onclick="playWatchServer('+i+')">▶ '+safe(d.name||("سيرفر "+(i+1)))+'</button>').join(""); }
+  if(mode==="download" && ds.length){ db.style.display="block"; dl.innerHTML=ds.map((d,i)=>'<a class="download-btn" href="'+safe(d.url)+'" target="_blank" rel="noopener noreferrer">⬇ '+safe(d.name||("سيرفر "+(i+1)))+'</a>').join(""); }
+  box.style.display=(mode && ((mode==="watch"&&ws.length)||(mode==="download"&&ds.length)))?"block":"none";
+}
+
+function openDownloads(){const m=window.currentMovie;if(!m||!m.downloads||!m.downloads.length){toast("لا توجد سيرفرات تحميل متاحة حالياً.");return}if(document.getElementById("downloadServersBox").style.display==="block"){renderServers();return}renderServers("download");document.getElementById("downloadServersBox").scrollIntoView({behavior:"smooth",block:"nearest"})}
 function playWatchServer(index){const ws=window.currentMovie&&Array.isArray(window.currentMovie.watchServers)?window.currentMovie.watchServers:[],item=ws[index];if(item&&item.url)playUrl(item.url)}
 function search() {
   const q = document.getElementById("q").value;
@@ -709,7 +717,8 @@ function playEpisode(index, btn) {
   playUrl(eps[index].url);
 }
 
-function watch(){const m=window.currentMovie;if(!m)return;renderServers();if(m.watchServers&&m.watchServers.length){document.getElementById("watchServersBox").scrollIntoView({behavior:"smooth",block:"nearest"});return}if(m.movie_url)playUrl(m.movie_url)}
+function watch(){const m=window.currentMovie;if(!m)return;if(!m.watchServers||!m.watchServers.length){if(m.movie_url)playUrl(m.movie_url);else toast("لا يوجد سيرفر مشاهدة متاح حالياً.");return}if(document.getElementById("watchServersBox").style.display==="block"){renderServers();return}renderServers("watch");document.getElementById("watchServersBox").scrollIntoView({behavior:"smooth",block:"nearest"})}
+function toggleSearch(){const b=document.getElementById("searchBox");b.classList.toggle("open");if(b.classList.contains("open"))document.getElementById("q").focus()}
 
 loadMovies();
 </script>
