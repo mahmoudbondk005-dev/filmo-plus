@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>سيما سيما | أفلام ومسلسلات</title>
 <meta name="description" content="سيما سيما منصة لمشاهدة الأفلام والمسلسلات العربية والأجنبية.">
+<link rel="canonical" href="https://cimacima.online/">
+<meta name="theme-color" content="#090b10">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="سيما سيما">
+<meta property="og:locale" content="ar_AR">
+<meta property="og:title" content="سيما سيما | أفلام ومسلسلات">
+<meta property="og:description" content="سيما سيما منصة لمشاهدة الأفلام والمسلسلات العربية والأجنبية.">
+<meta property="og:url" content="https://cimacima.online/">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"سيما سيما","url":"https://cimacima.online/"}</script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#090b10;color:#f5f5f5;font-family:Tahoma,Arial,sans-serif}
@@ -140,7 +150,7 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 </div>
 <div id="downloadModal" class="download-modal" style="display:none" onclick="if(event.target===this)closeDownloads()"><div class="download-card"><div class="download-card-head"><h3>اختار سيرفر التحميل</h3><button class="download-close" onclick="closeDownloads()">×</button></div><div id="downloadListModal" class="download-list"></div></div></div>
 
-<footer>سيما سيما © 2026 | <a href="privacy.html" style="color:#aaa">الخصوصية</a> · <a href="terms.html" style="color:#aaa">الشروط</a> · <a href="contact.html" style="color:#aaa">تواصل معنا</a></footer>
+<footer>سيما سيما © 2026 | <a href="/privacy.html" style="color:#aaa">الخصوصية</a> · <a href="/terms.html" style="color:#aaa">الشروط</a> · <a href="/contact.html" style="color:#aaa">تواصل معنا</a></footer>
 <div id="toast" class="toast"></div>
 
 <script>
@@ -316,7 +326,7 @@ function card(x) {
   const heart = isFav(x.id) ? "♥" : "♡";
   return '<div class="card" onclick=\'show(' + JSON.stringify(x).replace(/</g,"\\u003c") + ')\'>' +
     '<button type="button" class="fav-btn' + favClass + '" onclick=\'toggleFav(' + JSON.stringify(String(x.id)) + ',event)\' title="مفضلة">' + heart + '</button>' +
-    '<div class="poster" style="background-image:url(\'' + poster + '\')"><span class="poster-rating">⭐ ' + safe(x.rating) + '</span><span class="poster-watermark">سيما سيما</span></div>' +
+    '<div class="poster"><img src="' + poster + '" alt="' + safe(x.name) + '" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"><span class="poster-rating">⭐ ' + safe(x.rating) + '</span><span class="poster-watermark">سيما سيما</span></div>' +
     '<div class="body">' +
     '<h3>' + safe(x.name) + '</h3>' +
     '<div class="meta">' + safe(x.type) + ' • ' + safe(x.year) + '</div>' +
@@ -414,8 +424,23 @@ function toggleFavFromDetail() {
 }
 
 function saveRoute(route) {
-  const hash = route || "home";
-  history.pushState({ cimaRoute: hash }, "", "#" + hash);
+  const r = route || "home";
+  let url = "/#" + r;
+  if (r === "home") url = "/";
+  else if (r.startsWith("movie=")) url = "/movie/" + r.slice(6);
+  history.pushState({ cimaRoute: r }, "", url);
+}
+
+const SITE_TITLE = "سيما سيما | أفلام ومسلسلات";
+const SITE_URL = "https://cimacima.online";
+function setSeo(x) {
+  const t = x ? x.name + " | سيما سيما" : SITE_TITLE;
+  document.title = t;
+  const url = x ? SITE_URL + "/movie/" + encodeURIComponent(String(x.id)) : SITE_URL + "/";
+  const c = document.querySelector('link[rel="canonical"]');
+  if (c) c.href = url;
+  const d = document.querySelector('meta[name="description"]');
+  if (d && x) d.content = (x.desc || ("مشاهدة وتحميل " + x.name + " على سيما سيما")).slice(0, 160);
 }
 
 function show(x, pushRoute = true) {
@@ -428,6 +453,7 @@ function show(x, pushRoute = true) {
   document.getElementById("dmeta").textContent = x.type + " • " + x.year + " • ⭐ " + x.rating; document.getElementById("dRating").textContent = "⭐ " + x.rating;
   document.getElementById("ddesc").textContent = x.desc || "لا يوجد وصف متاح.";
   window.currentMovie = x;
+  setSeo(x);
   updateFavDetailBtn();
   addToHistory(x);
 
@@ -467,6 +493,7 @@ function backToPrevious() {
 
 function home(pushRoute = true) {
   stopPlayer();
+  setSeo(null);
   if (pushRoute) saveRoute("home");
   document.getElementById("details").style.display = "none";
   document.getElementById("homePage").style.display = "block";
@@ -476,6 +503,12 @@ function home(pushRoute = true) {
 }
 
 function restoreRoute() {
+  const pm = location.pathname.match(/^\/movie\/([^\/]+)/);
+  if (pm) {
+    const pid = decodeURIComponent(pm[1]);
+    const pit = allItems.find(x => String(x.id) === String(pid));
+    if (pit) { show(pit, false); return; }
+  }
   const raw = location.hash.replace(/^#/, "");
   if (!raw || raw === "home") { home(false); return; }
   if (raw.startsWith("movie=")) {
@@ -559,7 +592,7 @@ function playUrl(url) {
 
     const embedSrc = extractEmbedSrc(url);
     if (embedSrc) {
-      inner.innerHTML = '<iframe src="' + safe(embedSrc) + '" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>';
+      inner.innerHTML = '<iframe sandbox="allow-scripts allow-same-origin allow-presentation allow-forms" referrerpolicy="no-referrer" src="' + safe(embedSrc) + '" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>';
     } else if (yt) {
       inner.innerHTML = '<iframe src="https://www.youtube.com/embed/' + yt + '?autoplay=1&rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>';
     } else if (vim) {
@@ -674,7 +707,7 @@ function playUrl(url) {
       let embedUrl = url;
       const gd = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
       if (gd) embedUrl = "https://drive.google.com/file/d/" + gd[1] + "/preview";
-      inner.innerHTML = '<iframe src="' + safe(embedUrl) + '" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
+      inner.innerHTML = '<iframe sandbox="allow-scripts allow-same-origin allow-presentation allow-forms" referrerpolicy="no-referrer" src="' + safe(embedUrl) + '" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
     }
 
     const wm = window.currentMovie && window.currentMovie.overlay;

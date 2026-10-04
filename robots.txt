@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /admin.html
+Disallow: /api/
 
-Sitemap: https://filmo-plus.pages.dev/sitemap.xml
+Sitemap: https://cimacima.online/sitemap.xml

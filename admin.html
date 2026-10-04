@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
+<meta name="robots" content="noindex,nofollow">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
@@ -188,7 +189,7 @@ const VALID_CATEGORIES = ["أفلام عربي", "أفلام أجنبي", "مس�
 
 // مفتاح TMDB المجاني — احصل عليه من https://www.themoviedb.org/settings/api
 // سجّل حساب → Settings → API → Create → انسخ الـ API Key (v3 auth)
-const TMDB_API_KEY = "7758991e727e12ea96a594d1e72a9819";
+const TMDB_API_KEY = "via-proxy"; // المفتاح الحقيقي محفوظ في Cloudflare (TMDB_API_KEY) وليس في الكود
 const TMDB_IMG = "https://image.tmdb.org/t/p/w500";
 
 let allMovies = [];
@@ -315,8 +316,7 @@ async function searchTMDB() {
   }
   box.innerHTML = '<p style="color:#8d929d;font-size:13px">جاري البحث...</p>';
   try {
-    const url = "https://api.themoviedb.org/3/search/" + type +
-      "?api_key=" + encodeURIComponent(TMDB_API_KEY) +
+    const url = "/api/tmdb?path=" + encodeURIComponent("search/" + type) +
       "&query=" + encodeURIComponent(q) +
       "&language=ar-EG&include_adult=false";
     const res = await fetch(url);
@@ -370,8 +370,7 @@ async function fillFromTMDB(index) {
   // تفاصيل أدق (المدة)
   if (TMDB_API_KEY && TMDB_API_KEY !== "YOUR_TMDB_API_KEY_HERE" && item.id) {
     try {
-      const detailUrl = "https://api.themoviedb.org/3/" + item.type + "/" + item.id +
-        "?api_key=" + encodeURIComponent(TMDB_API_KEY) + "&language=ar-EG";
+      const detailUrl = "/api/tmdb?path=" + encodeURIComponent(item.type + "/" + item.id) + "&language=ar-EG";
       const res = await fetch(detailUrl);
       if (res.ok) {
         const d = await res.json();
