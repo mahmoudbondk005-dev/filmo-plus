@@ -59,7 +59,6 @@ button.small{padding:8px 14px;font-size:13px}
 .tmdb-item .ti-meta{font-size:12px;color:#8d929d;margin-top:3px}
 .tmdb-hint{font-size:12px;color:#8d929d;margin:8px 0 0;line-height:1.6}
 .download-row{display:grid;grid-template-columns:1fr 2fr 42px;gap:8px;margin-bottom:8px;align-items:center}.download-row input{margin:0}.download-row button{padding:10px;margin:0}@media(max-width:600px){.download-row{grid-template-columns:1fr}}
-.reorder-actions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}.reorder-btn{min-width:38px!important;padding:8px 10px!important}.drag-handle{color:#9aa3b2;font-size:18px;margin-left:5px}.watch-row{display:grid;grid-template-columns:1fr 1.5fr auto;gap:8px;margin-bottom:8px;align-items:center}@media(max-width:600px){.watch-row{grid-template-columns:1fr}.reorder-actions{width:100%;justify-content:stretch}.reorder-actions button{flex:1}}
 </style>
 </head>
 <body>
@@ -91,6 +90,7 @@ button.small{padding:8px 14px;font-size:13px}
 
   <div class="tmdb-box">
     <h3>🔍 جلب بيانات تلقائي من TMDB</h3>
+    <input id="tmdbKey" type="password" placeholder="مفتاح TMDB API (يُحفظ في متصفحك فقط)" autocomplete="off" oninput="TMDB_API_KEY=this.value.trim();localStorage.setItem('cima_tmdb_key',TMDB_API_KEY)" style="margin-bottom:10px">
     <div class="tmdb-row">
       <input id="tmdbQuery" type="search" placeholder="اكتب اسم الفيلم أو المسلسل..." onkeydown="if(event.key==='Enter'){event.preventDefault();searchTMDB()}">
       <select id="tmdbType">
@@ -130,7 +130,7 @@ button.small{padding:8px 14px;font-size:13px}
   <textarea id="description" rows="4" placeholder="قصة العمل باختصار"></textarea>
 
   <label>رابط الصورة (Poster) <span class="req">*</span></label>
-  <input id="poster_url" placeholder="https://..." value="https://via.placeholder.com/500x750?text=Cima+Cima">
+  <input id="poster_url" placeholder="https://..." value="">
 
   <!-- للأفلام -->
   <div id="movieUrlBox">
@@ -147,8 +147,6 @@ button.small{padding:8px 14px;font-size:13px}
     <div id="episodesList"></div>
     <button type="button" class="secondary small" onclick="addEpisodeRow()">+ إضافة حلقة</button>
   </div>
-
-  <div id="watchServersBox" class="ep-box" style="margin-top:4px"><h3>▶️ سيرفرات مشاهدة الفيلم</h3><div id="watchServersList"></div><button type="button" class="secondary small" onclick="addWatchRow()">+ إضافة سيرفر مشاهدة</button><div style="color:#8d929d;font-size:12px;margin-top:8px">أضف أكثر من سيرفر للمشاهدة، وسيظهر للزائر الاختيار تحت أزرار الفيلم.</div></div>
 
   <div id="downloadsBox" class="ep-box" style="margin-top:4px">
     <h3>⬇️ روابط تحميل الفيلم</h3>
@@ -177,6 +175,7 @@ button.small{padding:8px 14px;font-size:13px}
 
   <div class="list">
     <h2>المحتوى الموجود حالياً</h2>
+    <button class="secondary small" type="button" onclick="downloadSitemap()" style="margin-bottom:12px">⬇ تحميل sitemap.xml</button>
     <div id="moviesList"><p style="color:#8d929d">جاري التحميل...</p></div>
   </div>
 </div>
@@ -191,7 +190,7 @@ const VALID_CATEGORIES = ["أفلام عربي", "أفلام أجنبي", "مس�
 
 // مفتاح TMDB المجاني — احصل عليه من https://www.themoviedb.org/settings/api
 // سجّل حساب → Settings → API → Create → انسخ الـ API Key (v3 auth)
-const TMDB_API_KEY = "7758991e727e12ea96a594d1e72a9819";
+let TMDB_API_KEY = localStorage.getItem("cima_tmdb_key") || "";
 const TMDB_IMG = "https://image.tmdb.org/t/p/w500";
 
 let allMovies = [];
@@ -266,6 +265,7 @@ async function logout() {
 function showAdmin() {
   document.getElementById("loginScreen").classList.add("hidden");
   document.getElementById("adminPanel").classList.remove("hidden");
+  document.getElementById("tmdbKey").value = TMDB_API_KEY;
   toggleEpisodesUI();
   loadList();
 }
@@ -293,6 +293,8 @@ function headers(extra = {}) {
   };
 }
 
+function authMsg(res) { return (res.status === 401 || res.status === 403) ? "انتهت الجلسة أو لا تملك صلاحية. سجّل الخروج وادخل من جديد." : ""; }
+
 function mapOldCategory(cat) {
   const c = (cat || "").trim();
   if (VALID_CATEGORIES.includes(c)) return c;
@@ -313,7 +315,7 @@ async function searchTMDB() {
     return;
   }
   if (!TMDB_API_KEY || TMDB_API_KEY === "YOUR_TMDB_API_KEY_HERE") {
-    box.innerHTML = '<p style="color:#ff6b6b;font-size:13px">ضع مفتاح TMDB في الكود أولاً (TMDB_API_KEY).<br>احصل عليه مجانًا من: <a href="https://www.themoviedb.org/settings/api" target="_blank" style="color:#ffb000">themoviedb.org</a></p>';
+    box.innerHTML = '<p style="color:#ff6b6b;font-size:13px">اكتب مفتاح TMDB في الخانة أعلاه أولاً.<br>احصل عليه مجانًا من: <a href="https://www.themoviedb.org/settings/api" target="_blank" style="color:#ffb000">themoviedb.org</a></p>';
     return;
   }
   box.innerHTML = '<p style="color:#8d929d;font-size:13px">جاري البحث...</p>';
@@ -359,7 +361,7 @@ async function fillFromTMDB(index) {
   document.getElementById("title").value = item.title || "";
   document.getElementById("year").value = item.year || "";
   document.getElementById("rating").value = item.rating || "";
-  document.getElementById("poster_url").value = item.poster || "https://via.placeholder.com/500x750?text=Cima+Cima";
+  document.getElementById("poster_url").value = item.poster || "";
   document.getElementById("description").value = item.overview || "";
 
   const catSelect = document.getElementById("category");
@@ -416,12 +418,6 @@ function addEpisodeRow(title, url) {
   row.className = "ep-row";
   row.id = "ep-" + id;
   row.innerHTML =
-    '<input type="text" placeholder="رقم" value="' + escapeAttr(title ? "" : String(id)) + '" data-ep-num>' +
-    '<input type="text" placeholder="اسم الحلقة (اختياري)" value="' + escapeAttr(title || "") + '" data-ep-title>' +
-    '<input type="text" placeholder="رابط الحلقة https://..." value="' + escapeAttr(url || "") + '" data-ep-url>' +
-    '<button type="button" class="danger small" onclick="removeEpisodeRow(' + id + ')">×</button>';
-  // fix: first field should be episode number label style - simplify
-  row.innerHTML =
     '<input type="text" placeholder="الحلقة 1" value="' + escapeAttr(title || ("الحلقة " + id)) + '" data-ep-title>' +
     '<input type="text" placeholder="رابط الحلقة" value="' + escapeAttr(url || "") + '" data-ep-url style="grid-column: span 2">' +
     '<button type="button" class="danger small" onclick="removeEpisodeRow(' + id + ')">×</button>';
@@ -460,10 +456,10 @@ function setEpisodesForm(episodes) {
 
 function parseEpisodes(val) {
   if (!val) return [];
-  if (Array.isArray(val)) return val.filter(x => x && !x.__cimaOverlay && !x.__cimaOrder);
+  if (Array.isArray(val)) return val.filter(x => x && !x.__cimaOverlay);
   try {
     const p = JSON.parse(val);
-    return Array.isArray(p) ? p.filter(x => x && !x.__cimaOverlay && !x.__cimaOrder) : [];
+    return Array.isArray(p) ? p.filter(x => x && !x.__cimaOverlay) : [];
   } catch {
     return [];
   }
@@ -486,13 +482,6 @@ function parseDownloads(val) {
   try { const p = JSON.parse(val); return Array.isArray(p) ? p.filter(x => x && x.url) : []; } catch { return []; }
 }
 
-let watchCounter=0;
-function parseWatchServers(val){if(!val)return[];if(Array.isArray(val))return val.filter(x=>x&&x.url);const raw=String(val).trim();try{const p=JSON.parse(raw);if(Array.isArray(p))return p.filter(x=>x&&x.url)}catch(e){}return raw?[{name:"السيرفر الأساسي",url:raw}]:[]}
-function addWatchRow(name,url){watchCounter++;const id=watchCounter,row=document.createElement("div");row.className="watch-row";row.id="watch-"+id;row.innerHTML='<input type="text" placeholder="سيرفر 1" value="'+escapeAttr(name||("سيرفر "+id))+'" data-watch-name><input type="text" placeholder="رابط المشاهدة / iframe" value="'+escapeAttr(url||"")+'" data-watch-url><button type="button" class="danger small" onclick="removeWatchRow('+id+')">×</button>';document.getElementById("watchServersList").appendChild(row)}
-function removeWatchRow(id){const el=document.getElementById("watch-"+id);if(el)el.remove()}
-function getWatchServersFromForm(){const list=[];document.querySelectorAll("#watchServersList .watch-row").forEach(row=>{const name=(row.querySelector("[data-watch-name]")||{}).value||"",url=(row.querySelector("[data-watch-url]")||{}).value||"";if(url.trim())list.push({name:name.trim()||("سيرفر "+(list.length+1)),url:url.trim()})});return list}
-function getOrderFromEpisodes(val){let arr=[];if(Array.isArray(val))arr=val;else if(typeof val==="string"&&val.trim()){try{arr=JSON.parse(val)||[]}catch(e){}}const x=arr.find(v=>v&&v.__cimaOrder!==undefined),n=x?Number(x.__cimaOrder):NaN;return Number.isFinite(n)?n:null}
-function setOrderInEpisodes(val,order){let arr=[];if(Array.isArray(val))arr=val.slice();else if(typeof val==="string"&&val.trim()){try{arr=JSON.parse(val)||[]}catch(e){}}arr=arr.filter(v=>!(v&&v.__cimaOrder!==undefined));arr.push({__cimaOrder:Number(order)});return JSON.stringify(arr)}
 let downloadCounter = 0;
 function addDownloadRow(name, url) {
   downloadCounter++;
@@ -521,13 +510,11 @@ function getPayload() {
   const title = document.getElementById("title").value.trim();
   let poster = document.getElementById("poster_url").value.trim();
   let duration = document.getElementById("duration").value.trim();
-  if (!poster) poster = "https://via.placeholder.com/500x750?text=Cima+Cima";
+  if (!poster) poster = "";
   if (!duration) duration = "—";
 
   const cat = document.getElementById("category").value;
   let movieUrl = document.getElementById("movie_url").value.trim() || "https://example.com";
-  const watchServers=getWatchServersFromForm();
-  if(!isSeries(cat)&&watchServers.length) movieUrl=JSON.stringify(watchServers);
   let episodes = [];
 
   if (isSeries(cat)) {
@@ -536,9 +523,8 @@ function getPayload() {
   }
 
   // نخزن إعداد العلامة داخل عمود episodes الحالي حتى لا نحتاج تعديل قاعدة البيانات.
-  episodes = episodes.filter(x => !x.__cimaOverlay && !x.__cimaOrder);
+  episodes = episodes.filter(x => !x.__cimaOverlay);
   episodes.push({ __cimaOverlay: getOverlayConfig() });
-  if(window.editingOrder!=null) episodes.push({__cimaOrder:Number(window.editingOrder)});
 
   return {
     title,
@@ -564,9 +550,8 @@ function resetForm() {
   document.getElementById("rating").value = "";
   document.getElementById("description").value = "";
   document.getElementById("duration").value = "—";
-  document.getElementById("poster_url").value = "https://via.placeholder.com/500x750?text=Cima+Cima";
+  document.getElementById("poster_url").value = "";
   document.getElementById("movie_url").value = "";
-  document.getElementById("watchServersList").innerHTML=""; watchCounter=0; window.editingOrder=null;
   document.getElementById("category").value = "أفلام عربي";
   document.getElementById("episodesList").innerHTML = "";
   document.getElementById("downloadsList").innerHTML = "";
@@ -599,7 +584,6 @@ function startEdit(id) {
   document.getElementById("description").value = row.description || "";
   document.getElementById("poster_url").value = row.poster_url || "";
   document.getElementById("movie_url").value = row.movie_url || "";
-  document.getElementById("watchServersList").innerHTML=""; watchCounter=0; parseWatchServers(row.movie_url).forEach(w=>addWatchRow(w.name||"",w.url||"")); window.editingOrder=getOrderFromEpisodes(row.episodes);
   document.getElementById("downloadsList").innerHTML = "";
   downloadCounter = 0;
   const oldDownloads = parseDownloads(row.download_links);
@@ -654,6 +638,7 @@ async function saveMovie() {
     }
     if (!res.ok) {
       const text = await res.text();
+      if (authMsg(res)) throw new Error(authMsg(res));
       if (text.includes("download_links")) {
         throw new Error("عمود download_links مش موجود في Supabase. نفّذ SQL الموجود في ملف setup-downloads.sql ثم جرّب الحفظ.");
       }
@@ -681,7 +666,7 @@ async function deleteMovie(id) {
       method: "DELETE",
       headers: headers({ "Prefer": "return=minimal" })
     });
-    if (!res.ok) throw new Error(await res.text() || "فشل الحذف");
+    if (!res.ok) throw new Error(authMsg(res) || await res.text() || "فشل الحذف");
     message("تم الحذف بنجاح ✅", true);
     if (document.getElementById("editId").value === String(id)) resetForm();
     loadList();
@@ -708,7 +693,7 @@ async function loadList() {
     }
 
     const rows = await res.json();
-    allMovies = rows.slice().sort((a,b)=>{const ao=getOrderFromEpisodes(a.episodes),bo=getOrderFromEpisodes(b.episodes);if(ao!=null&&bo!=null)return ao-bo;if(ao!=null)return -1;if(bo!=null)return 1;return Number(b.Id??b.id??0)-Number(a.Id??a.id??0)});
+    allMovies = rows;
     if (rows.length) {
       if (rows[0].Id !== undefined) idColumn = "Id";
       else if (rows[0].id !== undefined) idColumn = "id";
@@ -727,13 +712,11 @@ async function loadList() {
       const eps = parseEpisodes(r.episodes);
       const downloads = parseDownloads(r.download_links);
       const extra = isSeries(cat) ? (" • " + eps.length + " حلقة") : (downloads.length ? (" • " + downloads.length + " سيرفر تحميل") : "");
-      const pos=allMovies.findIndex(m=>String(m.Id??m.id)===String(id));
-      return '<div class="item" data-id="'+escapeAttr(id)+'">' +
-        '<div class="info"><strong>☰ <span class="drag-handle">↕</span> ' + escapeHtml(r.title || "") +
-        '</strong><div class="meta">' + escapeHtml(cat) + ' • ' + year + ' • ⭐ ' + rating + extra + ' <span class="badge">#' + id + '</span></div></div>' +
-        '<div class="actions reorder-actions">' +
-        '<button class="secondary small reorder-btn" onclick="moveMovie(\'' + id + '\',-1)" '+(pos<=0?'disabled':'')+'>↑</button>' +
-        '<button class="secondary small reorder-btn" onclick="moveMovie(\'' + id + '\',1)" '+(pos>=allMovies.length-1?'disabled':'')+'>↓</button>' +
+      return '<div class="item">' +
+        '<div class="info"><strong>' + escapeHtml(r.title || "") +
+        '</strong><div class="meta">' + escapeHtml(cat) + ' • ' + year + ' • ⭐ ' + rating + extra +
+        ' <span class="badge">#' + id + '</span></div></div>' +
+        '<div class="actions">' +
         '<button class="secondary small" onclick="startEdit(\'' + id + '\')">تعديل</button>' +
         '<button class="danger small" onclick="deleteMovie(\'' + id + '\')">حذف</button>' +
         '</div></div>';
@@ -747,15 +730,19 @@ async function loadList() {
   }
 }
 
-async function moveMovie(id,direction){const i=allMovies.findIndex(m=>String(m.Id??m.id)===String(id)),j=i+direction;if(i<0||j<0||j>=allMovies.length)return;const a=allMovies[i],b=allMovies[j],ao=getOrderFromEpisodes(a.episodes),bo=getOrderFromEpisodes(b.episodes),newA=bo!=null?bo:j*10,newB=ao!=null?ao:i*10;try{for(const u of [{row:a,order:newA},{row:b,order:newB}]){const uid=u.row.Id??u.row.id,res=await fetch(TABLE_URL+"?"+idColumn+"=eq."+encodeURIComponent(uid),{method:"PATCH",headers:headers({"Prefer":"return=minimal"}),body:JSON.stringify({episodes:setOrderInEpisodes(u.row.episodes,u.order)})});if(!res.ok)throw new Error(await res.text())}message("تم تغيير ترتيب الفيلم ✅",true);await loadList()}catch(e){message("تعذر تغيير الترتيب: "+(e.message||"خطأ"))}}
-
+function downloadSitemap() {
+  const base = "https://cimacima.online/";
+  const urls = [base, base + "privacy.html", base + "terms.html", base + "contact.html"].concat(allMovies.map(r => base + "?movie=" + encodeURIComponent(r.Id ?? r.id)));
+  const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + urls.map(u => "  <url><loc>" + u.replace(/&/g, "&amp;") + "</loc></url>").join("\n") + "\n</urlset>\n";
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([xml], { type: "application/xml" })); a.download = "sitemap.xml"; a.click();
+}
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
   }[c]));
 }
 function escapeAttr(s) {
-  return String(s).replace(/"/g, "&quot;");
+  return escapeHtml(s);
 }
 
 (async function(){ const session=await getSession(); if(session&&session.access_token){currentAccessToken=session.access_token;sessionStorage.setItem(SESSION_KEY,currentAccessToken);showAdmin();} })();
