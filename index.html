@@ -338,9 +338,9 @@ function card(x) {
   const poster = safe(x.img || "https://via.placeholder.com/500x750?text=Cima+Cima");
   const favClass = isFav(x.id) ? " on" : "";
   const heart = isFav(x.id) ? "♥" : "♡";
-  const id = jsString(x.id);
-  return '<div class="card" onclick="showById(' + id + ')">' +
-    '<button type="button" class="fav-btn' + favClass + '" onclick="toggleFav(' + id + ',event)" title="مفضلة">' + heart + '</button>' +
+  const id = safe(x.id);
+  return '<div class="card" data-id="' + id + '" onclick="showById(this.dataset.id)">' +
+    '<button type="button" class="fav-btn' + favClass + '" onclick="toggleFav(this.closest(\'.card\').dataset.id,event)" title="مفضلة">' + heart + '</button>' +
     '<div class="poster" style="background-image:url(\'' + poster + '\')"><span class="poster-rating">⭐ ' + safe(x.rating) + '</span><span class="poster-watermark">سيما سيما</span></div>' +
     '<div class="body">' +
     '<h3>' + safe(x.name) + '</h3>' +
