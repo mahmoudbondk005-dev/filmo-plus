@@ -66,7 +66,9 @@ button.small{padding:8px 14px;font-size:13px}
 <div id="loginScreen" class="box login-box">
   <h1>سيما سيما</h1>
   <p class="sub">لوحة التحكم — للمسؤول فقط</p>
-  <label>كلمة مرور حساب الإدارة</label>
+  <label>البريد الإلكتروني</label>
+  <input id="email" type="email" value="cimacima.egypt@gmail.com" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('password').focus()">
+  <label>كلمة المرور</label>
   <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()">
   <button onclick="login()" style="width:100%;margin-top:6px">دخول</button>
   <div id="loginMsg" class="msg"></div>
@@ -199,100 +201,49 @@ function isSeries(cat) {
 
 async function getSession() {
   try {
-    const res = await fetch(SUPABASE_URL + "/auth/v1/session", {headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer " + (currentAccessToken || SUPABASE_KEY)}});
+    if (!currentAccessToken) return null;
+    const res = await fetch(SUPABASE_URL + "/auth/v1/user", {
+      headers: {"apikey":SUPABASE_KEY,"Authorization":"Bearer " + currentAccessToken}
+    });
     if (!res.ok) return null;
-    const data = await res.json();
-    return data && data.access_token ? data : null;
+    const user = await res.json();
+    if (!user || user.id !== "3a01b63c-f6d4-43a7-8996-4ef5521a0c70" ||
+        String(user.email || "").toLowerCase() !== ADMIN_EMAIL.toLowerCase()) return null;
+    return {access_token: currentAccessToken, user: user};
   } catch { return null; }
 }
 
 let currentAccessToken = sessionStorage.getItem(SESSION_KEY) || "";
-let currentRefreshToken = sessionStorage.getItem(SESSION_KEY + "_refresh") || "";
 
-function isLoggedIn() {
-  return !!currentAccessToken;
-}
-
-function authHeaders(extra = {}) {
-  return {
-    "apikey": SUPABASE_KEY,
-    "Authorization": "Bearer " + currentAccessToken,
-    "Content-Type": "application/json",
-    ...extra
-  };
-}
-
-async function refreshSession() {
-  if (!currentRefreshToken) return false;
-  try {
-    const res = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=refresh_token", {
-      method: "POST",
-      headers: {"apikey": SUPABASE_KEY, "Content-Type": "application/json"},
-      body: JSON.stringify({refresh_token: currentRefreshToken})
-    });
-    if (!res.ok) return false;
-    const data = await res.json();
-    if (!data.access_token) return false;
-    currentAccessToken = data.access_token;
-    currentRefreshToken = data.refresh_token || currentRefreshToken;
-    sessionStorage.setItem(SESSION_KEY, currentAccessToken);
-    sessionStorage.setItem(SESSION_KEY + "_refresh", currentRefreshToken);
-    return true;
-  } catch { return false; }
-}
-
-async function getSession() {
-  if (!currentAccessToken) return null;
-  try {
-    let res = await fetch(SUPABASE_URL + "/auth/v1/user", {headers: authHeaders()});
-    if (!res.ok && await refreshSession()) {
-      res = await fetch(SUPABASE_URL + "/auth/v1/user", {headers: authHeaders()});
-    }
-    if (!res.ok) return null;
-    const user = await res.json();
-    return user && user.id ? {
-      access_token: currentAccessToken,
-      refresh_token: currentRefreshToken,
-      user
-    } : null;
-  } catch { return null; }
-}
+function isLoggedIn() { return !!currentAccessToken; }
 
 async function login() {
+  const email = document.getElementById("email").value.trim();
   const pass = document.getElementById("password").value;
+  if (!email) { showLoginMsg("اكتب البريد الإلكتروني"); return; }
   if (!pass) { showLoginMsg("اكتب كلمة المرور"); return; }
-
+  if (email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    showLoginMsg("هذا البريد غير مسموح له بالدخول");
+    return;
+  }
   try {
     const res = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=password", {
       method:"POST",
       headers:{"apikey":SUPABASE_KEY,"Content-Type":"application/json"},
-      body:JSON.stringify({email:ADMIN_EMAIL,password:pass})
+      body:JSON.stringify({email:email,password:pass})
     });
     const data = await res.json();
-
     if (!res.ok || !data.access_token) {
       showLoginMsg("بيانات الدخول غير صحيحة");
       return;
     }
-
-    currentAccessToken = data.access_token;
-    currentRefreshToken = data.refresh_token || "";
-    sessionStorage.setItem(SESSION_KEY, currentAccessToken);
-    sessionStorage.setItem(SESSION_KEY + "_refresh", currentRefreshToken);
-
-    const userRes = await fetch(SUPABASE_URL + "/auth/v1/user", {
-      headers: authHeaders()
-    });
-    const user = userRes.ok ? await userRes.json() : null;
-
-    if (!userRes.ok || !user ||
-        user.id !== "3a01b63c-f6d4-43a7-8996-4ef5521a0c70" ||
-        (user.email || "").toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-      await logout();
-      showLoginMsg("هذا الحساب غير مصرح له بدخول لوحة الإدارة");
+    if (!data.user || data.user.id !== "3a01b63c-f6d4-43a7-8996-4ef5521a0c70" ||
+        String(data.user.email || "").toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+      showLoginMsg("الحساب غير مصرح له كمسؤول");
       return;
     }
-
+    currentAccessToken = data.access_token;
+    sessionStorage.setItem(SESSION_KEY, currentAccessToken);
     showAdmin();
   } catch(e) {
     console.error(e);
@@ -301,22 +252,12 @@ async function login() {
 }
 
 async function logout() {
-  try {
-    if (currentAccessToken) {
-      await fetch(SUPABASE_URL + "/auth/v1/logout", {
-        method:"POST",
-        headers:authHeaders()
-      });
-    }
-  } catch(e) {}
-
-  currentAccessToken = "";
-  currentRefreshToken = "";
-  sessionStorage.removeItem(SESSION_KEY);
-  sessionStorage.removeItem(SESSION_KEY + "_refresh");
+  try { if(currentAccessToken) await fetch(SUPABASE_URL + "/auth/v1/logout", {method:"POST",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+currentAccessToken}}); } catch(e) {}
+  currentAccessToken=""; sessionStorage.removeItem(SESSION_KEY);
   document.getElementById("adminPanel").classList.add("hidden");
   document.getElementById("loginScreen").classList.remove("hidden");
   document.getElementById("password").value="";
+  if (document.getElementById("email")) document.getElementById("email").value=ADMIN_EMAIL;
 }
 
 function showAdmin() {
@@ -343,7 +284,7 @@ function message(text, ok = false) {
 function headers(extra = {}) {
   return {
     "apikey": SUPABASE_KEY,
-    "Authorization": "Bearer " + currentAccessToken,
+    "Authorization": "Bearer " + (currentAccessToken || SUPABASE_KEY),
     "Content-Type": "application/json",
     ...extra
   };
@@ -798,22 +739,7 @@ function escapeAttr(s) {
   return String(s).replace(/"/g, "&quot;");
 }
 
-(async function(){
-  const session = await getSession();
-  if (session && session.access_token &&
-      session.user &&
-      session.user.id === "3a01b63c-f6d4-43a7-8996-4ef5521a0c70" &&
-      (session.user.email || "").toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-    currentAccessToken = session.access_token;
-    currentRefreshToken = session.refresh_token || currentRefreshToken;
-    showAdmin();
-  } else {
-    currentAccessToken = "";
-    currentRefreshToken = "";
-    sessionStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(SESSION_KEY + "_refresh");
-  }
-})();;
+(async function(){ const session=await getSession(); if(session&&session.access_token){currentAccessToken=session.access_token;sessionStorage.setItem(SESSION_KEY,currentAccessToken);showAdmin();} })();
 </script>
 </body>
 </html>
