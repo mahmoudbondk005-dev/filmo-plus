@@ -171,6 +171,30 @@ function safe(v) {
   }[c]));
 }
 
+// روابط المشاهدة والتحميل تظل كما هي في قاعدة البيانات.
+// هذه الدالة تمنع فقط البروتوكولات الخطرة عند عرض الرابط في المتصفح.
+function safeHttpUrl(value) {
+  try {
+    const raw = String(value ?? "").trim();
+    if (!raw) return "";
+    const normalized = raw.startsWith("//") ? "https:" + raw : raw;
+    const u = new URL(normalized, location.href);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return "";
+    return normalized;
+  } catch {
+    return "";
+  }
+}
+
+function jsString(value) {
+  return JSON.stringify(String(value ?? ""))
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+}
+
 function isSeries(type) {
   return type === "مسلسلات عربي" || type === "مسلسلات أجنبي";
 }
@@ -314,13 +338,19 @@ function card(x) {
   const poster = safe(x.img || "https://via.placeholder.com/500x750?text=Cima+Cima");
   const favClass = isFav(x.id) ? " on" : "";
   const heart = isFav(x.id) ? "♥" : "♡";
-  return '<div class="card" onclick=\'show(' + JSON.stringify(x).replace(/</g,"\\u003c") + ')\'>' +
-    '<button type="button" class="fav-btn' + favClass + '" onclick=\'toggleFav(' + JSON.stringify(String(x.id)) + ',event)\' title="مفضلة">' + heart + '</button>' +
+  const id = jsString(x.id);
+  return '<div class="card" onclick="showById(' + id + ')">' +
+    '<button type="button" class="fav-btn' + favClass + '" onclick="toggleFav(' + id + ',event)" title="مفضلة">' + heart + '</button>' +
     '<div class="poster" style="background-image:url(\'' + poster + '\')"><span class="poster-rating">⭐ ' + safe(x.rating) + '</span><span class="poster-watermark">سيما سيما</span></div>' +
     '<div class="body">' +
     '<h3>' + safe(x.name) + '</h3>' +
     '<div class="meta">' + safe(x.type) + ' • ' + safe(x.year) + '</div>' +
     '</div></div>';
+}
+
+function showById(id) {
+  const item = allItems.find(x => String(x.id) === String(id));
+  if (item) show(item);
 }
 
 function renderAll(filterText) {
@@ -434,8 +464,12 @@ function show(x, pushRoute = true) {
   const downloadBtn = document.getElementById("downloadBtn");
   const downloadList = document.getElementById("downloadListModal");
   const downloads = Array.isArray(x.downloads) ? x.downloads : [];
-  downloadBtn.style.display = "inline-block";
-  downloadList.innerHTML = downloads.map(function(d,i){ return '<a class="download-btn" href="'+safe(d.url)+'" target="_blank" rel="noopener noreferrer">'+safe(d.name || ("سيرفر " + (i+1)))+'</a>'; }).join("");
+  downloadBtn.style.display = downloads.length ? "inline-block" : "none";
+  downloadList.innerHTML = downloads.map(function(d,i){
+    const href = safeHttpUrl(d.url);
+    if (!href) return "";
+    return '<a class="download-btn" href="'+safe(href)+'" target="_blank" rel="noopener noreferrer">'+safe(d.name || ("سيرفر " + (i+1)))+'</a>';
+  }).join("");
 
   const epBox = document.getElementById("episodesBox");
   const epList = document.getElementById("epList");
@@ -507,10 +541,10 @@ function getVimeoId(url) {
   const m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
   return m ? m[1] : null;
 }
-function isHls(url) {
+function isHls(playableUrl) {
   return /\.m3u8(?:[?#]|$)/i.test(url) || /\/manifest\/.*(?:m3u8|hls)/i.test(url) || /(?:boltdns\.net|bcovlive\.io)/i.test(url);
 }
-function isDirectVideo(url) {
+function isDirectVideo(playableUrl) {
   return /\.(mp4|webm|ogg)(\?|#|$)/i.test(url);
 }
 
@@ -554,17 +588,26 @@ function playUrl(url) {
 
   try {
     inner.classList.add("player-stage");
-    const yt = getYouTubeId(url);
-    const vim = getVimeoId(url);
-
     const embedSrc = extractEmbedSrc(url);
-    if (embedSrc) {
-      inner.innerHTML = '<iframe src="' + safe(embedSrc) + '" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>';
+    const safeEmbedSrc = safeHttpUrl(embedSrc);
+    const safeRawUrl = safeHttpUrl(url);
+    if (!embedSrc && !safeRawUrl) {
+      throw new Error("رابط المشاهدة غير صالح");
+    }
+    const playableUrl = safeRawUrl || url;
+    const yt = getYouTubeId(playableUrl);
+    const vim = getVimeoId(playableUrl);
+
+    if (embedSrc && !safeEmbedSrc) {
+      throw new Error("رابط iframe غير صالح");
+    }
+    if (safeEmbedSrc) {
+      inner.innerHTML = '<iframe src="' + safe(safeEmbedSrc) + '" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>';
     } else if (yt) {
       inner.innerHTML = '<iframe src="https://www.youtube.com/embed/' + yt + '?autoplay=1&rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>';
     } else if (vim) {
       inner.innerHTML = '<iframe src="https://player.vimeo.com/video/' + vim + '?autoplay=1" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>';
-    } else if (isHls(url)) {
+    } else if (isHls(playableUrl)) {
       const video = document.createElement("video");
       video.controls = true;
       video.controlsList = "nofullscreen";
@@ -600,7 +643,7 @@ function playUrl(url) {
         hls.attachMedia(video);
 
         hls.on(Hls.Events.MEDIA_ATTACHED, function () {
-          hls.loadSource(url);
+          hls.loadSource(playableUrl);
         });
 
         hls.on(Hls.Events.MANIFEST_PARSED, function () {
@@ -640,7 +683,7 @@ function playUrl(url) {
 
       // Safari/iOS and browsers with native HLS.
       } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = url;
+        video.src = playableUrl;
 
         video.addEventListener("loadedmetadata", function () {
           video.play().catch(function () {});
@@ -659,22 +702,24 @@ function playUrl(url) {
           '<div class="player-error">المتصفح لا يدعم تشغيل روابط m3u8.</div>';
       }
 
-    } else if (isDirectVideo(url)) {
+    } else if (isDirectVideo(playableUrl)) {
       const video = document.createElement("video");
       video.controls = true;
       video.controlsList = "nofullscreen";
       video.autoplay = true;
       video.playsInline = true;
-      video.src = url;
+      video.src = playableUrl;
       inner.appendChild(video);
       video.onerror = function () {
         inner.innerHTML = '<div class="player-error">تعذر تشغيل الفيديو. جرب رابط آخر.</div>';
       };
     } else {
-      let embedUrl = url;
+      let embedUrl = playableUrl;
       const gd = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
       if (gd) embedUrl = "https://drive.google.com/file/d/" + gd[1] + "/preview";
-      inner.innerHTML = '<iframe src="' + safe(embedUrl) + '" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
+      const safeEmbedUrl = safeHttpUrl(embedUrl);
+      if (!safeEmbedUrl) throw new Error("رابط المشاهدة غير صالح");
+      inner.innerHTML = '<iframe src="' + safe(safeEmbedUrl) + '" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
     }
 
     const wm = window.currentMovie && window.currentMovie.overlay;
