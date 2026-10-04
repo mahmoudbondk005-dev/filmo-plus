@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://cimacima.online/sitemap.xml
+Sitemap: https://filmo-plus.pages.dev/sitemap.xml

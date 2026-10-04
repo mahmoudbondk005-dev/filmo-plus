@@ -413,6 +413,12 @@ function addEpisodeRow(title, url) {
   row.className = "ep-row";
   row.id = "ep-" + id;
   row.innerHTML =
+    '<input type="text" placeholder="رقم" value="' + escapeAttr(title ? "" : String(id)) + '" data-ep-num>' +
+    '<input type="text" placeholder="اسم الحلقة (اختياري)" value="' + escapeAttr(title || "") + '" data-ep-title>' +
+    '<input type="text" placeholder="رابط الحلقة https://..." value="' + escapeAttr(url || "") + '" data-ep-url>' +
+    '<button type="button" class="danger small" onclick="removeEpisodeRow(' + id + ')">×</button>';
+  // fix: first field should be episode number label style - simplify
+  row.innerHTML =
     '<input type="text" placeholder="الحلقة 1" value="' + escapeAttr(title || ("الحلقة " + id)) + '" data-ep-title>' +
     '<input type="text" placeholder="رابط الحلقة" value="' + escapeAttr(url || "") + '" data-ep-url style="grid-column: span 2">' +
     '<button type="button" class="danger small" onclick="removeEpisodeRow(' + id + ')">×</button>';
