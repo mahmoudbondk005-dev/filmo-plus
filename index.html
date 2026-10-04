@@ -33,7 +33,7 @@ section{margin:34px 0;scroll-margin-top:90px}
 .head h2{margin:0;font-size:20px}
 .muted{color:#8d929d}
 .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
-.card{background:#141821;border:1px solid #202633;border-radius:13px;overflow:hidden;cursor:pointer;transition:.2s;position:relative}
+.card{background:#141821;border:1px solid #202633;border-radius:13px;overflow:hidden;cursor:pointer;transition:.2s;position:relative}.card-link{display:block;color:inherit;text-decoration:none}
 .card:hover{transform:translateY(-4px);border-color:#ffb00055}
 .poster{aspect-ratio:2/3;background:#222 center/cover no-repeat;position:relative}.poster::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 70%,rgba(0,0,0,.55));pointer-events:none}.poster-watermark{position:absolute;left:10px;bottom:10px;background:rgba(0,0,0,.58);color:#fff;padding:5px 9px;border-radius:8px;font-size:10px;font-weight:900;backdrop-filter:blur(5px);pointer-events:none;z-index:3}.poster-rating{position:absolute;top:10px;right:10px;background:rgba(10,12,17,.82);color:#ffca28;padding:6px 9px;border-radius:9px;font-size:12px;font-weight:900;z-index:3;border:1px solid #ffffff18;backdrop-filter:blur(5px)}
 .poster img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -346,18 +346,28 @@ async function loadMovies() {
   }
 }
 
+function slugifyArabic(value) {
+  return String(value || "").trim()
+    .toLowerCase()
+    .replace(/[^\u0600-\u06FFa-z0-9]+/gi, "-")
+    .replace(/^-+|-+$/g, "") || "item";
+}
+function itemPath(x) {
+  const kind = isSeries(x.type) ? "series" : "movie";
+  return "/" + kind + "/" + encodeURIComponent(slugifyArabic(x.name)) + "~" + encodeURIComponent(String(x.id));
+}
 function card(x) {
   const poster = safe(x.img || PLACEHOLDER);
   const favClass = isFav(x.id) ? " on" : "";
   const heart = isFav(x.id) ? "♥" : "♡";
   const id = safe(x.id);
-  return '<div class="card" data-id="' + id + '" role="button" tabindex="0" onclick="showById(this.dataset.id)" onkeydown="if(event.key===\'Enter\')showById(this.dataset.id)">' +
-    '<button type="button" class="fav-btn' + favClass + '" onclick="toggleFav(this.closest(\'.card\').dataset.id,event)" title="مفضلة" aria-label="مفضلة">' + heart + '</button>' +
+  const href = safe(itemPath(x));
+  return '<div class="card" data-id="' + id + '">' +
+    '<a class="card-link" href="' + href + '" aria-label="' + safe(x.name) + '" onclick="showById(this.closest(\'.card\').dataset.id);return false">' +
     '<div class="poster"><img src="' + poster + '" alt="' + safe(x.name) + '" loading="lazy" decoding="async" onerror="this.onerror=null;this.src=PLACEHOLDER"><span class="poster-rating">⭐ ' + safe(x.rating) + '</span><span class="poster-watermark">سيما سيما</span></div>' +
-    '<div class="body">' +
-    '<h3>' + safe(x.name) + '</h3>' +
-    '<div class="meta">' + safe(x.type) + ' • ' + safe(x.year) + '</div>' +
-    '</div></div>';
+    '<div class="body"><h3>' + safe(x.name) + '</h3><div class="meta">' + safe(x.type) + ' • ' + safe(x.year) + '</div></div></a>' +
+    '<button type="button" class="fav-btn' + favClass + '" onclick="toggleFav(this.closest(\'.card\').dataset.id,event)" title="مفضلة" aria-label="مفضلة">' + heart + '</button>' +
+    '</div>';
 }
 
 function showById(id) {
@@ -470,8 +480,13 @@ function toggleFavFromDetail() {
 }
 
 function saveRoute(route) {
-  const hash = route || "home";
-  history.pushState({ cimaRoute: hash }, "", hash === "home" ? location.pathname : location.pathname + "?" + hash);
+  if (!route || route === "home") { history.pushState({ cimaRoute: "home" }, "", "/"); return; }
+  if (route.startsWith("movie=") || route.startsWith("series=")) {
+    const id = decodeURIComponent(route.split("=")[1] || "");
+    const item = allItems.find(x => String(x.id) === String(id));
+    if (item) { history.pushState({ cimaRoute: route }, "", itemPath(item)); return; }
+  }
+  history.pushState({ cimaRoute: route }, "", location.pathname + "?" + route);
 }
 
 function show(x, pushRoute = true) {
@@ -486,7 +501,7 @@ function show(x, pushRoute = true) {
   document.getElementById("ddesc").textContent = x.desc || "لا يوجد وصف متاح.";
   window.currentMovie = x;
   document.title = x.name + " | سيما سيما";
-  const cu = document.querySelector("link[rel=canonical]"); if (cu) cu.href = "https://cimacima.online/?movie=" + encodeURIComponent(x.id);
+  const cu = document.querySelector("link[rel=canonical]"); if (cu) cu.href = "https://cimacima.online" + itemPath(x);
   const md = document.querySelector("meta[name=description]"); if (md) md.content = (x.desc || x.name).slice(0, 155);
   countView(x);
   updateFavDetailBtn();
@@ -547,11 +562,18 @@ function home(pushRoute = true) {
 
 function restoreRoute() {
   const raw = location.hash.replace(/^#/, "");
+  const path = location.pathname.replace(/\/+$/, "") || "/";
   const mq = new URLSearchParams(location.search).get("movie");
   if (mq && !raw) { const it = allItems.find(x => String(x.id) === mq); if (it) { show(it, false); return; } }
+  const pretty = path.match(/^\/(movie|series)\/[^/]+~([^/]+)$/i);
+  if (pretty) {
+    const id = decodeURIComponent(pretty[2]);
+    const item = allItems.find(x => String(x.id) === String(id));
+    if (item) { show(item, false); return; }
+  }
   if (!raw || raw === "home") { home(false); return; }
-  if (raw.startsWith("movie=")) {
-    const id = decodeURIComponent(raw.slice(6));
+  if (raw.startsWith("movie=") || raw.startsWith("series=")) {
+    const id = decodeURIComponent(raw.split("=")[1] || "");
     const item = allItems.find(x => String(x.id) === String(id));
     if (item) { show(item, false); return; }
   }
