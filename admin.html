@@ -443,13 +443,30 @@ function addSeasonRow(name, episodes) {
   row.id = "season-" + id;
   row.style.marginBottom = "10px";
   row.innerHTML = '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input type="text" placeholder="الموسم 1" value="' + escapeAttr(name || ("الموسم " + id)) + '" data-season-name style="flex:1"><button type="button" class="danger small" onclick="removeSeasonRow(' + id + ')">×</button></div>' +
-    '<div id="seasonEps-' + id + '"></div><button type="button" class="secondary small" onclick="addSeasonEpisodeRow(' + id + ')">+ إضافة حلقة</button>';
+    '<div id="seasonEps-' + id + '"></div><button type="button" class="secondary small" onclick="addSeasonEpisodeRow(' + id + ')">+ إضافة حلقة</button> ' +
+    '<details style="margin-top:8px"><summary style="cursor:pointer;color:#8d929d;font-size:13px">لصق روابط كل الحلقات مرة واحدة</summary>' +
+    '<textarea id="seasonBulk-' + id + '" placeholder="الصق الروابط هنا، كل رابط في سطر" style="width:100%;min-height:90px;margin-top:6px"></textarea>' +
+    '<button type="button" class="secondary small" onclick="bulkAddSeasonEpisodes(' + id + ')">إضافة الروابط كحلقات</button></details>';
   document.getElementById("seasonsList").appendChild(row);
   const eps = Array.isArray(episodes) ? episodes : [];
   if (eps.length) eps.forEach(ep => addSeasonEpisodeRow(id, ep.title || "", ep.url || ""));
   else { addSeasonEpisodeRow(id); addSeasonEpisodeRow(id); }
 }
 
+function bulkAddSeasonEpisodes(seasonId) {
+  const ta = document.getElementById("seasonBulk-" + seasonId);
+  const box = document.getElementById("seasonEps-" + seasonId);
+  if (!ta || !box) return;
+  const urls = ta.value.split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean);
+  if (!urls.length) return;
+  box.querySelectorAll(".ep-row").forEach(function(r){
+    const u = r.querySelector("[data-sep-url]");
+    if (u && !u.value.trim()) r.remove();
+  });
+  let n = box.querySelectorAll(".ep-row").length;
+  urls.forEach(function(u){ n++; addSeasonEpisodeRow(seasonId, "الحلقة " + n, u); });
+  ta.value = "";
+}
 function removeSeasonRow(id) { const el=document.getElementById("season-"+id); if(el) el.remove(); }
 
 function addSeasonEpisodeRow(seasonId, title, url) {
