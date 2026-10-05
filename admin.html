@@ -143,8 +143,16 @@ button.small{padding:8px 14px;font-size:13px}
   <!-- للمسلسلات -->
   <div id="episodesBox" class="ep-box hidden">
     <h3>الحلقات</h3>
-    <div id="episodesList"></div>
-    <button type="button" class="secondary small" onclick="addEpisodeRow()">+ إضافة حلقة</button>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><input id="seasons_enabled" type="checkbox" style="width:auto;margin:0" onchange="toggleSeasonsUI()"> تفعيل نظام المواسم لهذا المسلسل</label>
+    <div id="episodesNormalBox">
+      <div id="episodesList"></div>
+      <button type="button" class="secondary small" onclick="addEpisodeRow()">+ إضافة حلقة</button>
+    </div>
+    <div id="seasonsBox" style="display:none">
+      <div id="seasonsList"></div>
+      <button type="button" class="secondary small" onclick="addSeasonRow()">+ إضافة موسم</button>
+      <div style="color:#8d929d;font-size:12px;margin-top:8px">فعّلها فقط للمسلسلات التي تحتوي على أكثر من موسم.</div>
+    </div>
   </div>
 
   <div id="watchServersBox" class="ep-box" style="margin-top:4px">
@@ -201,6 +209,8 @@ const TMDB_IMG = "https://image.tmdb.org/t/p/w500";
 let allMovies = [];
 let idColumn = "Id";
 let episodeCounter = 0;
+let seasonCounter = 0;
+let seasonEpisodeCounters = {};
 
 function isSeries(cat) {
   return cat === "مسلسلات عربي" || cat === "مسلسلات أجنبي";
@@ -407,10 +417,74 @@ function toggleEpisodesUI() {
   const series = isSeries(cat);
   document.getElementById("episodesBox").classList.toggle("hidden", !series);
   document.getElementById("movieUrlBox").classList.toggle("hidden", series);
-  if (series && !document.getElementById("episodesList").children.length) {
+  if (series && !document.getElementById("episodesList").children.length && !document.getElementById("seasonsList").children.length) {
     addEpisodeRow();
     addEpisodeRow();
   }
+  if (!series) {
+    document.getElementById("seasons_enabled").checked = false;
+  }
+  toggleSeasonsUI();
+}
+
+function toggleSeasonsUI() {
+  const enabled = isSeries(document.getElementById("category").value) && document.getElementById("seasons_enabled").checked;
+  document.getElementById("episodesNormalBox").style.display = enabled ? "none" : "block";
+  document.getElementById("seasonsBox").style.display = enabled ? "block" : "none";
+  if (enabled && !document.getElementById("seasonsList").children.length) addSeasonRow();
+}
+
+function addSeasonRow(name, episodes) {
+  seasonCounter++;
+  const id = seasonCounter;
+  seasonEpisodeCounters[id] = 0;
+  const row = document.createElement("div");
+  row.className = "ep-box";
+  row.id = "season-" + id;
+  row.style.marginBottom = "10px";
+  row.innerHTML = '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input type="text" placeholder="الموسم 1" value="' + escapeAttr(name || ("الموسم " + id)) + '" data-season-name style="flex:1"><button type="button" class="danger small" onclick="removeSeasonRow(' + id + ')">×</button></div>' +
+    '<div id="seasonEps-' + id + '"></div><button type="button" class="secondary small" onclick="addSeasonEpisodeRow(' + id + ')">+ إضافة حلقة</button>';
+  document.getElementById("seasonsList").appendChild(row);
+  const eps = Array.isArray(episodes) ? episodes : [];
+  if (eps.length) eps.forEach(ep => addSeasonEpisodeRow(id, ep.title || "", ep.url || ""));
+  else { addSeasonEpisodeRow(id); addSeasonEpisodeRow(id); }
+}
+
+function removeSeasonRow(id) { const el=document.getElementById("season-"+id); if(el) el.remove(); }
+
+function addSeasonEpisodeRow(seasonId, title, url) {
+  const box = document.getElementById("seasonEps-" + seasonId);
+  if (!box) return;
+  seasonEpisodeCounters[seasonId] = (seasonEpisodeCounters[seasonId] || 0) + 1;
+  const id = seasonEpisodeCounters[seasonId];
+  const row = document.createElement("div");
+  row.className = "ep-row"; row.id = "sep-" + seasonId + "-" + id;
+  row.innerHTML = '<input type="text" placeholder="الحلقة ' + id + '" value="' + escapeAttr(title || ("الحلقة " + id)) + '" data-sep-title>' +
+    '<input type="text" placeholder="رابط الحلقة" value="' + escapeAttr(url || "") + '" data-sep-url style="grid-column:span 2">' +
+    '<button type="button" class="danger small" onclick="removeSeasonEpisodeRow(' + seasonId + ',' + id + ')">×</button>';
+  box.appendChild(row);
+}
+
+function removeSeasonEpisodeRow(seasonId,id){ const el=document.getElementById("sep-"+seasonId+"-"+id); if(el)el.remove(); }
+
+function getSeasonsFromForm() {
+  const seasons=[];
+  document.querySelectorAll("#seasonsList > [id^=\"season-\"]").forEach(row=>{
+    const name=(row.querySelector("[data-season-name]")||{}).value||"";
+    const episodes=[];
+    row.querySelectorAll("[data-sep-title]").forEach(titleEl=>{
+      const epRow=titleEl.closest(".ep-row"); const url=(epRow.querySelector("[data-sep-url]")||{}).value||"";
+      if(url.trim()) episodes.push({title:titleEl.value.trim()||("حلقة "+(episodes.length+1)),url:url.trim()});
+    });
+    if(episodes.length) seasons.push({name:name.trim()||("الموسم "+(seasons.length+1)),episodes:episodes});
+  });
+  return seasons;
+}
+
+function setSeasonsForm(seasons) {
+  document.getElementById("seasonsList").innerHTML=""; seasonCounter=0; seasonEpisodeCounters={};
+  if(Array.isArray(seasons) && seasons.length) seasons.forEach(s=>addSeasonRow(s.name||"",s.episodes||[]));
+  else addSeasonRow();
 }
 
 function addEpisodeRow(title, url) {
@@ -471,6 +545,13 @@ function parseEpisodes(val) {
   } catch {
     return [];
   }
+}
+
+function extractSeasonsFromEpisodes(val) {
+  let arr = Array.isArray(val) ? val : [];
+  if (!arr.length && typeof val === "string") { try { arr = JSON.parse(val) || []; } catch { arr=[]; } }
+  const item = Array.isArray(arr) ? arr.find(x => x && x.__cimaSeasons) : null;
+  return item && item.__cimaSeasons ? { enabled:item.enabled !== false, seasons:Array.isArray(item.seasons)?item.seasons:[] } : null;
 }
 
 function getOverlayConfig() {
@@ -537,12 +618,23 @@ function getPayload() {
   let episodes = [];
 
   if (isSeries(cat)) {
-    episodes = getEpisodesFromForm();
-    movieUrl = episodes.length ? episodes[0].url : "https://example.com";
+    if (document.getElementById("seasons_enabled").checked) {
+      const seasons = getSeasonsFromForm();
+      const firstEpisode = seasons[0] && seasons[0].episodes[0];
+      movieUrl = firstEpisode ? firstEpisode.url : "https://example.com";
+      episodes = [{ __cimaSeasons: true, enabled: true, seasons: seasons }];
+    } else {
+      episodes = getEpisodesFromForm();
+      movieUrl = episodes.length ? episodes[0].url : "https://example.com";
+    }
   }
 
   // نخزن إعداد العلامة داخل عمود episodes الحالي حتى لا نحتاج تعديل قاعدة البيانات.
-  episodes = episodes.filter(x => !x.__cimaOverlay);
+  episodes = episodes.filter(x => !x.__cimaOverlay && !x.__cimaSeasons);
+  if (isSeries(cat) && document.getElementById("seasons_enabled").checked) {
+    const seasons = getSeasonsFromForm();
+    episodes.unshift({ __cimaSeasons: true, enabled: true, seasons: seasons });
+  }
   episodes.push({ __cimaOverlay: getOverlayConfig() });
 
   return {
@@ -573,6 +665,9 @@ function resetForm() {
   document.getElementById("movie_url").value = "";
   document.getElementById("category").value = "أفلام عربي";
   document.getElementById("episodesList").innerHTML = "";
+  document.getElementById("seasonsList").innerHTML = "";
+  document.getElementById("seasons_enabled").checked = false;
+  seasonCounter = 0; seasonEpisodeCounters = {};
   document.getElementById("downloadsList").innerHTML = "";
   document.getElementById("watchList").innerHTML = ""; watchCounter=0;
   downloadCounter = 0;
@@ -616,9 +711,12 @@ function startEdit(id) {
   document.getElementById("overlay_enabled").checked = ov.enabled !== false;
   document.getElementById("overlay_pos").value = ov.pos || "br";
 
+  const seasonCfg = extractSeasonsFromEpisodes(row.episodes);
+  document.getElementById("seasons_enabled").checked = !!(seasonCfg && seasonCfg.enabled);
   toggleEpisodesUI();
   if (isSeries(mapOldCategory(row.category))) {
-    setEpisodesForm(parseEpisodes(row.episodes));
+    if (seasonCfg && seasonCfg.enabled) setSeasonsForm(seasonCfg.seasons || []);
+    else setEpisodesForm(parseEpisodes(row.episodes));
   }
 
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -633,10 +731,18 @@ async function saveMovie() {
 
   const cat = document.getElementById("category").value;
   if (isSeries(cat)) {
-    const eps = getEpisodesFromForm();
-    if (!eps.length) {
-      message("ضيف حلقة واحدة على الأقل مع رابطها.");
-      return;
+    if (document.getElementById("seasons_enabled").checked) {
+      const seasons = getSeasonsFromForm();
+      if (!seasons.length) {
+        message("ضيف موسم واحد على الأقل ومعه حلقة برابطها.");
+        return;
+      }
+    } else {
+      const eps = getEpisodesFromForm();
+      if (!eps.length) {
+        message("ضيف حلقة واحدة على الأقل مع رابطها.");
+        return;
+      }
     }
   }
 

@@ -183,6 +183,7 @@ const HIST_KEY = "filmo_history";
 const MAX_HISTORY = 24;
 
 let allItems = [];
+let currentSeasonIndex = 0;
 
 function apiHeaders() {
   return { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY };
@@ -239,6 +240,14 @@ function parseEpisodes(val) {
   } catch { return []; }
 }
 
+function parseSeasons(val) {
+  let arr = Array.isArray(val) ? val : [];
+  if (!arr.length && typeof val === "string") { try { arr = JSON.parse(val) || []; } catch { arr=[]; } }
+  const item = Array.isArray(arr) ? arr.find(x => x && x.__cimaSeasons) : null;
+  if (!item || item.__cimaSeasons !== true || item.enabled === false) return [];
+  return Array.isArray(item.seasons) ? item.seasons.filter(s => s && Array.isArray(s.episodes)) : [];
+}
+
 function parseOverlay(val) {
   if (!val) return { enabled:true, pos:"br" };
   let arr = Array.isArray(val) ? val : [];
@@ -277,6 +286,8 @@ function normalize(row) {
     duration: (row.duration && row.duration !== "—") ? row.duration : "",
     views: Number(row.views) || 0,
     episodes: parseEpisodes(row.episodes),
+    seasons: parseSeasons(row.episodes),
+    seasonsEnabled: parseSeasons(row.episodes).length > 0,
     downloads: parseDownloads(row.download_links),
     watchServers: parseWatchServers(row.movie_url),
     overlay: parseOverlay(row.episodes)
@@ -567,15 +578,23 @@ function show(x, pushRoute = true) {
   const epList = document.getElementById("epList");
   const watchBtn = document.getElementById("watchBtn");
 
-  if (isSeries(x.type) && x.episodes && x.episodes.length) {
+  if (isSeries(x.type) && ((x.seasonsEnabled && x.seasons.length) || (x.episodes && x.episodes.length))) {
     epBox.style.display = "block";
-    const st = epState(x.id);
     watchBtn.style.display = "inline-block";
-    watchBtn.textContent = st.last != null ? "▶ كمّل من الحلقة " + (st.last + 1) : "▶ ابدأ المشاهدة";
-    epList.innerHTML = x.episodes.map(function(ep, i) {
-      return '<button type="button" class="ep-btn' + (epState(x.id).done.includes(i) ? " done" : "") + '" onclick="playEpisode(' + i + ', this)">' +
-        safe(ep.title || ("الحلقة " + (i + 1))) + "</button>";
-    }).join("");
+    if (x.seasonsEnabled && x.seasons.length) {
+      currentSeasonIndex = Math.max(0, Math.min(currentSeasonIndex, x.seasons.length - 1));
+      const seasonTabs = x.seasons.map(function(s, si) {
+        return '<button type="button" class="ep-btn' + (si === currentSeasonIndex ? " active" : "") + '" onclick="selectSeason(' + si + ')">' + safe(s.name || ("الموسم " + (si + 1))) + '</button>';
+      }).join("");
+      epList.innerHTML = '<div style="width:100%;margin-bottom:10px;display:flex;flex-wrap:wrap;gap:8px">' + seasonTabs + '</div><div id="seasonEpisodesList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;width:100%"></div>';
+      renderSeasonEpisodes();
+    } else {
+      const st = epState(x.id);
+      watchBtn.textContent = st.last != null ? "▶ كمّل من الحلقة " + (st.last + 1) : "▶ ابدأ المشاهدة";
+      epList.innerHTML = x.episodes.map(function(ep, i) {
+        return '<button type="button" class="ep-btn' + (epState(x.id).done.includes(i) ? " done" : "") + '" onclick="playEpisode(' + i + ', this)">' + safe(ep.title || ("الحلقة " + (i + 1))) + "</button>";
+      }).join("");
+    }
   } else {
     epBox.style.display = "none";
     epList.innerHTML = "";
@@ -585,6 +604,21 @@ function show(x, pushRoute = true) {
 
   scrollTo(0, 0);
 }
+
+function seasonEpisodes() {
+  const m = window.currentMovie;
+  return m && m.seasonsEnabled && m.seasons[currentSeasonIndex] ? (m.seasons[currentSeasonIndex].episodes || []) : [];
+}
+function seasonEpState(id, season) { const all=getEps(); const s=all[id+"_s"+season]||{}; return {done:s.done||[],last:s.last}; }
+function markSeasonEp(id, season, index) { const all=getEps(), key=id+"_s"+season, s=all[key]||{done:[]}; s.last=index; if(!s.done.includes(index)) s.done.push(index); all[key]=s; try{localStorage.setItem(EP_KEY,JSON.stringify(all));}catch(e){} }
+function renderSeasonEpisodes() {
+  const m=window.currentMovie, eps=seasonEpisodes(), box=document.getElementById("seasonEpisodesList");
+  if(!m||!box)return;
+  const st=seasonEpState(m.id,currentSeasonIndex);
+  document.getElementById("watchBtn").textContent=st.last!=null ? "▶ كمّل من الحلقة "+(st.last+1) : "▶ ابدأ المشاهدة";
+  box.innerHTML=eps.map(function(ep,idx){return '<button type="button" class="ep-btn'+(st.done.includes(idx)?" done":"")+'" onclick="playEpisode('+idx+',this)">'+safe(ep.title||("الحلقة "+(idx+1)))+'</button>';}).join("");
+}
+function selectSeason(index){ currentSeasonIndex=index; renderSeasonEpisodes(); }
 
 function backToPrevious() {
   if ((location.search.startsWith("?movie=") || location.hash.startsWith("#movie=")) && history.state && history.state.cimaRoute) {
@@ -858,9 +892,12 @@ function markEp(id, i) {
   try { localStorage.setItem(EP_KEY, JSON.stringify(all)); } catch (e) {}
 }
 function playEpisode(index) {
-  const m = window.currentMovie, eps = m && m.episodes;
+  const m = window.currentMovie;
+  const usingSeasons = m && m.seasonsEnabled && m.seasons.length;
+  const eps = usingSeasons ? seasonEpisodes() : (m && m.episodes);
   if (!eps || !eps[index]) { toast("الحلقة غير متاحة."); return; }
-  window._epIdx = index; markEp(m.id, index);
+  window._epIdx = index;
+  if (usingSeasons) markSeasonEp(m.id,currentSeasonIndex,index); else markEp(m.id,index);
   document.querySelectorAll(".ep-btn").forEach((b, i) => { b.classList.remove("active"); if (i === index) b.classList.add("active", "done"); });
   document.getElementById("nextEp").style.display = index < eps.length - 1 ? "block" : "none";
   playUrl(eps[index].url);
@@ -869,6 +906,7 @@ function nextEpisode() { playEpisode((window._epIdx || 0) + 1); }
 function watch() {
   const m = window.currentMovie;
   if (!m) return;
+  if (m && isSeries(m.type) && m.seasonsEnabled && m.seasons.length) { const st=seasonEpState(m.id,currentSeasonIndex); playEpisode(st.last != null ? st.last : 0); return; }
   if (m && isSeries(m.type) && m.episodes.length) { const st = epState(m.id); playEpisode(st.last != null ? st.last : 0); return; }
   const servers = Array.isArray(m.watchServers) ? m.watchServers : [];
   if (servers.length) { renderServerBox("▶ اختر سيرفر المشاهدة", servers, "watch"); document.getElementById("serverBox").scrollIntoView({behavior:"smooth",block:"nearest"}); return; }
