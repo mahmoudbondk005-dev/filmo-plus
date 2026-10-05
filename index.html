@@ -364,8 +364,7 @@ function slugifyArabic(value) {
     .replace(/^-+|-+$/g, "") || "item";
 }
 function itemPath(x) {
-  const kind = isSeries(x.type) ? "series" : "movie";
-  return "/" + kind + "/" + encodeURIComponent(slugifyArabic(x.name)) + "~" + encodeURIComponent(String(x.id));
+  return "/?movie=" + encodeURIComponent(String(x.id));
 }
 function card(x) {
   const poster = safe(x.img || PLACEHOLDER);
