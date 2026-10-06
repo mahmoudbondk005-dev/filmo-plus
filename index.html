@@ -73,8 +73,30 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
   .grid{grid-template-columns:repeat(2,1fr);gap:11px}
   .detail{display:block}.detail img{width:170px;height:245px;margin-bottom:14px}.detail-actions{display:grid;grid-template-columns:1fr 1fr}.detail-actions .btn{min-width:0}
 }
+
+.head h2{display:flex;align-items:center;gap:10px;font-weight:900}
+.ico{width:36px;height:36px;border-radius:11px;background:#ffb00014;border:1px solid #ffb00033;color:#ffb000;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.menu-panel a{display:flex;align-items:center;gap:9px}.mi{display:inline-flex;color:#ffb000}.mi svg{width:18px;height:18px}
+.poster-rating{display:flex;align-items:center;gap:4px}.poster-rating .st{color:#ffca28}
+.skel{background:#141821;border:1px solid #202633;border-radius:13px;overflow:hidden}
+.skel .sp,.skel .sl{background:linear-gradient(90deg,#1a2030 25%,#252d40 50%,#1a2030 75%);background-size:200% 100%;animation:shimmer 1.3s linear infinite}
+.skel .sp{aspect-ratio:2/3}.skel .sl{height:12px;border-radius:6px;margin:12px 10px 0}.skel .sl.s{width:55%;margin-bottom:12px}
+@keyframes shimmer{to{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.skel .sp,.skel .sl{animation:none}}
+
+.route-movie #homePage{display:none}.route-movie #details{display:block}
+#fCat{display:none}
+.chips{display:flex;gap:8px;overflow-x:auto;margin:18px 0 0;padding-bottom:4px;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;padding:10px 18px;border-radius:22px;background:#171d27;border:1px solid #242d3a;color:#dfe3eb;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.chip:hover{border-color:#ffb000;color:#ffb000}.chip.active{background:#ffb000;border-color:#ffb000;color:#111}
+.grid.rowmode{display:flex;overflow-x:auto;gap:12px;scroll-snap-type:x proximity;padding-bottom:8px;scrollbar-width:thin;scrollbar-color:#303846 transparent}
+.grid.rowmode .card{flex:0 0 156px;scroll-snap-align:start}
+@media(max-width:600px){.grid.rowmode .card{flex-basis:128px}}
+.head .muted{margin-inline-start:auto}.all{color:#ffb000;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}.all:hover{text-decoration:underline}.filtered .all{display:none}
+.hero.banner{min-height:340px;display:flex;flex-direction:column;justify-content:flex-end}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
+<script>if(/[?&]movie=/.test(location.search))document.documentElement.classList.add("route-movie")</script>
 </head>
 <body>
 <noscript><p style="padding:20px;text-align:center">فعّل JavaScript لتصفّح الأفلام والمسلسلات.</p></noscript>
@@ -87,9 +109,9 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
   </div>
   <div class="search"><input id="q" type="search" aria-label="بحث" placeholder="ابحث عن فيلم أو مسلسل..." oninput="search()" autocomplete="off"><button type="button" aria-label="بحث" onclick="search()">⌕</button></div>
   <div id="menuPanel" class="menu-panel">
-    <a href="#ar-movies" onclick="closeMenu()">🇪🇬 أفلام عربي</a><a href="#en-movies" onclick="closeMenu()">🎬 أفلام أجنبي</a>
-    <a href="#ar-series" onclick="closeMenu()">📺 مسلسلات عربي</a><a href="#en-series" onclick="closeMenu()">📺 مسلسلات أجنبي</a>
-    <a onclick="showFavorites();closeMenu()">❤️ المفضلة</a><a onclick="showHistory();closeMenu()">🕒 المشاهدة الأخيرة</a>
+    <a href="#ar-movies" onclick="closeMenu()"><span class="mi"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 4v16M16 4v16M4 8h4M4 12h4M4 16h4M16 8h4M16 12h4M16 16h4"/></svg></span>أفلام عربي</a><a href="#en-movies" onclick="closeMenu()"><span class="mi"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 4v16M16 4v16M4 8h4M4 12h4M4 16h4M16 8h4M16 12h4M16 16h4"/></svg></span>أفلام أجنبي</a>
+    <a href="#ar-series" onclick="closeMenu()"><span class="mi"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 3l4 4 4-4"/></svg></span>مسلسلات عربي</a><a href="#en-series" onclick="closeMenu()"><span class="mi"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 3l4 4 4-4"/></svg></span>مسلسلات أجنبي</a>
+    <a onclick="showFavorites();closeMenu()"><span class="mi"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-9-9c-1.3-3.2.7-6.5 4-6.5 2 0 3.5 1.2 5 3 1.5-1.8 3-3 5-3 3.3 0 5.3 3.3 4 6.5-2 4.6-9 9-9 9z"/></svg></span>المفضلة</a><a onclick="showHistory();closeMenu()"><span class="mi"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>المشاهدة الأخيرة</a>
   </div>
 </nav>
 </header>
@@ -102,38 +124,39 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
   </div>
 
   <section id="favoritesSection" style="display:none">
-    <div class="head"><h2>❤️ المفضلة</h2><span class="muted" id="count-fav"></span></div>
+    <div class="head"><h2><span class="ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-9-9c-1.3-3.2.7-6.5 4-6.5 2 0 3.5 1.2 5 3 1.5-1.8 3-3 5-3 3.3 0 5.3 3.3 4 6.5-2 4.6-9 9-9 9z"/></svg></span><span>المفضلة</span></h2><span class="muted" id="count-fav"></span></div>
     <div id="grid-fav" class="grid"></div>
   </section>
 
   <section id="historySection" style="display:none">
-    <div class="head"><h2>🕒 المشاهدة الأخيرة</h2><span class="muted" id="count-hist"></span></div>
+    <div class="head"><h2><span class="ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span>المشاهدة الأخيرة</span></h2><span class="muted" id="count-hist"></span></div>
     <div id="grid-hist" class="grid"></div>
   </section>
 
+  <div class="chips" id="chips"><button type="button" class="chip active" data-v="" onclick="setCat('')">الكل</button><button type="button" class="chip" data-v="أفلام عربي" onclick="setCat('أفلام عربي')">أفلام عربي</button><button type="button" class="chip" data-v="أفلام أجنبي" onclick="setCat('أفلام أجنبي')">أفلام أجنبي</button><button type="button" class="chip" data-v="مسلسلات عربي" onclick="setCat('مسلسلات عربي')">مسلسلات عربي</button><button type="button" class="chip" data-v="مسلسلات أجنبي" onclick="setCat('مسلسلات أجنبي')">مسلسلات أجنبي</button></div>
   <div class="filters" id="filters">
     <select id="fCat" aria-label="القسم" onchange="applyFilters()"><option value="">كل الأقسام</option><option>أفلام عربي</option><option>أفلام أجنبي</option><option>مسلسلات عربي</option><option>مسلسلات أجنبي</option></select>
     <select id="fYear" aria-label="السنة" onchange="applyFilters()"><option value="">كل السنوات</option></select>
     <select id="fRate" aria-label="التقييم" onchange="applyFilters()"><option value="">أي تقييم</option><option value="6">6+</option><option value="7">7+</option><option value="8">8+</option></select>
     <select id="fSort" aria-label="الترتيب" onchange="applyFilters()"><option value="new">الأحدث إضافة</option><option value="rate">الأعلى تقييمًا</option><option value="views">الأكثر مشاهدة</option><option value="year">الأحدث سنة</option></select>
   </div>
-  <section id="latest"><div class="head"><h2>🆕 أضيف حديثًا</h2></div><div id="grid-latest" class="grid"></div></section>
-  <section id="popular" style="display:none"><div class="head"><h2>🔥 الأكثر مشاهدة</h2></div><div id="grid-popular" class="grid"></div></section>
+  <section id="latest"><div class="head"><h2><span class="ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 17v4M17 19h4"/></svg></span><span>أضيف حديثًا</span></h2></div><div id="grid-latest" class="grid rowmode"></div></section>
+  <section id="popular" style="display:none"><div class="head"><h2><span class="ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span><span>الأكثر مشاهدة</span></h2></div><div id="grid-popular" class="grid rowmode"></div></section>
 
   <section id="ar-movies">
-    <div class="head"><h2>🇪🇬 أفلام عربي</h2><span class="muted" id="count-ar-movies"></span></div>
+    <div class="head"><h2><span class="ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 4v16M16 4v16M4 8h4M4 12h4M4 16h4M16 8h4M16 12h4M16 16h4"/></svg></span><span>أفلام عربي</span></h2><span class="muted" id="count-ar-movies"></span><a class="all" href="#" onclick="setCat('أفلام عربي');return false">عرض الكل ‹</a></div>
     <div id="grid-ar-movies" class="grid"></div>
   </section>
   <section id="en-movies">
-    <div class="head"><h2>🎬 أفلام أجنبي</h2><span class="muted" id="count-en-movies"></span></div>
+    <div class="head"><h2><span class="ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 4v16M16 4v16M4 8h4M4 12h4M4 16h4M16 8h4M16 12h4M16 16h4"/></svg></span><span>أفلام أجنبي</span></h2><span class="muted" id="count-en-movies"></span><a class="all" href="#" onclick="setCat('أفلام أجنبي');return false">عرض الكل ‹</a></div>
     <div id="grid-en-movies" class="grid"></div>
   </section>
   <section id="ar-series">
-    <div class="head"><h2>📺 مسلسلات عربي</h2><span class="muted" id="count-ar-series"></span></div>
+    <div class="head"><h2><span class="ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 3l4 4 4-4"/></svg></span><span>مسلسلات عربي</span></h2><span class="muted" id="count-ar-series"></span><a class="all" href="#" onclick="setCat('مسلسلات عربي');return false">عرض الكل ‹</a></div>
     <div id="grid-ar-series" class="grid"></div>
   </section>
   <section id="en-series">
-    <div class="head"><h2>📺 مسلسلات أجنبي</h2><span class="muted" id="count-en-series"></span></div>
+    <div class="head"><h2><span class="ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 3l4 4 4-4"/></svg></span><span>مسلسلات أجنبي</span></h2><span class="muted" id="count-en-series"></span><a class="all" href="#" onclick="setCat('مسلسلات أجنبي');return false">عرض الكل ‹</a></div>
     <div id="grid-en-series" class="grid"></div>
   </section>
 </main>
@@ -160,6 +183,7 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
   </div>
   <div id="playerWrap" class="player-wrap"><div id="playerInner" class="player-stage"></div></div>
   <button id="nextEp" class="btn" type="button" style="display:none;margin:12px auto 0" onclick="nextEpisode()">الحلقة التالية ⏭</button>
+  <section id="related" style="display:none"><div class="head"><h2>أعمال مشابهة</h2></div><div id="grid-related" class="grid rowmode"></div></section>
 </div>
 
 
@@ -340,10 +364,25 @@ function toast(msg) {
   window._toastT = setTimeout(() => { el.style.display = "none"; }, 2200);
 }
 
+function setCat(v) {
+  document.getElementById("fCat").value = v;
+  document.querySelectorAll("#chips .chip").forEach(b => b.classList.toggle("active", b.dataset.v === v));
+  applyFilters();
+  const c = CATEGORIES.find(c => c.key === v);
+  const sec = c && document.getElementById(c.grid.slice(5));
+  if (sec) sec.scrollIntoView({ behavior: "smooth" }); else scrollTo({ top: 0, behavior: "smooth" });
+}
+function renderRelated(x) {
+  const l = allItems.filter(y => y.type === x.type && String(y.id) !== String(x.id)).sort((a, b) => (+b.rating || 0) - (+a.rating || 0)).slice(0, 12);
+  document.getElementById("related").style.display = l.length ? "" : "none";
+  document.getElementById("grid-related").innerHTML = l.map(card).join("");
+}
+function skeletons(n){return Array(n).fill('<div class="skel" aria-hidden="true"><div class="sp"></div><div class="sl"></div><div class="sl s"></div></div>').join("");}
 async function loadMovies() {
   CATEGORIES.forEach(c => {
-    document.getElementById(c.grid).innerHTML = '<p class="muted">جاري التحميل...</p>';
+    document.getElementById(c.grid).innerHTML = skeletons(6);
   });
+  document.getElementById("grid-latest").innerHTML = skeletons(6);
   try {
     let response = await fetch(
       TABLE_URL + "?select=*&order=Id.desc",
@@ -366,6 +405,7 @@ async function loadMovies() {
       document.getElementById(c.grid).innerHTML = '<p class="muted">حدث خطأ أثناء تحميل البيانات. حاول مرة أخرى لاحقاً.</p>';
       document.getElementById(c.count).textContent = "";
     });
+    document.getElementById("grid-latest").innerHTML = "";
   }
 }
 
@@ -385,8 +425,8 @@ function card(x) {
   const id = safe(x.id);
   const href = safe(itemPath(x));
   return '<div class="card" data-id="' + id + '">' +
-    '<a class="card-link" href="' + href + '" aria-label="' + safe(x.name) + '" onclick="showById(this.closest(\'.card\').dataset.id);return false">' +
-    '<div class="poster"><img src="' + poster + '" alt="' + safe(x.name) + '" loading="lazy" decoding="async" onerror="this.onerror=null;this.src=PLACEHOLDER"><span class="poster-rating">⭐ ' + safe(x.rating) + '</span><span class="poster-watermark">سيما سيما</span></div>' +
+    '<a class="card-link" href="' + href + '" aria-label="' + safe(x.name) + '">' +
+    '<div class="poster"><img src="' + poster + '" alt="' + safe(x.name) + '" loading="lazy" decoding="async" onerror="this.onerror=null;this.src=PLACEHOLDER"><span class="poster-rating"><svg viewBox="0 0 24 24" width="12" height="12" class="st" fill="currentColor" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.7l5.9-.8z"/></svg> ' + safe(x.rating) + '</span><span class="poster-watermark">سيما سيما</span></div>' +
     '<div class="body"><h3>' + safe(x.name) + '</h3><div class="meta">' + safe(x.type) + ' • ' + safe(x.year) + '</div></div></a>' +
     '<button type="button" class="fav-btn' + favClass + '" onclick="toggleFav(this.closest(\'.card\').dataset.id,event)" title="مفضلة" aria-label="مفضلة">' + heart + '</button>' +
     '</div>';
@@ -402,6 +442,7 @@ function renderAll() {
   const q = document.getElementById("q").value.trim().toLowerCase();
   const f = { cat: fCat.value, year: fYear.value, rate: Number(fRate.value) || 0, sort: fSort.value };
   const filtering = !!(q || f.cat || f.year || f.rate);
+  document.getElementById("homePage").classList.toggle("filtered", filtering);
   const sorters = { rate: (a, b) => (+b.rating || 0) - (+a.rating || 0), views: (a, b) => b.views - a.views, year: (a, b) => (+b.year || 0) - (+a.year || 0) };
   CATEGORIES.forEach(c => {
     const sec = document.getElementById(c.grid.slice(5));
@@ -411,12 +452,13 @@ function renderAll() {
       (!q || (x.name || "").toLowerCase().includes(q) || (x.desc || "").toLowerCase().includes(q)) &&
       (!f.year || String(x.year) === f.year) && (!f.rate || (+x.rating || 0) >= f.rate));
     if (sorters[f.sort]) list = list.slice().sort(sorters[f.sort]);
-    const lim = limits[c.key] || PAGE, grid = document.getElementById(c.grid);
+    const rowmode = !filtering, lim = rowmode ? 12 : (limits[c.key] || PAGE), grid = document.getElementById(c.grid);
+    grid.className = "grid" + (rowmode ? " rowmode" : "");
     grid.innerHTML = list.length ? list.slice(0, lim).map(card).join("") : '<p class="muted">لا توجد أعمال في هذا القسم حالياً.</p>';
     document.getElementById(c.count).textContent = (filtering ? "نتائج: " : "إجمالي: ") + list.length;
     let m = document.getElementById("more-" + c.grid);
     if (!m) { m = document.createElement("button"); m.id = "more-" + c.grid; m.type = "button"; m.className = "btn btn-outline more"; grid.after(m); }
-    m.style.display = list.length > lim ? "block" : "none";
+    m.style.display = (list.length > lim && !rowmode) ? "block" : "none";
     m.textContent = "عرض المزيد (" + (list.length - lim) + ")";
     m.onclick = function () { limits[c.key] = lim + PAGE; renderAll(); };
   });
@@ -568,6 +610,7 @@ function show(x, pushRoute = true) {
   countView(x);
   updateFavDetailBtn();
   addToHistory(x);
+  renderRelated(x);
 
   const downloadBtn = document.getElementById("downloadBtn");
   const downloads = Array.isArray(x.downloads) ? x.downloads : [];
@@ -634,10 +677,12 @@ function backToPrevious() {
     history.back();
     return;
   }
-  home(false);
+  if (document.referrer.indexOf(location.host) > -1 && history.length > 1) { history.back(); return; }
+  location.href = "/";
 }
 
 function home(pushRoute = true) {
+  if (pushRoute && document.getElementById("details").style.display === "block") { location.href = "/"; return; }
   stopPlayer();
   document.title = "سيما سيما | أفلام ومسلسلات";
   const cu = document.querySelector("link[rel=canonical]"); if (cu) cu.href = "https://cimacima.online/";
@@ -942,8 +987,8 @@ function setupBanner() {
   function paint() {
     const x = pool[i++ % pool.length];
     hero.classList.add("banner");
-    hero.style.background = 'linear-gradient(90deg,#090b10 30%,#090b1099),url("' + safe(x.img) + '") center 20%/cover';
-    hero.innerHTML = "<h1>" + safe(x.name) + '</h1><div class="muted">' + safe(x.type) + " • " + safe(x.year) + " • ⭐ " + safe(x.rating) + "</div><p>" + safe((x.desc || "").slice(0, 180)) + '</p><button class="btn" type="button" onclick="showById(\'' + safe(x.id) + '\')">▶ شاهد الآن</button>';
+    hero.style.background = 'linear-gradient(0deg,#090b10 8%,#090b10b3 50%,#090b1040),url("' + safe(x.img) + '") center 20%/cover';
+    hero.innerHTML = "<h1>" + safe(x.name) + '</h1><div class="muted">' + safe(x.type) + " • " + safe(x.year) + " • ⭐ " + safe(x.rating) + "</div><p>" + safe((x.desc || "").slice(0, 180)) + '</p><button class="btn" type="button" onclick="location.href=\'' + safe(itemPath(x)) + '\'">▶ شاهد الآن</button>';
   }
   paint(); clearInterval(bannerT); bannerT = setInterval(paint, 7000);
 }
