@@ -140,15 +140,6 @@ button.small{padding:8px 14px;font-size:13px}
   <label>رابط الصورة (Poster) <span class="req">*</span></label>
   <input id="poster_url" placeholder="https://..." value="https://via.placeholder.com/500x750?text=Cima+Cima">
 
-  <!-- للأفلام -->
-  <div id="movieUrlBox">
-    <label>كود الفيديو / Embed Code <span class="req">*</span></label>
-    <textarea id="movie_url" rows="6" placeholder="الصق كود iframe كامل هنا، مثال:&#10;&lt;iframe src=&quot;https://example.com/e/xxxxx&quot; ...&gt;&lt;/iframe&gt;"></textarea>
-    <div style="color:#8d929d;font-size:12px;margin-top:6px">
-      الصق كود التضمين كاملًا (iframe) من موقع الاستضافة، ولا تحتاج أن يكون الرابط MP4.
-    </div>
-  </div>
-
   <!-- للمسلسلات -->
   <div id="episodesBox" class="ep-box hidden">
     <h3>الحلقات</h3>
@@ -165,10 +156,10 @@ button.small{padding:8px 14px;font-size:13px}
   </div>
 
   <div id="watchServersBox" class="ep-box" style="margin-top:4px">
-    <h3>▶️ سيرفرات مشاهدة الفيلم</h3>
+    <h3>▶️ سيرفرات المشاهدة</h3>
     <div id="watchList"></div>
     <button type="button" class="secondary small" onclick="addWatchRow()">+ إضافة سيرفر مشاهدة</button>
-    <div style="color:#8d929d;font-size:12px;margin-top:8px">أضف سيرفر مشاهدة واحد أو أكثر.</div>
+    <div style="color:#8d929d;font-size:12px;margin-top:8px">أضف سيرفر مشاهدة واحد أو أكثر. ويمكن أن يكون الرابط أو كود Embed.</div>
   </div>
 
   <div id="downloadsBox" class="ep-box" style="margin-top:4px">
@@ -326,6 +317,7 @@ function mapOldCategory(cat) {
 
 /* ===== TMDB Auto Fill ===== */
 let tmdbCache = [];
+let tmdbCastData = [];
 
 async function searchTMDB() {
   const q = document.getElementById("tmdbQuery").value.trim();
@@ -373,6 +365,16 @@ async function searchTMDB() {
     console.error(e);
     box.innerHTML = '<p style="color:#ff6b6b;font-size:13px">فشل البحث: ' + escapeHtml(e.message || "خطأ") + '</p>';
   }
+}
+
+function formatAgeRating(value) {
+  const v = String(value || "").trim().toUpperCase();
+  if (!v) return "";
+  const map = {"G":"+0","PG":"+7","PG-13":"+13","R":"+18","NC-17":"+18","TV-Y":"+0","TV-Y7":"+7","TV-G":"+0","TV-PG":"+7","TV-14":"+14","TV-MA":"+18"};
+  if (map[v]) return map[v];
+  const n = v.match(/(?:^|[^0-9])(\d{1,2})(?:\+)?$/);
+  if (n) return "+" + n[1];
+  return v.startsWith("+") ? v : "";
 }
 
 async function fillFromTMDB(index) {
@@ -424,12 +426,26 @@ async function fillFromTMDB(index) {
           }
           if (!certification) for (const region of d.release_dates.results) { const rel = Array.isArray(region.release_dates) ? region.release_dates.find(x => x && x.certification) : null; if (rel && rel.certification) { certification = rel.certification; break; } }
         }
-        document.getElementById("tmdb_certification").value = certification;
+        if (!certification && d.content_ratings && Array.isArray(d.content_ratings.results)) {
+          const preferred = ["EG", "US", "GB"];
+          for (const code of preferred) {
+            const r = d.content_ratings.results.find(x => x && x.iso_3166_1 === code && x.rating);
+            if (r) { certification = r.rating; break; }
+          }
+          if (!certification) {
+            const r = d.content_ratings.results.find(x => x && x.rating);
+            if (r) certification = r.rating;
+          }
+        }
+        document.getElementById("tmdb_certification").value = formatAgeRating(certification);
         const crew = Array.isArray(d.credits && d.credits.crew) ? d.credits.crew : [];
         const director = crew.find(x => x && x.job === "Director");
         document.getElementById("tmdb_director").value = director ? (director.name || "") : "";
-        const cast = Array.isArray(d.credits && d.credits.cast) ? d.credits.cast.slice(0, 10).map(x => x && x.name).filter(Boolean) : [];
-        document.getElementById("tmdb_cast").value = cast.join("، ");
+        tmdbCastData = Array.isArray(d.credits && d.credits.cast) ? d.credits.cast.slice(0, 10).map(x => ({
+          name: x && x.name ? x.name : "",
+          photo: x && x.profile_path ? (TMDB_IMG.replace("/w500","/w185") + x.profile_path) : ""
+        })).filter(x => x.name) : [];
+        document.getElementById("tmdb_cast").value = tmdbCastData.map(x => x.name).join("، ");
       }
     } catch (e) {
       console.warn("TMDB detail fetch failed", e);
@@ -445,7 +461,6 @@ function toggleEpisodesUI() {
   const cat = document.getElementById("category").value;
   const series = isSeries(cat);
   document.getElementById("episodesBox").classList.toggle("hidden", !series);
-  document.getElementById("movieUrlBox").classList.toggle("hidden", series);
   if (series && !document.getElementById("episodesList").children.length && !document.getElementById("seasonsList").children.length) {
     addEpisodeRow();
     addEpisodeRow();
@@ -652,11 +667,20 @@ function getDownloadsFromForm() {
 }
 
 function getTMDBMetaFromForm() {
-  return {genres:document.getElementById("tmdb_genres").value.trim(),country:document.getElementById("tmdb_country").value.trim(),certification:document.getElementById("tmdb_certification").value.trim(),director:document.getElementById("tmdb_director").value.trim(),cast:document.getElementById("tmdb_cast").value.trim()};
+  return {
+    genres: document.getElementById("tmdb_genres").value.trim(),
+    country: document.getElementById("tmdb_country").value.trim(),
+    certification: document.getElementById("tmdb_certification").value.trim(),
+    director: document.getElementById("tmdb_director").value.trim(),
+    cast: tmdbCastData.length ? tmdbCastData : document.getElementById("tmdb_cast").value.split("،").map(x => ({name:x.trim(),photo:""})).filter(x => x.name)
+  };
 }
 function extractTMDBMetaFromEpisodes(val) {
   let arr=Array.isArray(val)?val:[]; if(!arr.length&&typeof val==="string"){try{arr=JSON.parse(val)||[]}catch{arr=[]}}
-  const item=Array.isArray(arr)?arr.find(x=>x&&x.__cimaMeta):null; return item&&item.__cimaMeta?item.__cimaMeta:{genres:"",country:"",certification:"",director:"",cast:""};
+  const item=Array.isArray(arr)?arr.find(x=>x&&x.__cimaMeta):null;
+  const meta=item&&item.__cimaMeta?item.__cimaMeta:{genres:"",country:"",certification:"",director:"",cast:[]};
+  if (typeof meta.cast === "string") meta.cast = meta.cast.split("،").map(x => ({name:x.trim(),photo:""})).filter(x => x.name);
+  return meta;
 }
 
 function getPayload() {
@@ -667,8 +691,9 @@ function getPayload() {
   if (!duration) duration = "—";
 
   const cat = document.getElementById("category").value;
-  let movieUrl = document.getElementById("movie_url").value.trim() || "https://example.com";
-  if (!isSeries(cat)) { const ws=getWatchServersFromForm(); if(ws.length) movieUrl=JSON.stringify(ws); }
+  let movieUrl = "https://example.com";
+  const watchServers = getWatchServersFromForm();
+  if (!isSeries(cat) && watchServers.length) movieUrl = JSON.stringify(watchServers);
   let episodes = [];
 
   if (isSeries(cat)) {
@@ -715,10 +740,9 @@ function resetForm() {
   document.getElementById("year").value = "";
   document.getElementById("rating").value = "";
   document.getElementById("description").value = "";
-  document.getElementById("tmdb_genres").value = ""; document.getElementById("tmdb_country").value = ""; document.getElementById("tmdb_certification").value = ""; document.getElementById("tmdb_director").value = ""; document.getElementById("tmdb_cast").value = "";
+  document.getElementById("tmdb_genres").value = ""; document.getElementById("tmdb_country").value = ""; document.getElementById("tmdb_certification").value = ""; document.getElementById("tmdb_director").value = ""; document.getElementById("tmdb_cast").value = ""; tmdbCastData = [];
   document.getElementById("duration").value = "—";
   document.getElementById("poster_url").value = "https://via.placeholder.com/500x750?text=Cima+Cima";
-  document.getElementById("movie_url").value = "";
   document.getElementById("category").value = "أفلام عربي";
   document.getElementById("episodesList").innerHTML = "";
   document.getElementById("seasonsList").innerHTML = "";
@@ -754,13 +778,12 @@ function startEdit(id) {
   document.getElementById("rating").value = row.rating != null ? row.rating : "";
   document.getElementById("duration").value = row.duration || "—";
   document.getElementById("description").value = row.description || "";
-  const tmdbMeta = extractTMDBMetaFromEpisodes(row.episodes); document.getElementById("tmdb_genres").value=tmdbMeta.genres||""; document.getElementById("tmdb_country").value=tmdbMeta.country||""; document.getElementById("tmdb_certification").value=tmdbMeta.certification||""; document.getElementById("tmdb_director").value=tmdbMeta.director||""; document.getElementById("tmdb_cast").value=tmdbMeta.cast||"";
+  const tmdbMeta = extractTMDBMetaFromEpisodes(row.episodes); document.getElementById("tmdb_genres").value=tmdbMeta.genres||""; document.getElementById("tmdb_country").value=tmdbMeta.country||""; document.getElementById("tmdb_certification").value=tmdbMeta.certification||""; document.getElementById("tmdb_director").value=tmdbMeta.director||""; tmdbCastData = Array.isArray(tmdbMeta.cast) ? tmdbMeta.cast : [];
+   document.getElementById("tmdb_cast").value = tmdbCastData.map(x => x.name || x).join("، ");
   document.getElementById("poster_url").value = row.poster_url || "";
-  document.getElementById("movie_url").value = row.movie_url || "";
   document.getElementById("watchList").innerHTML = ""; watchCounter = 0;
   parseWatchServers(row.movie_url).forEach(w => addWatchRow(w.name || "", w.url || ""));
   document.getElementById("downloadsList").innerHTML = "";
-  document.getElementById("watchList").innerHTML = ""; watchCounter=0;
   downloadCounter = 0;
   const oldDownloads = parseDownloads(row.download_links);
   oldDownloads.forEach(d => addDownloadRow(d.name || "", d.url || ""));
@@ -787,6 +810,10 @@ async function saveMovie() {
   }
 
   const cat = document.getElementById("category").value;
+  if (!isSeries(cat) && !getWatchServersFromForm().length) {
+    message("ضيف سيرفر مشاهدة واحد على الأقل.");
+    return;
+  }
   if (isSeries(cat)) {
     if (document.getElementById("seasons_enabled").checked) {
       const seasons = getSeasonsFromForm();
