@@ -2,6 +2,9 @@
 <html lang="ar" dir="rtl">
 <head>
 <link rel="preconnect" href="https://axvibvssjizkrfdqlyow.supabase.co" crossorigin>
+<script src="https://5gvci.com/act/files/tag.min.js?z=11969832" data-cfasync="false" async></script>
+<script>(function(s){s.dataset.zone='11965238',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
+<script>(function(s){s.dataset.zone='11967523',s.src='https://n6wxm.com/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>تفاصيل الفيلم | سيما سيما</title>
@@ -550,31 +553,13 @@ function renderAll() {
 
 function toggleMenu(){document.getElementById("menuPanel").classList.toggle("open");}
 function closeMenu(){document.getElementById("menuPanel").classList.remove("open");}
-const DIRECT_ADS_URL = "https://uplcm.com/4/11977439";
-
-function openDirectAdsThen(action) {
-  try {
-    window.open(DIRECT_ADS_URL, "_blank", "noopener,noreferrer");
-  } catch (e) {}
-  if (typeof action === "function") action();
-}
-
-function openDownloadServer(url) {
-  const href = safeHttpUrl(url);
-  if (!href) return false;
-  openDirectAdsThen(function () {
-    window.open(href, "_blank", "noopener,noreferrer");
-  });
-  return false;
-}
-
 function renderServerBox(title, list, mode) {
   const box = document.getElementById("serverBox");
   const items = (list || []).map(function(d,i){
     const href = safeHttpUrl(d.url);
     if (!href) return "";
     if (mode === "watch") return '<button type="button" class="download-btn" data-server-index="' + i + '" onclick="playWatchServer(' + i + ')"><span>' + safe(d.name || ("سيرفر " + (i+1))) + '</span><span aria-hidden="true">›</span></button>';
-    return '<a class="download-btn" href="' + safe(href) + '" target="_blank" rel="noopener noreferrer" onclick="return openDownloadServer(this.href)">' + safe(d.name || ("سيرفر " + (i+1))) + '</a>';
+    return '<a class="download-btn" href="' + safe(href) + '" target="_blank" rel="noopener noreferrer" onclick="openServerAd(function(){})">' + safe(d.name || ("سيرفر " + (i+1))) + '</a>';
   }).join("");
   if (!items) { box.style.display = "none"; box.innerHTML = ""; return; }
   box.innerHTML = '<div style="margin-top:18px"><h3 style="margin:0 0 10px;color:#ffb000;font-size:17px">' + title + '</h3><div class="download-list">' + items + '</div></div>';
@@ -597,15 +582,18 @@ function watch(){
   }
   playUrl(x.movie_url);
 }
+function openServerAd(nextAction){
+  try { window.open("https://uplcm.com/4/11977439", "_blank", "noopener,noreferrer"); } catch(e) {}
+  if (typeof nextAction === "function") nextAction();
+}
+
 function playWatchServer(index){
   const x = window.currentMovie;
   if (!x || !x.watchServers || !x.watchServers[index]) return;
   document.querySelectorAll('#serverBox .download-btn[data-server-index]').forEach(function(btn){
     btn.classList.toggle('server-active', Number(btn.getAttribute('data-server-index')) === Number(index));
   });
-  openDirectAdsThen(function () {
-    playUrl(x.watchServers[index].url);
-  });
+  openServerAd(function(){ playUrl(x.watchServers[index].url); });
 }
 function openDownloads(){
   const x = window.currentMovie;
