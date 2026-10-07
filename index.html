@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
+<link rel="preconnect" href="https://axvibvssjizkrfdqlyow.supabase.co" crossorigin>
 <script src="https://5gvci.com/act/files/tag.min.js?z=11969832" data-cfasync="false" async></script>
 <script>(function(s){s.dataset.zone='11965238',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
 <script>(function(s){s.dataset.zone='11967523',s.src='https://n6wxm.com/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
@@ -9,6 +10,7 @@
 <title>سيما سيما | أفلام ومسلسلات</title>
 <meta name="description" content="سيما سيما منصة لمشاهدة الأفلام والمسلسلات العربية والأجنبية.">
 <link rel="canonical" href="https://cimacima.online/">
+<script>(function(){var m=location.search.match(/[?&]movie=([^&]+)/);if(m){document.querySelector('link[rel=canonical]').href="https://cimacima.online/?movie="+m[1]}})()</script>
 <meta name="theme-color" content="#090b10">
 <meta property="og:type" content="website"><meta property="og:site_name" content="سيما سيما"><meta property="og:locale" content="ar_AR"><meta property="og:title" content="سيما سيما | أفلام ومسلسلات"><meta property="og:description" content="تصفح الأفلام والمسلسلات العربية والأجنبية بسهولة."><meta property="og:url" content="https://cimacima.online/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23090b10'/%3E%3Cpath d='M24 18l22 14-22 14z' fill='%23ffb000'/%3E%3C/svg%3E">
@@ -366,6 +368,26 @@ function toast(msg) {
   window._toastT = setTimeout(() => { el.style.display = "none"; }, 2200);
 }
 
+function ogSet(p, v) {
+  let m = document.querySelector('meta[property="' + p + '"]');
+  if (!v) { if (m) m.remove(); return; }
+  if (!m) { m = document.createElement("meta"); m.setAttribute("property", p); document.head.appendChild(m); }
+  m.content = v;
+}
+function setSeo(x) {
+  const url = "https://cimacima.online" + itemPath(x), desc = (x.desc || x.name).slice(0, 155);
+  const d = { "@context": "https://schema.org", "@type": isSeries(x.type) ? "TVSeries" : "Movie", name: x.name, url: url, description: (x.desc || x.name).slice(0, 300), inLanguage: "ar" };
+  if (x.img) d.image = x.img;
+  if (x.year) d.datePublished = String(x.year);
+  let el = document.getElementById("ld");
+  if (!el) { el = document.createElement("script"); el.type = "application/ld+json"; el.id = "ld"; document.head.appendChild(el); }
+  el.textContent = JSON.stringify(d);
+  ogSet("og:title", x.name + " | سيما سيما"); ogSet("og:description", desc); ogSet("og:url", url); ogSet("og:image", x.img || "");
+}
+function resetSeo() {
+  const el = document.getElementById("ld"); if (el) el.remove();
+  ogSet("og:title", "سيما سيما | أفلام ومسلسلات"); ogSet("og:description", "تصفح الأفلام والمسلسلات العربية والأجنبية بسهولة."); ogSet("og:url", "https://cimacima.online/"); ogSet("og:image", "");
+}
 function setCat(v) {
   document.getElementById("fCat").value = v;
   document.querySelectorAll("#chips .chip").forEach(b => b.classList.toggle("active", b.dataset.v === v));
@@ -428,7 +450,7 @@ function card(x) {
   const href = safe(itemPath(x));
   return '<div class="card" data-id="' + id + '">' +
     '<a class="card-link" href="' + href + '" aria-label="' + safe(x.name) + '">' +
-    '<div class="poster"><img src="' + poster + '" alt="' + safe(x.name) + '" loading="lazy" decoding="async" onerror="this.onerror=null;this.src=PLACEHOLDER"><span class="poster-rating"><svg viewBox="0 0 24 24" width="12" height="12" class="st" fill="currentColor" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.7l5.9-.8z"/></svg> ' + safe(x.rating) + '</span><span class="poster-watermark">سيما سيما</span></div>' +
+    '<div class="poster"><img src="' + poster + '" width="200" height="300" alt="' + safe(x.name) + '" loading="lazy" decoding="async" onerror="this.onerror=null;this.src=PLACEHOLDER"><span class="poster-rating"><svg viewBox="0 0 24 24" width="12" height="12" class="st" fill="currentColor" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.7l5.9-.8z"/></svg> ' + safe(x.rating) + '</span><span class="poster-watermark">سيما سيما</span></div>' +
     '<div class="body"><h3>' + safe(x.name) + '</h3><div class="meta">' + safe(x.type) + ' • ' + safe(x.year) + '</div></div></a>' +
     '<button type="button" class="fav-btn' + favClass + '" onclick="toggleFav(this.closest(\'.card\').dataset.id,event)" title="مفضلة" aria-label="مفضلة">' + heart + '</button>' +
     '</div>';
@@ -610,6 +632,7 @@ function show(x, pushRoute = true) {
   const cu = document.querySelector("link[rel=canonical]"); if (cu) cu.href = "https://cimacima.online" + itemPath(x);
   const md = document.querySelector("meta[name=description]"); if (md) md.content = (x.desc || x.name).slice(0, 155);
   countView(x);
+  setSeo(x);
   updateFavDetailBtn();
   addToHistory(x);
   renderRelated(x);
@@ -686,6 +709,7 @@ function backToPrevious() {
 function home(pushRoute = true) {
   if (pushRoute && document.getElementById("details").style.display === "block") { location.href = "/"; return; }
   stopPlayer();
+  resetSeo();
   document.title = "سيما سيما | أفلام ومسلسلات";
   const cu = document.querySelector("link[rel=canonical]"); if (cu) cu.href = "https://cimacima.online/";
   if (pushRoute) saveRoute("home");
