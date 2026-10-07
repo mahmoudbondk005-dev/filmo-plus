@@ -46,7 +46,7 @@ section{margin:34px 0;scroll-margin-top:90px}
 .meta{font-size:11px;color:#9297a2}
 .rate{display:inline-block;margin-top:7px;background:#252b35;color:#ffb000;border-radius:6px;padding:3px 7px;font-size:11px}
 .fav-btn{position:absolute;top:8px;left:8px;background:#000000aa;border:0;color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;z-index:2}
-.fav-btn.on{color:#ff4d6d}
+.fav-btn.on{color:#ff4d6d}.fav-only{flex:0 0 52px!important;max-width:52px;padding:0!important;font-size:24px!important;line-height:1}.fav-only.active{color:#ff4d6d;background:#ffb00014}
 #details{display:none;margin:25px auto;max-width:1000px}
 .back{display:inline-block;margin-bottom:18px;color:#ffb000;cursor:pointer;font-size:15px}
 .detail{display:flex;gap:28px;align-items:flex-start}
@@ -58,7 +58,7 @@ section{margin:34px 0;scroll-margin-top:90px}
 .ep-list{display:flex;flex-wrap:wrap;gap:8px}
 .ep-btn{padding:10px 14px;background:#1a1f2a;border:1px solid #303744;border-radius:8px;color:#eee;cursor:pointer;font-size:13px}
 .ep-btn:hover,.ep-btn.active{border-color:#ffb000;color:#ffb000;background:#1f2430}
-.tmdb-info{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}.tmdb-chip{background:#171d27;border:1px solid #2a3342;border-radius:9px;padding:7px 10px;color:#dfe3eb;font-size:12px}.tmdb-chip b{color:#ffb000}.cast-box{margin-top:18px}.cast-box h3{margin:0 0 10px;color:#ffb000;font-size:17px}.cast-list{display:flex;gap:10px;overflow-x:auto;padding:3px 2px 10px;scrollbar-width:thin}.cast-card{flex:0 0 82px;text-align:center}.cast-card img{width:82px;height:104px;object-fit:cover;border-radius:10px;background:#1a1f2a;border:1px solid #293343}.cast-card .cast-name{margin-top:6px;font-size:11px;color:#dfe3eb;line-height:1.35;white-space:normal}
+.tmdb-info{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}.tmdb-chip{background:#171d27;border:1px solid #2a3342;border-radius:9px;padding:7px 10px;color:#dfe3eb;font-size:12px}.tmdb-chip b{color:#ffb000}.cast-box{margin-top:18px}.cast-box h3{margin:0 0 10px;color:#ffb000;font-size:17px}.cast-list{display:flex;gap:10px;overflow-x:auto;padding:3px 2px 10px;scrollbar-width:thin}.cast-card{flex:0 0 64px;text-align:center}.cast-card img{width:64px;height:82px;object-fit:cover;border-radius:10px;background:#1a1f2a;border:1px solid #293343}.cast-card .cast-name{margin-top:6px;font-size:11px;color:#dfe3eb;line-height:1.35;white-space:normal}
 .detail-actions{display:flex;gap:8px;flex-wrap:nowrap;margin-top:14px}.detail-actions .btn{margin-top:0;flex:1 1 0;min-width:0;text-align:center;white-space:nowrap}.download-box{display:none}.download-modal{position:fixed;inset:0;background:#0009;z-index:90;align-items:center;justify-content:center;padding:20px}.download-modal.open{display:flex}.download-card{width:min(430px,100%);background:#11151d;border:1px solid #303744;border-radius:18px;padding:18px;box-shadow:0 20px 60px #000b}.download-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}.download-card-head h3{margin:0;color:#fff;font-size:18px}.download-close{border:0;background:#252b35;color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:18px}.download-list{display:grid;gap:9px}.download-btn{display:flex;align-items:center;justify-content:center;padding:12px 14px;background:#171c25;border:1px solid #303744;border-radius:11px;color:#fff;text-decoration:none;font-weight:800;font-size:14px}.download-btn:hover{border-color:#ffb000;color:#ffb000;background:#1b2029}
 .player-wrap{display:none;margin-top:22px;background:#000;border-radius:14px;overflow:hidden;aspect-ratio:16/9}
 .player-wrap.active{display:block}
@@ -194,9 +194,8 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
         <div id="castList" class="cast-list"></div>
       </div>
       <div class="detail-actions">
-        <button class="btn" type="button" id="watchBtn" onclick="watch()">▶ مشاهدة</button>
-        <button class="btn btn-outline" type="button" id="downloadBtn" onclick="openDownloads()" style="display:none">⬇ تحميل</button>
-        <button class="btn btn-outline" type="button" id="favDetailBtn" onclick="toggleFavFromDetail()">♡ إضافة للمفضلة</button>
+        <button class="btn" type="button" id="watchBtn" onclick="watch()">▶ شاهد وحمّل الآن</button>
+         <button class="btn btn-outline fav-only" type="button" id="favDetailBtn" onclick="toggleFavFromDetail()" aria-label="المفضلة" title="المفضلة">♡</button>
       </div>
     </div>
   </div>
@@ -628,10 +627,10 @@ function updateFavDetailBtn() {
   const btn = document.getElementById("favDetailBtn");
   if (!window.currentMovie) return;
   if (isFav(window.currentMovie.id)) {
-    btn.textContent = "♥ في المفضلة";
+    btn.textContent = "♥";
     btn.classList.add("active");
   } else {
-    btn.textContent = "♡ إضافة للمفضلة";
+    btn.textContent = "♡";
     btn.classList.remove("active");
   }
 }
@@ -667,7 +666,7 @@ function show(x, pushRoute = true) {
   if(tm.director)info.push('<span class="tmdb-chip"><b>🎥 المخرج:</b> '+safe(tm.director)+'</span>');
   document.getElementById("tmdbInfo").innerHTML=info.join("");
   const castBox=document.getElementById("castBox"),castList=document.getElementById("castList"),cast=Array.isArray(tm.cast)?tm.cast:[];
-  const castHtml=cast.map(function(person){const name=typeof person==="string"?person:(person.name||"");const photo=typeof person==="string"?"":safeHttpUrl(person.photo||"");if(!name)return "";const img=photo?'<img src="'+safe(photo)+'" alt="'+safe(name)+'" loading="lazy">':'<div style="width:82px;height:104px;border-radius:10px;background:#1a1f2a;border:1px solid #293343;display:flex;align-items:center;justify-content:center;color:#8d929d;font-size:24px">👤</div>';return '<div class="cast-card">'+img+'<div class="cast-name">'+safe(name)+'</div></div>';}).join("");
+  const castHtml=cast.map(function(person){const name=typeof person==="string"?person:(person.name||"");const photo=typeof person==="string"?"":safeHttpUrl(person.photo||"");if(!name)return "";const img=photo?'<img src="'+safe(photo)+'" alt="'+safe(name)+'" loading="lazy">':'<div style="width:64px;height:82px;border-radius:10px;background:#1a1f2a;border:1px solid #293343;display:flex;align-items:center;justify-content:center;color:#8d929d;font-size:24px">👤</div>';return '<div class="cast-card">'+img+'<div class="cast-name">'+safe(name)+'</div></div>';}).join("");
   castList.innerHTML=castHtml;castBox.style.display=castHtml?"block":"none";
   document.getElementById("ddesc").textContent = x.desc || "لا يوجد وصف متاح.";
   window.currentMovie = x;
@@ -680,9 +679,6 @@ function show(x, pushRoute = true) {
   addToHistory(x);
   renderRelated(x);
 
-  const downloadBtn = document.getElementById("downloadBtn");
-  const downloads = Array.isArray(x.downloads) ? x.downloads : [];
-  downloadBtn.style.display = downloads.length ? "inline-block" : "none";
   document.getElementById("serverBox").style.display = "none";
   document.getElementById("serverBox").innerHTML = "";
 
@@ -1075,7 +1071,7 @@ show = function(x, pushRoute){
   _originalShow(x, false);
   if (!x) return;
   const w=document.getElementById("watchBtn");
-  if(w && PAGE_MODE === "movie") { w.onclick=openWatchPage; w.textContent="▶ مشاهدة الآن"; }
+  if(w && PAGE_MODE === "movie") { w.onclick=openWatchPage; w.textContent="▶ شاهد وحمّل الآن"; }
   if(PAGE_MODE === "watch") {
     document.title=x.name+" | مشاهدة | سيما سيما";
     const wbtn=document.getElementById("watchBtn"); if(wbtn) wbtn.style.display="none";
