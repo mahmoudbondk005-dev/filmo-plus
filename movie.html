@@ -7,7 +7,7 @@
 <script>(function(s){s.dataset.zone='11967523',s.src='https://n6wxm.com/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>سيما سيما | أفلام ومسلسلات</title>
+<title>تفاصيل الفيلم | سيما سيما</title>
 <meta name="description" content="سيما سيما منصة لمشاهدة الأفلام والمسلسلات العربية والأجنبية.">
 <link rel="canonical" href="https://cimacima.online/">
 <script>(function(){var m=location.search.match(/[?&]movie=([^&]+)/);if(m){document.querySelector('link[rel=canonical]').href="https://cimacima.online/?movie="+m[1]}})()</script>
@@ -101,8 +101,22 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 </style>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
 <script>if(/[?&]movie=/.test(location.search))document.documentElement.classList.add("route-movie")</script>
+
+<style>
+.page-movie #homePage,.page-movie #favoritesSection,.page-movie #historySection,.page-watch #homePage,.page-watch #favoritesSection,.page-watch #historySection{display:none!important}
+.page-movie #details,.page-watch #details{display:block!important}
+.page-movie #details{max-width:1100px}
+.page-movie #details>.back{display:inline-block}
+.page-movie .detail{background:linear-gradient(180deg,#0d1420,#0a1019);border:1px solid #202c3e;border-radius:16px;padding:24px;gap:30px}
+.page-movie .detail-poster{width:300px;flex:0 0 300px}.page-movie .detail img{width:300px;height:450px;border-radius:12px}
+.page-movie .detail h1{font-size:36px;margin-top:18px}.page-movie .detail p{font-size:16px;line-height:2}
+.page-movie .detail-actions{max-width:520px;margin-top:22px}.page-movie #episodesBox,.page-movie #serverBox,.page-movie #playerWrap,.page-movie #nextEp{display:none!important}
+.page-watch #details{max-width:1000px}.page-watch .detail{background:linear-gradient(180deg,#0d1420,#0a1019);border:1px solid #202c3e;border-radius:16px;padding:18px;gap:18px}.page-watch .detail-poster{width:155px;flex:0 0 155px}.page-watch .detail img{width:155px;height:225px}.page-watch .detail h1{font-size:27px;margin-top:8px}.page-watch .detail p{display:none}.page-watch .detail-actions{display:none}.page-watch #episodesBox{display:none!important}.page-watch #serverBox{display:block!important}.page-watch #playerWrap{margin-top:18px}.page-watch #downloadBtn,.page-watch #watchBtn,.page-watch #favDetailBtn{display:none!important}
+.page-watch #serverBox .download-list{display:flex;flex-wrap:wrap;gap:8px}.page-watch #serverBox .download-btn{flex:1 1 150px}.page-watch footer{margin-top:35px}
+@media(max-width:700px){.page-movie .detail{flex-direction:column}.page-movie .detail-poster,.page-movie .detail img{width:190px;flex-basis:auto;height:auto;margin:auto}.page-movie .detail h1{text-align:center;font-size:26px}.page-watch .detail{align-items:center}.page-watch .detail-poster,.page-watch .detail img{width:110px;height:160px}.page-watch .detail h1{font-size:21px}}
+</style>
 </head>
-<body>
+<body class="page-movie">
 <noscript><p style="padding:20px;text-align:center">فعّل JavaScript لتصفّح الأفلام والمسلسلات.</p></noscript>
 <header>
 <nav>
@@ -440,7 +454,7 @@ function slugifyArabic(value) {
     .replace(/^-+|-+$/g, "") || "item";
 }
 function itemPath(x) {
-  return "/movie.html?movie=" + encodeURIComponent(String(x.id));
+  return "/?movie=" + encodeURIComponent(String(x.id));
 }
 function card(x) {
   const poster = safe(x.img || PLACEHOLDER);
@@ -1021,6 +1035,33 @@ function setupBanner() {
 
 document.addEventListener("click", function (e) { if (!e.target.closest("header")) closeMenu(); });
 document.addEventListener("keydown", function (e) { if (e.key === "Escape") { closeMenu(); closeDownloads(); } });
+
+const PAGE_MODE = document.body.classList.contains("page-watch") ? "watch" : "movie";
+const originalItemPath = itemPath;
+function itemPath(x) { return "/movie.html?movie=" + encodeURIComponent(String(x.id)); }
+function openWatchPage(){ if(window.currentMovie) location.href="/watch.html?movie="+encodeURIComponent(String(window.currentMovie.id)); }
+
+const _originalShow = show;
+show = function(x, pushRoute){
+  _originalShow(x, false);
+  if (!x) return;
+  const w=document.getElementById("watchBtn");
+  if(w && PAGE_MODE === "movie") { w.onclick=openWatchPage; w.textContent="▶ مشاهدة الآن"; }
+  if(PAGE_MODE === "watch") {
+    document.title=x.name+" | مشاهدة | سيما سيما";
+    const wbtn=document.getElementById("watchBtn"); if(wbtn) wbtn.style.display="none";
+    const fbtn=document.getElementById("favDetailBtn"); if(fbtn) fbtn.style.display="none";
+    setTimeout(function(){ watch(); }, 0);
+  }
+};
+
+const _oldRestoreRoute = restoreRoute;
+restoreRoute = function(){
+  const id=new URLSearchParams(location.search).get("movie");
+  if(id){ const it=allItems.find(x=>String(x.id)===String(id)); if(it){ show(it,false); return; } }
+  location.href="/";
+};
+
 loadMovies();
 </script>
 </body>
