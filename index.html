@@ -462,7 +462,7 @@ function slugifyArabic(value) {
     .replace(/^-+|-+$/g, "") || "item";
 }
 function itemPath(x) {
-  return "/?movie=" + encodeURIComponent(String(x.id));
+  return "/movie.html?movie=" + encodeURIComponent(String(x.id));
 }
 function cacheMovieForNavigation(x) { try { sessionStorage.setItem("cima_nav_movie", JSON.stringify(x)); } catch(e) {} }
 function card(x) {
@@ -765,7 +765,7 @@ function restoreRoute() {
   const raw = location.hash.replace(/^#/, "");
   const path = location.pathname.replace(/\/+$/, "") || "/";
   const mq = new URLSearchParams(location.search).get("movie");
-  if (mq && !raw) { const it = allItems.find(x => String(x.id) === mq); if (it) { show(it, false); return; } }
+  if (mq && !raw) { location.replace("/movie.html?movie=" + encodeURIComponent(String(mq))); return; }
   const pretty = path.match(/^\/(movie|series)\/[^/]+~([^/]+)$/i);
   if (pretty) {
     const id = decodeURIComponent(pretty[2]);
@@ -775,8 +775,8 @@ function restoreRoute() {
   if (!raw || raw === "home") { home(false); return; }
   if (raw.startsWith("movie=") || raw.startsWith("series=")) {
     const id = decodeURIComponent(raw.split("=")[1] || "");
-    const item = allItems.find(x => String(x.id) === String(id));
-    if (item) { show(item, false); return; }
+    location.replace("/movie.html?movie=" + encodeURIComponent(String(id)));
+    return;
   }
   if (raw.startsWith("search=")) {
     const q = decodeURIComponent(raw.slice(7));
