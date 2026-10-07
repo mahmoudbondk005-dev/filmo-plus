@@ -195,12 +195,12 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
     </div>
   </div>
   <div id="serverBox" class="download-box"></div>
+  <div id="downloadWatchBox" class="download-box" style="display:none"></div>
   <div id="episodesBox" class="episodes">
     <h3>الحلقات</h3>
     <div id="epList" class="ep-list"></div>
   </div>
   <div id="playerWrap" class="player-wrap"><div id="playerInner" class="player-stage"></div></div>
-  <div id="downloadWatchBox" class="download-box" style="display:none"></div>
   <button id="nextEp" class="btn" type="button" style="display:none;margin:12px auto 0" onclick="nextEpisode()">الحلقة التالية ⏭</button>
   <section id="related" style="display:none"><div class="head"><h2>أعمال مشابهة</h2></div><div id="grid-related" class="grid rowmode"></div></section>
 </div>
@@ -418,8 +418,11 @@ function renderRelated(x) {
 }
 function skeletons(n){return Array(n).fill('<div class="skel" aria-hidden="true"><div class="sp"></div><div class="sl"></div><div class="sl s"></div></div>').join("");}
 async function loadMovies() {
+  const requestedId=new URLSearchParams(location.search).get("movie");
+  try{const cached=JSON.parse(sessionStorage.getItem("cima_nav_movie")||"null");if(cached&&(!requestedId||String(cached.id)===String(requestedId))){allItems=[cached];show(cached,false);}}catch(e){}
+  const hasCachedMovie=!!window.currentMovie;
   CATEGORIES.forEach(c => {
-    document.getElementById(c.grid).innerHTML = skeletons(6);
+    if(!hasCachedMovie) document.getElementById(c.grid).innerHTML = skeletons(6);
   });
   document.getElementById("grid-latest").innerHTML = skeletons(6);
   try {

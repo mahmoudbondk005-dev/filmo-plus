@@ -58,7 +58,7 @@ section{margin:34px 0;scroll-margin-top:90px}
 .ep-list{display:flex;flex-wrap:wrap;gap:8px}
 .ep-btn{padding:10px 14px;background:#1a1f2a;border:1px solid #303744;border-radius:8px;color:#eee;cursor:pointer;font-size:13px}
 .ep-btn:hover,.ep-btn.active{border-color:#ffb000;color:#ffb000;background:#1f2430}
-.detail-actions{display:flex;gap:8px;flex-wrap:nowrap;margin-top:14px}.detail-actions .btn{margin-top:0;flex:1 1 0;min-width:0;text-align:center;white-space:nowrap}.download-box{display:none}.download-modal{position:fixed;inset:0;background:#0009;z-index:90;align-items:center;justify-content:center;padding:20px}.download-modal.open{display:flex}.download-card{width:min(430px,100%);background:#11151d;border:1px solid #303744;border-radius:18px;padding:18px;box-shadow:0 20px 60px #000b}.download-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}.download-card-head h3{margin:0;color:#fff;font-size:18px}.download-close{border:0;background:#252b35;color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:18px}.download-list{display:grid;gap:9px}.download-btn{display:flex;align-items:center;justify-content:center;padding:12px 14px;background:#171c25;border:1px solid #303744;border-radius:11px;color:#fff;text-decoration:none;font-weight:800;font-size:14px}.download-btn:hover{border-color:#ffb000;color:#ffb000;background:#1b2029}
+.tmdb-info{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}.tmdb-chip{background:#171d27;border:1px solid #2a3342;border-radius:9px;padding:7px 10px;color:#dfe3eb;font-size:12px}.tmdb-chip b{color:#ffb000}.cast-box{margin-top:18px}.cast-box h3{margin:0 0 10px;color:#ffb000;font-size:17px}.cast-list{display:flex;gap:10px;overflow-x:auto;padding:3px 2px 10px;scrollbar-width:thin}.cast-card{flex:0 0 82px;text-align:center}.cast-card img{width:82px;height:104px;object-fit:cover;border-radius:10px;background:#1a1f2a;border:1px solid #293343}.cast-card .cast-name{margin-top:6px;font-size:11px;color:#dfe3eb;line-height:1.35;white-space:normal}.detail-actions{display:flex;gap:8px;flex-wrap:nowrap;margin-top:14px}.detail-actions .btn{margin-top:0;flex:1 1 0;min-width:0;text-align:center;white-space:nowrap}.download-box{display:none}.download-modal{position:fixed;inset:0;background:#0009;z-index:90;align-items:center;justify-content:center;padding:20px}.download-modal.open{display:flex}.download-card{width:min(430px,100%);background:#11151d;border:1px solid #303744;border-radius:18px;padding:18px;box-shadow:0 20px 60px #000b}.download-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}.download-card-head h3{margin:0;color:#fff;font-size:18px}.download-close{border:0;background:#252b35;color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:18px}.download-list{display:grid;gap:9px}.download-btn{display:flex;align-items:center;justify-content:center;padding:12px 14px;background:#171c25;border:1px solid #303744;border-radius:11px;color:#fff;text-decoration:none;font-weight:800;font-size:14px}.download-btn:hover{border-color:#ffb000;color:#ffb000;background:#1b2029}
 .player-wrap{display:none;margin-top:22px;background:#000;border-radius:14px;overflow:hidden;aspect-ratio:16/9}
 .player-wrap.active{display:block}
 .player-wrap iframe,.player-wrap video{width:100%;height:100%;border:0;display:block}.player-stage{position:relative;width:100%;height:100%;overflow:hidden;background:#000}.player-stage:fullscreen{width:100vw;height:100vh}.fullscreen-btn{position:absolute;right:12px;bottom:12px;z-index:30;border:1px solid #ffffff30;background:#000b;color:#fff;width:40px;height:40px;border-radius:10px;cursor:pointer;font-size:18px}.video-watermark{position:absolute;z-index:20;background:rgba(0,0,0,.48);color:#fff;padding:5px 9px;border-radius:6px;font-size:13px;font-weight:800;line-height:1;pointer-events:none;user-select:none;backdrop-filter:blur(3px);text-shadow:0 1px 2px #000}.wm-tl{top:12px;left:12px}.wm-tc{top:12px;left:50%;transform:translateX(-50%)}.wm-tr{top:12px;right:12px}.wm-ml{top:50%;left:12px;transform:translateY(-50%)}.wm-mc{top:50%;left:50%;transform:translate(-50%,-50%)}.wm-mr{top:50%;right:12px;transform:translateY(-50%)}.wm-bl{bottom:12px;left:12px}.wm-bc{bottom:12px;left:50%;transform:translateX(-50%)}.wm-br{bottom:12px;right:12px}
@@ -172,7 +172,12 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
     <div>
       <h1 id="dtitle"></h1>
       <div id="dmeta" class="muted"></div>
+      <div id="tmdbInfo" class="tmdb-info"></div>
       <p id="ddesc"></p>
+      <div id="castBox" class="cast-box" style="display:none">
+        <h3>🎭 أبطال العمل</h3>
+        <div id="castList" class="cast-list"></div>
+      </div>
       <div class="detail-actions">
         <button class="btn" type="button" id="watchBtn" onclick="watch()">▶ مشاهدة</button>
         <button class="btn btn-outline" type="button" id="downloadBtn" onclick="openDownloads()" style="display:none">⬇ تحميل</button>
@@ -262,10 +267,10 @@ function normalizeCategory(cat) {
 
 function parseEpisodes(val) {
   if (!val) return [];
-  if (Array.isArray(val)) return val.filter(x => x && !x.__cimaOverlay && !x.__cimaSeasons);
+  if (Array.isArray(val)) return val.filter(x => x && !x.__cimaOverlay && !x.__cimaSeasons && !x.__cimaMeta);
   try {
     const p = JSON.parse(val);
-    return Array.isArray(p) ? p.filter(x => x && !x.__cimaOverlay && !x.__cimaSeasons) : [];
+    return Array.isArray(p) ? p.filter(x => x && !x.__cimaOverlay && !x.__cimaSeasons && !x.__cimaMeta) : [];
   } catch { return []; }
 }
 
@@ -275,6 +280,22 @@ function parseSeasons(val) {
   const item = Array.isArray(arr) ? arr.find(x => x && x.__cimaSeasons) : null;
   if (!item || item.__cimaSeasons !== true || item.enabled === false) return [];
   return Array.isArray(item.seasons) ? item.seasons.filter(s => s && Array.isArray(s.episodes)) : [];
+}
+
+function parseTMDBMeta(val) {
+  let arr = Array.isArray(val) ? val : [];
+  if (!arr.length && typeof val === "string") { try { arr = JSON.parse(val) || []; } catch { arr = []; } }
+  const item = Array.isArray(arr) ? arr.find(x => x && x.__cimaMeta) : null;
+  const meta = item && item.__cimaMeta ? item.__cimaMeta : {genres:"",country:"",certification:"",director:"",cast:[]};
+  let cast = Array.isArray(meta.cast) ? meta.cast : [];
+  if (typeof meta.cast === "string") cast = meta.cast.split("،").map(name => ({name:name.trim(),photo:""})).filter(x => x.name);
+  return {
+    genres: meta.genres || "",
+    country: meta.country || "",
+    certification: meta.certification || "",
+    director: meta.director || "",
+    cast: cast.filter(x => x && (x.name || x.photo)).slice(0,10)
+  };
 }
 
 function parseOverlay(val) {
@@ -319,6 +340,7 @@ function normalize(row) {
     seasonsEnabled: parseSeasons(row.episodes).length > 0,
     downloads: parseDownloads(row.download_links),
     watchServers: parseWatchServers(row.movie_url),
+    tmdbMeta: parseTMDBMeta(row.episodes),
     overlay: parseOverlay(row.episodes)
   };
 }
@@ -440,8 +462,9 @@ function slugifyArabic(value) {
     .replace(/^-+|-+$/g, "") || "item";
 }
 function itemPath(x) {
-  return "/movie.html?movie=" + encodeURIComponent(String(x.id));
+  return "/?movie=" + encodeURIComponent(String(x.id));
 }
+function cacheMovieForNavigation(x) { try { sessionStorage.setItem("cima_nav_movie", JSON.stringify(x)); } catch(e) {} }
 function card(x) {
   const poster = safe(x.img || PLACEHOLDER);
   const favClass = isFav(x.id) ? " on" : "";
@@ -449,7 +472,7 @@ function card(x) {
   const id = safe(x.id);
   const href = safe(itemPath(x));
   return '<div class="card" data-id="' + id + '">' +
-    '<a class="card-link" href="' + href + '" aria-label="' + safe(x.name) + '">' +
+    '<a class="card-link" href="' + href + '" aria-label="' + safe(x.name) + '" onclick="cacheMovieForNavigation(' + id + ')">' +
     '<div class="poster"><img src="' + poster + '" width="200" height="300" alt="' + safe(x.name) + '" loading="lazy" decoding="async" onerror="this.onerror=null;this.src=PLACEHOLDER"><span class="poster-rating"><svg viewBox="0 0 24 24" width="12" height="12" class="st" fill="currentColor" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.7l5.9-.8z"/></svg> ' + safe(x.rating) + '</span><span class="poster-watermark">سيما سيما</span></div>' +
     '<div class="body"><h3>' + safe(x.name) + '</h3><div class="meta">' + safe(x.type) + ' • ' + safe(x.year) + '</div></div></a>' +
     '<button type="button" class="fav-btn' + favClass + '" onclick="toggleFav(this.closest(\'.card\').dataset.id,event)" title="مفضلة" aria-label="مفضلة">' + heart + '</button>' +
@@ -626,6 +649,24 @@ function show(x, pushRoute = true) {
   document.getElementById("dtitle").textContent = x.name;
   document.getElementById("dimg").alt = x.name;
   document.getElementById("dmeta").textContent = x.type + " • " + x.year + (x.duration ? " • " + x.duration : "") + " • ⭐ " + x.rating; document.getElementById("dRating").textContent = "⭐ " + x.rating;
+  const tm = x.tmdbMeta || {};
+  const info = [];
+  if (tm.certification) info.push('<span class="tmdb-chip"><b>🔞 العمر:</b> ' + safe(tm.certification) + '</span>');
+  if (tm.genres) info.push('<span class="tmdb-chip"><b>🎬 النوع:</b> ' + safe(tm.genres) + '</span>');
+  if (tm.country) info.push('<span class="tmdb-chip"><b>🌍 البلد:</b> ' + safe(tm.country) + '</span>');
+  if (tm.director) info.push('<span class="tmdb-chip"><b>🎥 المخرج:</b> ' + safe(tm.director) + '</span>');
+  document.getElementById("tmdbInfo").innerHTML = info.join("");
+  const castBox = document.getElementById("castBox"), castList = document.getElementById("castList");
+  const cast = Array.isArray(tm.cast) ? tm.cast : [];
+  const castHtml = cast.map(function(person) {
+    const name = typeof person === "string" ? person : (person.name || "");
+    const photo = typeof person === "string" ? "" : safeHttpUrl(person.photo || "");
+    if (!name) return "";
+    const img = photo ? '<img src="' + safe(photo) + '" alt="' + safe(name) + '" loading="lazy">' : '<div style="width:82px;height:104px;border-radius:10px;background:#1a1f2a;border:1px solid #293343;display:flex;align-items:center;justify-content:center;color:#8d929d;font-size:24px">👤</div>';
+    return '<div class="cast-card">' + img + '<div class="cast-name">' + safe(name) + '</div></div>';
+  }).join("");
+  castList.innerHTML = castHtml;
+  castBox.style.display = castHtml ? "block" : "none";
   document.getElementById("ddesc").textContent = x.desc || "لا يوجد وصف متاح.";
   window.currentMovie = x;
   document.title = x.name + " | سيما سيما";
