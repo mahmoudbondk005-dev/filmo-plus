@@ -550,13 +550,31 @@ function renderAll() {
 
 function toggleMenu(){document.getElementById("menuPanel").classList.toggle("open");}
 function closeMenu(){document.getElementById("menuPanel").classList.remove("open");}
+const DIRECT_ADS_URL = "https://uplcm.com/4/11977439";
+
+function openDirectAdsThen(action) {
+  try {
+    window.open(DIRECT_ADS_URL, "_blank", "noopener,noreferrer");
+  } catch (e) {}
+  if (typeof action === "function") action();
+}
+
+function openDownloadServer(url) {
+  const href = safeHttpUrl(url);
+  if (!href) return false;
+  openDirectAdsThen(function () {
+    window.open(href, "_blank", "noopener,noreferrer");
+  });
+  return false;
+}
+
 function renderServerBox(title, list, mode) {
   const box = document.getElementById("serverBox");
   const items = (list || []).map(function(d,i){
     const href = safeHttpUrl(d.url);
     if (!href) return "";
     if (mode === "watch") return '<button type="button" class="download-btn" data-server-index="' + i + '" onclick="playWatchServer(' + i + ')"><span>' + safe(d.name || ("سيرفر " + (i+1))) + '</span><span aria-hidden="true">›</span></button>';
-    return '<a class="download-btn" href="' + safe(href) + '" target="_blank" rel="noopener noreferrer">' + safe(d.name || ("سيرفر " + (i+1))) + '</a>';
+    return '<a class="download-btn" href="' + safe(href) + '" target="_blank" rel="noopener noreferrer" onclick="return openDownloadServer(this.href)">' + safe(d.name || ("سيرفر " + (i+1))) + '</a>';
   }).join("");
   if (!items) { box.style.display = "none"; box.innerHTML = ""; return; }
   box.innerHTML = '<div style="margin-top:18px"><h3 style="margin:0 0 10px;color:#ffb000;font-size:17px">' + title + '</h3><div class="download-list">' + items + '</div></div>';
@@ -585,7 +603,9 @@ function playWatchServer(index){
   document.querySelectorAll('#serverBox .download-btn[data-server-index]').forEach(function(btn){
     btn.classList.toggle('server-active', Number(btn.getAttribute('data-server-index')) === Number(index));
   });
-  playUrl(x.watchServers[index].url);
+  openDirectAdsThen(function () {
+    playUrl(x.watchServers[index].url);
+  });
 }
 function openDownloads(){
   const x = window.currentMovie;
