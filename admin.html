@@ -128,6 +128,15 @@ button.small{padding:8px 14px;font-size:13px}
   <label>الوصف</label>
   <textarea id="description" rows="4" placeholder="قصة العمل باختصار"></textarea>
 
+  <div class="ep-box" style="margin-top:4px">
+    <h3>ℹ️ معلومات TMDB الإضافية</h3>
+    <label>التصنيف</label><input id="tmdb_genres" placeholder="مثال: أكشن، دراما" readonly>
+    <label>بلد الإنتاج</label><input id="tmdb_country" placeholder="مثال: الولايات المتحدة" readonly>
+    <label>التصنيف العمري</label><input id="tmdb_certification" placeholder="مثال: +16" readonly>
+    <label>المخرج</label><input id="tmdb_director" placeholder="يُجلب تلقائيًا" readonly>
+    <label>الممثلون</label><textarea id="tmdb_cast" rows="2" placeholder="يُجلب تلقائيًا" readonly></textarea>
+  </div>
+
   <label>رابط الصورة (Poster) <span class="req">*</span></label>
   <input id="poster_url" placeholder="https://..." value="https://via.placeholder.com/500x750?text=Cima+Cima">
 
@@ -388,7 +397,7 @@ async function fillFromTMDB(index) {
   if (TMDB_API_KEY && TMDB_API_KEY !== "YOUR_TMDB_API_KEY_HERE" && item.id) {
     try {
       const detailUrl = "https://api.themoviedb.org/3/" + item.type + "/" + item.id +
-        "?api_key=" + encodeURIComponent(TMDB_API_KEY) + "&language=ar-EG";
+        "?api_key=" + encodeURIComponent(TMDB_API_KEY) + "&language=ar-EG&append_to_response=credits,release_dates,content_ratings";
       const res = await fetch(detailUrl);
       if (res.ok) {
         const d = await res.json();
@@ -401,6 +410,26 @@ async function fillFromTMDB(index) {
         if (d.poster_path) {
           document.getElementById("poster_url").value = TMDB_IMG + d.poster_path;
         }
+        const genres = Array.isArray(d.genres) ? d.genres.map(g => g && g.name).filter(Boolean) : [];
+        document.getElementById("tmdb_genres").value = genres.join("، ");
+        const countries = Array.isArray(d.production_countries) ? d.production_countries.map(c => c && (c.name || c.iso_3166_1)).filter(Boolean) : [];
+        document.getElementById("tmdb_country").value = countries.join("، ");
+        let certification = "";
+        const preferredRegions = ["EG", "US", "GB"];
+        if (Array.isArray(d.release_dates && d.release_dates.results)) {
+          for (const code of preferredRegions) {
+            const region = d.release_dates.results.find(r => r && r.iso_3166_1 === code);
+            const rel = region && Array.isArray(region.release_dates) ? region.release_dates.find(x => x && x.certification) : null;
+            if (rel && rel.certification) { certification = rel.certification; break; }
+          }
+          if (!certification) for (const region of d.release_dates.results) { const rel = Array.isArray(region.release_dates) ? region.release_dates.find(x => x && x.certification) : null; if (rel && rel.certification) { certification = rel.certification; break; } }
+        }
+        document.getElementById("tmdb_certification").value = certification;
+        const crew = Array.isArray(d.credits && d.credits.crew) ? d.credits.crew : [];
+        const director = crew.find(x => x && x.job === "Director");
+        document.getElementById("tmdb_director").value = director ? (director.name || "") : "";
+        const cast = Array.isArray(d.credits && d.credits.cast) ? d.credits.cast.slice(0, 10).map(x => x && x.name).filter(Boolean) : [];
+        document.getElementById("tmdb_cast").value = cast.join("، ");
       }
     } catch (e) {
       console.warn("TMDB detail fetch failed", e);
@@ -622,6 +651,14 @@ function getDownloadsFromForm() {
   return list;
 }
 
+function getTMDBMetaFromForm() {
+  return {genres:document.getElementById("tmdb_genres").value.trim(),country:document.getElementById("tmdb_country").value.trim(),certification:document.getElementById("tmdb_certification").value.trim(),director:document.getElementById("tmdb_director").value.trim(),cast:document.getElementById("tmdb_cast").value.trim()};
+}
+function extractTMDBMetaFromEpisodes(val) {
+  let arr=Array.isArray(val)?val:[]; if(!arr.length&&typeof val==="string"){try{arr=JSON.parse(val)||[]}catch{arr=[]}}
+  const item=Array.isArray(arr)?arr.find(x=>x&&x.__cimaMeta):null; return item&&item.__cimaMeta?item.__cimaMeta:{genres:"",country:"",certification:"",director:"",cast:""};
+}
+
 function getPayload() {
   const title = document.getElementById("title").value.trim();
   let poster = document.getElementById("poster_url").value.trim();
@@ -647,11 +684,12 @@ function getPayload() {
   }
 
   // نخزن إعداد العلامة داخل عمود episodes الحالي حتى لا نحتاج تعديل قاعدة البيانات.
-  episodes = episodes.filter(x => !x.__cimaOverlay && !x.__cimaSeasons);
+  episodes = episodes.filter(x => !x.__cimaOverlay && !x.__cimaSeasons && !x.__cimaMeta);
   if (isSeries(cat) && document.getElementById("seasons_enabled").checked) {
     const seasons = getSeasonsFromForm();
     episodes.unshift({ __cimaSeasons: true, enabled: true, seasons: seasons });
   }
+  episodes.push({ __cimaMeta: getTMDBMetaFromForm() });
   episodes.push({ __cimaOverlay: getOverlayConfig() });
 
   return {
@@ -677,6 +715,7 @@ function resetForm() {
   document.getElementById("year").value = "";
   document.getElementById("rating").value = "";
   document.getElementById("description").value = "";
+  document.getElementById("tmdb_genres").value = ""; document.getElementById("tmdb_country").value = ""; document.getElementById("tmdb_certification").value = ""; document.getElementById("tmdb_director").value = ""; document.getElementById("tmdb_cast").value = "";
   document.getElementById("duration").value = "—";
   document.getElementById("poster_url").value = "https://via.placeholder.com/500x750?text=Cima+Cima";
   document.getElementById("movie_url").value = "";
@@ -715,6 +754,7 @@ function startEdit(id) {
   document.getElementById("rating").value = row.rating != null ? row.rating : "";
   document.getElementById("duration").value = row.duration || "—";
   document.getElementById("description").value = row.description || "";
+  const tmdbMeta = extractTMDBMetaFromEpisodes(row.episodes); document.getElementById("tmdb_genres").value=tmdbMeta.genres||""; document.getElementById("tmdb_country").value=tmdbMeta.country||""; document.getElementById("tmdb_certification").value=tmdbMeta.certification||""; document.getElementById("tmdb_director").value=tmdbMeta.director||""; document.getElementById("tmdb_cast").value=tmdbMeta.cast||"";
   document.getElementById("poster_url").value = row.poster_url || "";
   document.getElementById("movie_url").value = row.movie_url || "";
   document.getElementById("watchList").innerHTML = ""; watchCounter = 0;
