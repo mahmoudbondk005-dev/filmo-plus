@@ -2,9 +2,6 @@
 <html lang="ar" dir="rtl">
 <head>
 <link rel="preconnect" href="https://axvibvssjizkrfdqlyow.supabase.co" crossorigin>
-<script src="https://5gvci.com/act/files/tag.min.js?z=11969832" data-cfasync="false" async></script>
-<script>(function(s){s.dataset.zone='11965238',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
-<script>(function(s){s.dataset.zone='11967523',s.src='https://n6wxm.com/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>سيما سيما | أفلام ومسلسلات</title>
@@ -1063,6 +1060,28 @@ function setupBanner() {
 document.addEventListener("click", function (e) { if (!e.target.closest("header")) closeMenu(); });
 document.addEventListener("keydown", function (e) { if (e.key === "Escape") { closeMenu(); closeDownloads(); } });
 loadMovies();
+</script>
+<script>
+/* إعلان Direct Link: يظهر مرة واحدة لكل فيلم عند أول ضغطة عليه */
+(function () {
+  var AD_URL = "https://uplcm.com/4/11977439";
+  var KEY = "cc_ad_movies";
+  document.addEventListener("click", function (e) {
+    if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    var t = e.target.closest && e.target.closest(".card-link, #hero .btn");
+    if (!t) return;
+    var m = ((t.getAttribute("href") || "") + (t.getAttribute("onclick") || "")).match(/movie=([^'"&\s]+)/);
+    if (!m) return;
+    var id = m[1];
+    try {
+      var seen = JSON.parse(localStorage.getItem(KEY) || "[]");
+      if (seen.indexOf(id) > -1) return;
+      seen.push(id);
+      localStorage.setItem(KEY, JSON.stringify(seen.slice(-500)));
+    } catch (err) { return; }
+    window.open(AD_URL, "_blank", "noopener");
+  }, true);
+})();
 </script>
 </body>
 </html>
