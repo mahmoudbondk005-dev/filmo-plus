@@ -2,9 +2,6 @@
 <html lang="ar" dir="rtl">
 <head>
 <link rel="preconnect" href="https://axvibvssjizkrfdqlyow.supabase.co" crossorigin>
-<script src="https://5gvci.com/act/files/tag.min.js?z=11969832" data-cfasync="false" async></script>
-<script>(function(s){s.dataset.zone='11965238',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
-<script>(function(s){s.dataset.zone='11967523',s.src='https://n6wxm.com/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>تفاصيل الفيلم | سيما سيما</title>
@@ -98,73 +95,6 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 @media(max-width:600px){.grid.rowmode .card{flex-basis:128px}}
 .head .muted{margin-inline-start:auto}.all{color:#ffb000;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}.all:hover{text-decoration:underline}.filtered .all{display:none}
 .hero.banner{min-height:340px;display:flex;flex-direction:column;justify-content:flex-end}
-
-/* قائمة حلقات المسلسل فوق الفيديو */
-.page-watch.series-mode #episodesBox{
-  display:block!important;
-  order:3!important;
-  margin:14px 0 0;
-  padding:12px;
-  background:linear-gradient(180deg,#101722,#0c121b);
-  border:1px solid #202c3e;
-  border-radius:14px;
-}
-.page-watch.series-mode #episodesBox h3{
-  margin:0 0 9px;
-  font-size:15px;
-  color:#fff;
-}
-.page-watch.series-mode #episodesBox .ep-list{
-  display:flex;
-  flex-wrap:nowrap;
-  gap:7px;
-  overflow-x:auto;
-  padding:2px 1px 6px;
-  scrollbar-width:thin;
-  -webkit-overflow-scrolling:touch;
-}
-.page-watch.series-mode #episodesBox .ep-btn,
-.page-watch.series-mode #episodesBox .season-eps .ep-btn{
-  flex:0 0 auto;
-  min-width:72px;
-  padding:8px 10px;
-  border-radius:9px;
-  font-size:12px;
-  font-weight:800;
-  white-space:nowrap;
-}
-.page-watch.series-mode #episodesBox .ep-btn.active{
-  color:#111;
-  background:#ffb000;
-  border-color:#ffb000;
-}
-.page-watch.series-mode #episodesBox .ep-btn.done{opacity:.82}
-.page-watch.series-mode #seasonTabs{
-  flex-wrap:nowrap!important;
-  overflow-x:auto;
-  padding:1px 1px 7px;
-  margin-bottom:7px!important;
-  scrollbar-width:thin;
-}
-.page-watch.series-mode #seasonTabs .ep-btn{
-  min-width:auto;
-  padding:7px 11px;
-}
-.page-watch.series-mode #seasonTabs .ep-btn.active{
-  color:#111;
-  background:#ffb000;
-  border-color:#ffb000;
-}
-.page-watch.series-mode #details > #playerWrap{order:4!important}
-.page-watch.series-mode #details > #nextEp{order:5!important}
-.page-watch.series-mode #details > #downloadWatchBox{order:6!important}
-.page-watch.series-mode #details > #related{order:7!important}
-@media(max-width:600px){
-  .page-watch.series-mode #episodesBox{padding:10px;margin-top:11px}
-  .page-watch.series-mode #episodesBox .ep-btn,
-  .page-watch.series-mode #episodesBox .season-eps .ep-btn{min-width:68px;padding:7px 9px;font-size:11px}
-}
-
 </style>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
 <script>if(/[?&]movie=/.test(location.search))document.documentElement.classList.add("route-movie")</script>
@@ -196,6 +126,31 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 .page-watch #details > #nextEp{order:6}
 .page-watch #details > #related{order:7}
 
+
+/* ترتيب جديد: الفيديو ← الحلقة التالية ← التحميل */
+.page-watch #details > #nextEp{order:4}
+.page-watch #details > #downloadWatchBox{order:5}
+.page-watch #details > #episodesBox{order:6}
+.page-watch #nextEp{width:100%;margin:10px 0 0!important;padding:13px 16px;border-radius:12px;font-size:15px;font-weight:800}
+.page-watch #nextEp svg{vertical-align:-4px;margin-inline-start:6px}
+/* صندوق التحميل */
+.page-watch #downloadWatchBox{margin-top:14px}
+.dl-box{background:#111620;border:1px solid #232d3d;border-radius:16px;overflow:hidden}
+.dl-box summary{list-style:none;display:flex;align-items:center;gap:12px;padding:14px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.dl-box summary::-webkit-details-marker{display:none}
+.dl-box summary:focus-visible{outline:2px solid #ffb000;outline-offset:-2px}
+.dl-ico{width:38px;height:38px;flex:0 0 38px;border-radius:11px;background:#ffb00014;border:1px solid #ffb00033;color:#ffb000;display:flex;align-items:center;justify-content:center}
+.dl-title{flex:1;min-width:0}
+.dl-title b{display:block;font-size:16px;color:#f5f5f5}
+.dl-title small{font-size:12px;color:#8d929d}
+.dl-chev{display:flex;color:#8d929d;transition:transform .2s}
+.dl-box[open] .dl-chev{transform:rotate(180deg)}
+.dl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:8px;padding:0 14px 14px;max-height:330px;overflow-y:auto;overscroll-behavior:contain}
+.dl-item{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;padding:11px 12px;background:#171d28;border:1px solid #2a3445;border-radius:12px;color:#f1f4f9;text-decoration:none;font-weight:700;font-size:14px}
+.dl-item span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dl-item svg{flex:0 0 auto;color:#ffb000}
+.dl-item:hover,.dl-item:focus-visible{border-color:#ffb000;background:#1d2330}
+@media(prefers-reduced-motion:reduce){.dl-chev{transition:none}}
 </style>
 </head>
 <body class="page-watch">
@@ -283,7 +238,7 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
     <div id="epList" class="ep-list"></div>
   </div>
   <div id="playerWrap" class="player-wrap"><div id="playerInner" class="player-stage"></div></div>
-  <button id="nextEp" class="btn" type="button" style="display:none;margin:12px auto 0" onclick="nextEpisode()">الحلقة التالية ⏭</button>
+  <button id="nextEp" class="btn" type="button" style="display:none;margin:12px auto 0" onclick="nextEpisode()">الحلقة التالية<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
   <section id="related" style="display:none"><div class="head"><h2>أعمال مشابهة</h2></div><div id="grid-related" class="grid rowmode"></div></section>
 </div>
 
@@ -601,7 +556,7 @@ function renderServerBox(title, list, mode) {
     const href = safeHttpUrl(d.url);
     if (!href) return "";
     if (mode === "watch") return '<button type="button" class="download-btn" data-server-index="' + i + '" onclick="playWatchServer(' + i + ')"><span>' + safe(d.name || ("سيرفر " + (i+1))) + '</span><span aria-hidden="true">›</span></button>';
-    return '<a class="download-btn" href="' + safe(href) + '" target="_blank" rel="noopener noreferrer">' + safe(d.name || ("سيرفر " + (i+1))) + '</a>';
+    return '<a class="download-btn" href="' + safe(href) + '" target="_blank" rel="noopener noreferrer" onclick="openServerAd(function(){})">' + safe(d.name || ("سيرفر " + (i+1))) + '</a>';
   }).join("");
   if (!items) { box.style.display = "none"; box.innerHTML = ""; return; }
   box.innerHTML = '<div style="margin-top:18px"><h3 style="margin:0 0 10px;color:#ffb000;font-size:17px">' + title + '</h3><div class="download-list">' + items + '</div></div>';
@@ -624,13 +579,18 @@ function watch(){
   }
   playUrl(x.movie_url);
 }
+function openServerAd(nextAction){
+  try { window.open("https://uplcm.com/4/11977439", "_blank", "noopener,noreferrer"); } catch(e) {}
+  if (typeof nextAction === "function") nextAction();
+}
+
 function playWatchServer(index){
   const x = window.currentMovie;
   if (!x || !x.watchServers || !x.watchServers[index]) return;
   document.querySelectorAll('#serverBox .download-btn[data-server-index]').forEach(function(btn){
     btn.classList.toggle('server-active', Number(btn.getAttribute('data-server-index')) === Number(index));
   });
-  playUrl(x.watchServers[index].url);
+  openServerAd(function(){ playUrl(x.watchServers[index].url); });
 }
 function openDownloads(){
   const x = window.currentMovie;
@@ -731,7 +691,6 @@ function show(x, pushRoute = true) {
   document.getElementById("dmeta").textContent = x.type + " • " + x.year + (x.duration ? " • " + x.duration : "") + " • ⭐ " + x.rating; document.getElementById("dRating").textContent = "⭐ " + x.rating;
   document.getElementById("ddesc").textContent = x.desc || "لا يوجد وصف متاح.";
   window.currentMovie = x;
-  document.body.classList.toggle("series-mode", isSeries(x.type) && (((x.seasonsEnabled && x.seasons.length) || (x.episodes && x.episodes.length))));
   document.title = x.name + " | سيما سيما";
   const cu = document.querySelector("link[rel=canonical]"); if (cu) cu.href = "https://cimacima.online" + itemPath(x);
   const md = document.querySelector("meta[name=description]"); if (md) md.content = (x.desc || x.name).slice(0, 155);
@@ -762,11 +721,9 @@ function show(x, pushRoute = true) {
         return '<button type="button" class="ep-btn" data-season-tab="' + si + '" onclick="selectSeason(' + si + ')">' + safe(s.name || ("الموسم " + (si + 1))) + '</button>';
       }).join("");
       epList.innerHTML = '<div style="grid-column:1/-1;width:100%"><div id="seasonTabs" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">' + seasonTabs + '</div><div id="seasonEpisodesList" class="season-eps"></div></div>';
-      epBox.style.display = "block";
-      window._seasonPicked = true;
+      epBox.style.display = "none";
       watchBtn.textContent = "▶ مشاهدة";
       renderSeasonEpisodes();
-      document.querySelectorAll("#seasonTabs .ep-btn").forEach(function(b){ b.classList.toggle("active", Number(b.getAttribute("data-season-tab")) === currentSeasonIndex); });
     } else {
       const st = epState(x.id);
       watchBtn.textContent = st.last != null ? "▶ كمّل من الحلقة " + (st.last + 1) : "▶ ابدأ المشاهدة";
@@ -1135,10 +1092,17 @@ function openWatchPage(){ if(window.currentMovie) location.href="/watch.html?mov
 function renderWatchDownloads(){
   const box=document.getElementById("downloadWatchBox"), x=window.currentMovie;
   if(!box || !x) return;
-  const list=Array.isArray(x.downloads)?x.downloads:[];
+  const list=(Array.isArray(x.downloads)?x.downloads:[]).filter(function(d){ return d && safeHttpUrl(d.url); });
   if(!list.length){ box.style.display="none"; box.innerHTML=""; return; }
-  const html=list.map(function(d,i){ const href=safeHttpUrl(d.url); if(!href)return ""; return '<a class="download-btn" href="'+safe(href)+'" target="_blank" rel="noopener noreferrer"><span>⬇ '+safe(d.name||("سيرفر "+(i+1)))+'</span><span>تحميل</span></a>'; }).join("");
-  box.innerHTML='<h3 style="margin:0 0 10px;color:#fff;font-size:17px">⬇ روابط تحميل الفيلم</h3><div class="download-list">'+html+'</div>';
+  const icon='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>';
+  const chev='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+  const items=list.map(function(d,i){
+    const raw=String(d.name||("سيرفر "+(i+1)));
+    const name=raw.replace(/^\s*(تحميل|تنزيل)\s+/,"")||raw;
+    return '<a class="dl-item" href="'+safe(safeHttpUrl(d.url))+'" target="_blank" rel="noopener noreferrer"><span>'+safe(name)+'</span>'+icon+'</a>';
+  }).join("");
+  const title=isSeries(x.type)?"روابط تحميل الحلقات":"روابط تحميل الفيلم";
+  box.innerHTML='<details class="dl-box"'+(list.length<=4?' open':'')+'><summary><span class="dl-ico">'+icon+'</span><span class="dl-title"><b>'+title+'</b><small>'+list.length+' رابط</small></span><span class="dl-chev">'+chev+'</span></summary><div class="dl-grid">'+items+'</div></details>';
   box.style.display="block";
 }
 
