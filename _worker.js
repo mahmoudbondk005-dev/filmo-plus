@@ -14,7 +14,7 @@ function slugify(v) {
     .replace(/[^\u0600-\u06FFa-z0-9]+/gi, "-")
     .replace(/^-+|-+$/g, "") || "item";
 }
-function isSeries(cat) { return cat === "مسلسلات عربي" || cat === "مسلسلات أجنبي"; }
+function isSeries(cat) { const c = String(cat || "").trim(); return c === "مسلسلات عربي" || c === "مسلسلات أجنبي" || c === "مسلسل"; }
 function itemPath(row) {
   const kind = isSeries(row.category) ? "series" : "movie";
   return `/${kind}/${encodeURIComponent(slugify(row.title))}~${encodeURIComponent(String(row.Id ?? row.id))}`;
@@ -73,13 +73,21 @@ function injectSeo(html, row, url) {
   if (image) data.image = image;
   if (row.year) data.dateCreated = `${row.year}-01-01`;
   if (row.category) data.genre = row.category;
-  if (row.rating && Number(row.rating) > 0) data.aggregateRating = {"@type":"AggregateRating","ratingValue":Number(row.rating),"bestRating":10};
   const json = JSON.stringify(data).replace(/</g, "\\u003c");
   const meta = `\n<title>${esc(title)}</title>\n<meta name="description" content="${esc(desc)}">\n<link rel="canonical" href="${esc(url)}">\n<meta property="og:type" content="website">\n<meta property="og:site_name" content="سيما سيما">\n<meta property="og:title" content="${esc(title)}">\n<meta property="og:description" content="${esc(desc)}">\n<meta property="og:url" content="${esc(url)}">${image ? `\n<meta property="og:image" content="${esc(image)}">` : ""}\n<script type="application/ld+json">${json}</script>`;
-  return html.replace(/<title>[\s\S]*?<\/title>/i, "").replace(/<meta name="description"[^>]*>/i, "").replace(/<link rel="canonical"[^>]*>/i, "").replace("</head>", meta + "\n</head>");
+  return html.replace(/<title>[\s\S]*?<\/title>/i, "").replace(/<meta name="description"[^>]*>/i, "").replace(/<link rel="canonical"[^>]*>/i, "").replace(/<meta property="og:(type|site_name|title|description|url|image)"[^>]*>/gi, "").replace("</head>", meta + "\n</head>");
+}
+async function loadHtml(env, url, request, paths) {
+  for (const p of paths) {
+    try {
+      const r = await env.ASSETS.fetch(new Request(new URL(p, url), request));
+      if (r && r.status === 200) return r;
+    } catch (e) {}
+  }
+  return null;
 }
 function staticSitemap(rows) {
-  const urls = ["/", "/privacy.html", "/terms.html", "/contact.html"];
+  const urls = ["/", "/privacy", "/terms", "/contact"];
   for (const row of rows) {
     if (row && (row.Id ?? row.id) != null && row.title) urls.push(itemPath(row));
   }
@@ -99,13 +107,30 @@ export default {
       if (match) {
         const id = decodeURIComponent(match[2]);
         const row = await getMovie(id);
-        const asset = await env.ASSETS.fetch(new Request(new URL("/index.html", url), request));
+        const asset = await loadHtml(env, url, request, ["/index.html", "/"]);
+        if (!asset) return env.ASSETS.fetch(request);
         if (!row) return asset;
         const html = await asset.text();
-        return new Response(injectSeo(html, row, SITE + url.pathname), {
+        return new Response(injectSeo(html, row, SITE + itemPath(row)), {
           status: 200,
           headers: { "content-type": "text/html; charset=UTF-8", "cache-control": "public, max-age=300" }
         });
+      }
+      if (url.pathname === "/movie" || url.pathname === "/movie.html") {
+        const id = url.searchParams.get("movie");
+        if (id) {
+          const row = await getMovie(id);
+          if (row) {
+            const asset = await loadHtml(env, url, request, ["/movie.html", "/movie"]);
+            if (asset) {
+              const html = await asset.text();
+              return new Response(injectSeo(html, row, SITE + itemPath(row)), {
+                status: 200,
+                headers: { "content-type": "text/html; charset=UTF-8", "cache-control": "public, max-age=300" }
+              });
+            }
+          }
+        }
       }
       return env.ASSETS.fetch(request);
     } catch (e) {
