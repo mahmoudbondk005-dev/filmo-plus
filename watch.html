@@ -108,7 +108,7 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 .page-movie .detail-poster{width:300px;flex:0 0 300px}.page-movie .detail img{width:300px;height:450px;border-radius:12px}
 .page-movie .detail h1{font-size:36px;margin-top:18px}.page-movie .detail p{font-size:16px;line-height:2}
 .page-movie .detail-actions{max-width:520px;margin-top:22px}.page-movie #episodesBox,.page-movie #serverBox,.page-movie #playerWrap,.page-movie #nextEp{display:none!important}
-.page-watch #details{max-width:1000px}.page-watch .detail{background:linear-gradient(180deg,#0d1420,#0a1019);border:1px solid #202c3e;border-radius:16px;padding:18px;gap:18px}.page-watch .detail-poster{width:155px;flex:0 0 155px}.page-watch .detail img{width:155px;height:225px}.page-watch .detail h1{font-size:27px;margin-top:8px}.page-watch .detail p{display:none}.page-watch .detail-actions{display:none}.page-watch #episodesBox{display:none!important}.page-watch #serverBox{display:block!important}.page-watch #playerWrap{margin-top:18px}.page-watch #downloadBtn,.page-watch #watchBtn,.page-watch #favDetailBtn{display:none!important}
+.page-watch #details{max-width:1000px}.page-watch .detail{background:linear-gradient(180deg,#0d1420,#0a1019);border:1px solid #202c3e;border-radius:16px;padding:18px;gap:18px}.page-watch .detail-poster{width:155px;flex:0 0 155px}.page-watch .detail img{width:155px;height:225px}.page-watch .detail h1{font-size:27px;margin-top:8px}.page-watch .detail p{display:none}.page-watch .detail-actions{display:none}.page-watch #episodesBox{display:block!important}.page-watch #serverBox{display:block!important}.page-watch #playerWrap{margin-top:18px}.page-watch #downloadBtn,.page-watch #watchBtn,.page-watch #favDetailBtn{display:none!important}
 .page-watch #serverBox .download-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.page-watch #serverBox .download-btn{position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:58px;padding:10px 12px;background:linear-gradient(145deg,#171d28,#111620);border:1px solid #2a3445;border-radius:15px;color:#f7f9fc;text-decoration:none;font-weight:800;font-size:15px;box-shadow:0 5px 16px #0004;transition:.18s ease;overflow:hidden}.page-watch #serverBox .download-btn:before{content:"▶";display:flex;align-items:center;justify-content:center;flex:0 0 34px;width:34px;height:34px;border-radius:10px;background:#252f40;color:#dfe6f1;font-size:12px}.page-watch #serverBox .download-btn:hover{border-color:#ef3340;transform:translateY(-1px);box-shadow:0 8px 20px #0006}.page-watch #serverBox .download-btn:hover:before{background:#ef3340;color:#fff}.page-watch #serverBox .download-btn:active{transform:scale(.98)}.page-watch #serverBox .download-btn.server-active{border-color:#ef3340;background:linear-gradient(145deg,#3a1118,#19151d);box-shadow:0 0 0 1px #ef334055,0 8px 22px #0007}.page-watch #serverBox .download-btn.server-active:before{background:#ef3340;color:#fff}.page-watch #downloadWatchBox{display:block!important;margin-top:18px}.page-watch #downloadWatchBox .download-list{display:grid;gap:8px}.page-watch #downloadWatchBox .download-btn{justify-content:space-between}.page-watch footer{margin-top:35px}@media(max-width:520px){.page-watch #serverBox .download-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.page-watch #serverBox .download-btn{min-height:54px;padding:9px 10px;border-radius:14px;font-size:14px}.page-watch #serverBox .download-btn:before{flex-basis:31px;width:31px;height:31px;border-radius:9px;font-size:11px}}
 @media(max-width:700px){.page-movie .detail{flex-direction:column}.page-movie .detail-poster,.page-movie .detail img{width:190px;flex-basis:auto;height:auto;margin:auto}.page-movie .detail h1{text-align:center;font-size:26px}.page-watch .detail{align-items:center}.page-watch .detail-poster,.page-watch .detail img{width:110px;height:160px}.page-watch .detail h1{font-size:21px}}
 
@@ -120,19 +120,83 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 .page-watch #details > .back{order:0}
 .page-watch #details > .detail{order:1}
 .page-watch #details > #serverBox{order:2}
-.page-watch #details > #playerWrap{order:3}
-.page-watch #details > #downloadWatchBox{order:4}
-.page-watch #details > #episodesBox{order:5}
-.page-watch #details > #nextEp{order:6}
+.page-watch #details > #episodesBox{order:3}
+.page-watch #details > #playerWrap{order:4}
+.page-watch #details > #nextEp{order:5}
+.page-watch #details > #downloadWatchBox{order:6}
 .page-watch #details > #related{order:7}
 
 
-/* ترتيب جديد: الفيديو ← الحلقة التالية ← التحميل */
-.page-watch #details > #nextEp{order:4}
-.page-watch #details > #downloadWatchBox{order:5}
-.page-watch #details > #episodesBox{order:6}
+/* ترتيب صفحة المشاهدة: السيرفرات ← الحلقات ← الفيديو ← التحميل */
+.page-watch #details > #episodesBox{order:3!important;display:block!important}
+.page-watch #details > #playerWrap{order:4!important}
+.page-watch #details > #nextEp{order:5!important}
+.page-watch #details > #downloadWatchBox{order:6!important}
 .page-watch #nextEp{width:100%;margin:10px 0 0!important;padding:13px 16px;border-radius:12px;font-size:15px;font-weight:800}
 .page-watch #nextEp svg{vertical-align:-4px;margin-inline-start:6px}
+/* قائمة الحلقات في صفحة المشاهدة — تصميم صغير واحترافي */
+.page-watch #episodesBox{
+  margin-top:14px!important;
+  padding:12px!important;
+  background:linear-gradient(180deg,#111925,#0d131d);
+  border:1px solid #202c3e;
+  border-radius:15px;
+  box-shadow:0 6px 20px #0004;
+}
+.page-watch #episodesBox h3{
+  display:flex;align-items:center;gap:8px;
+  margin:0 0 10px!important;
+  font-size:15px!important;color:#fff!important;
+}
+.page-watch #episodesBox h3:before{
+  content:"▦";display:inline-flex;align-items:center;justify-content:center;
+  width:27px;height:27px;border-radius:8px;
+  background:#ffb00018;border:1px solid #ffb00035;color:#ffb000;font-size:15px;
+}
+.page-watch #epList{
+  display:flex!important;flex-wrap:nowrap!important;
+  gap:7px!important;overflow-x:auto!important;overflow-y:hidden;
+  padding:2px 1px 5px!important;
+  scrollbar-width:thin;
+  -webkit-overflow-scrolling:touch;
+}
+.page-watch #epList::-webkit-scrollbar,.page-watch .season-eps::-webkit-scrollbar{height:4px}
+.page-watch #epList::-webkit-scrollbar-thumb,.page-watch .season-eps::-webkit-scrollbar-thumb{background:#344055;border-radius:99px}
+.page-watch #episodesBox .ep-btn{
+  flex:0 0 auto!important;min-width:58px!important;height:38px;
+  padding:0 11px!important;border-radius:10px!important;
+  background:#171f2b!important;border:1px solid #293548!important;
+  color:#dfe5ee!important;font-size:12px!important;font-weight:800;
+  transition:.16s ease;
+}
+.page-watch #episodesBox .ep-btn:hover{border-color:#ffb000!important;color:#ffb000!important;transform:translateY(-1px)}
+.page-watch #episodesBox .ep-btn.active{
+  background:linear-gradient(135deg,#ffb000,#ffca52)!important;
+  border-color:#ffb000!important;color:#111!important;
+  box-shadow:0 4px 12px #ffb00033;
+}
+.page-watch #episodesBox .ep-btn.done:not(.active){color:#9fa8b7!important}
+.page-watch #seasonTabs{
+  display:flex!important;flex-wrap:nowrap!important;gap:7px!important;
+  overflow-x:auto!important;padding:1px 1px 6px!important;margin-bottom:8px!important;
+  scrollbar-width:none;
+}
+.page-watch #seasonTabs::-webkit-scrollbar{display:none}
+.page-watch #seasonTabs .ep-btn{
+  min-width:auto!important;height:34px!important;padding:0 12px!important;
+  background:#151d29!important;font-size:12px!important;
+}
+.page-watch #seasonTabs .ep-btn.active{background:#ffb000!important;color:#111!important}
+.page-watch .season-eps{
+  display:flex!important;flex-wrap:nowrap!important;gap:7px!important;
+  overflow-x:auto!important;padding:1px 1px 5px!important;
+}
+.page-watch .season-eps .ep-btn{min-width:58px!important}
+@media(max-width:520px){
+  .page-watch #episodesBox{padding:10px!important;border-radius:14px}
+  .page-watch #episodesBox .ep-btn{min-width:54px!important;height:36px;padding:0 9px!important;font-size:11px!important}
+}
+
 /* صندوق التحميل */
 .page-watch #downloadWatchBox{margin-top:14px}
 .dl-box{background:#111620;border:1px solid #232d3d;border-radius:16px;overflow:hidden}
@@ -716,7 +780,7 @@ function show(x, pushRoute = true) {
     watchBtn.style.display = "inline-block";
     if (x.seasonsEnabled && x.seasons.length) {
       currentSeasonIndex = Math.max(0, Math.min(currentSeasonIndex, x.seasons.length - 1));
-      window._seasonPicked = false;
+      window._seasonPicked = true;
       const seasonTabs = x.seasons.map(function(s, si) {
         return '<button type="button" class="ep-btn" data-season-tab="' + si + '" onclick="selectSeason(' + si + ')">' + safe(s.name || ("الموسم " + (si + 1))) + '</button>';
       }).join("");
