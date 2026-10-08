@@ -38,25 +38,32 @@ async function getMovie(id) {
   return null;
 }
 async function getAllRows() {
-  const rows = [];
-  let start = 0;
+  const attempts = [
+    { sel: "Id,title,category", order: "Id.desc" },
+    { sel: "id,title,category", order: "id.desc" },
+    { sel: "*", order: "Id.desc" },
+    { sel: "*", order: "id.desc" },
+    { sel: "*", order: "" }
+  ];
   const page = 1000;
-  for (;;) {
-    const url = `${SUPABASE_URL}/rest/v1/movies?select=Id,id,title,category,year,poster_url&order=Id.desc&limit=${page}&offset=${start}`;
-    let r = await fetch(url, { headers: headers() });
-    if (!r.ok) {
-      const url2 = `${SUPABASE_URL}/rest/v1/movies?select=*&order=id.desc&limit=${page}&offset=${start}`;
-      r = await fetch(url2, { headers: headers() });
+  for (const at of attempts) {
+    const rows = [];
+    let start = 0;
+    let ok = true;
+    for (;;) {
+      const url = `${SUPABASE_URL}/rest/v1/movies?select=${at.sel}${at.order ? "&order=" + at.order : ""}&limit=${page}&offset=${start}`;
+      const r = await fetch(url, { headers: headers() });
+      if (!r.ok) { ok = false; break; }
+      const data = await r.json();
+      if (!Array.isArray(data) || !data.length) break;
+      rows.push(...data);
+      if (data.length < page) break;
+      start += page;
+      if (start > 100000) break;
     }
-    if (!r.ok) throw new Error("Supabase sitemap request failed");
-    const data = await r.json();
-    if (!Array.isArray(data) || !data.length) break;
-    rows.push(...data);
-    if (data.length < page) break;
-    start += page;
-    if (start > 100000) break;
+    if (ok) return rows;
   }
-  return rows;
+  throw new Error("Supabase sitemap request failed");
 }
 function injectSeo(html, row, url) {
   const title = `${row.title || "عمل"} - مشاهدة وتحميل | سيما سيما`;
@@ -100,7 +107,9 @@ export default {
     const url = new URL(request.url);
     try {
       if (url.pathname === "/sitemap.xml") {
-        const rows = await getAllRows();
+        let rows;
+        try { rows = await getAllRows(); }
+        catch (e) { return new Response("Sitemap temporarily unavailable", { status: 503, headers: { "content-type": "text/plain; charset=UTF-8", "retry-after": "300" } }); }
         return new Response(staticSitemap(rows), { headers: { "content-type": "application/xml; charset=UTF-8", "cache-control": "public, max-age=300" } });
       }
       const match = url.pathname.match(/^\/(movie|series)\/[^/]+~([^/]+)$/i);
