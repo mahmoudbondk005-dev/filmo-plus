@@ -10,11 +10,12 @@
 - setup-views.sql: تفعيل عداد المشاهدات (قسم الأكثر مشاهدة).
 
 SEO:
-- لكل فيلم رابط ثابت بالشكل /movie/اسم-الفيلم~ID.
-- لكل مسلسل رابط ثابت بالشكل /series/اسم-المسلسل~ID.
-- _worker.js يضيف عنوان ووصف وصورة وCanonical وSchema.org تلقائيًا للصفحة المطلوبة.
-- /sitemap.xml يتم توليده تلقائيًا من محتوى جدول movies.
-- لا تحتاج لإعادة إنشاء sitemap يدويًا عند إضافة عمل جديد، بشرط نشر المشروع عبر Cloudflare Pages مع دعم _worker.js.
+- لكل فيلم رابط ثابت /movie/اسم-الفيلم~ID ولكل مسلسل /series/اسم-المسلسل~ID، وهو الرابط الوحيد المعتمد (الكروت والـ sitemap والـ canonical كلها عليه).
+- الرابط الجميل يفتح movie.html مع عنوان ووصف وصورة og/twitter وCanonical وSchema.org (Movie/TVSeries + BreadcrumbList) يضيفها _worker.js تلقائيًا، ومعها العنوان والوصف والصورة داخل الـ HTML نفسه ليراها الزاحف بدون JavaScript.
+- الروابط القديمة /movie.html?movie=ID تتحول 301 للرابط الجميل. أي slug غلط يتحول 301 للصحيح. عمل غير موجود يرجع 404 حقيقي.
+- /watch.html و/admin.html غير مفهرسين (X-Robots-Tag + meta).
+- /sitemap.xml يتولد تلقائيًا من Supabase (مع صور الأفلام) ولا يحتاج تحديث يدوي.
+- favicon.svg وsite.webmanifest و404.html موجودين في الجذر.
 
 لوحة التحكم:
 - تسجيل الدخول يتم عبر Supabase Auth. لا يتم تخزين كلمة مرور الإدارة داخل ملفات الموقع.

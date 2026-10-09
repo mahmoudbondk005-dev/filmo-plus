@@ -7,10 +7,10 @@
 <title>تفاصيل الفيلم | سيما سيما</title>
 <meta name="description" content="سيما سيما منصة لمشاهدة الأفلام والمسلسلات العربية والأجنبية.">
 <link rel="canonical" href="https://cimacima.online/">
-<script>(function(){var m=location.search.match(/[?&]movie=([^&]+)/);if(m){document.querySelector('link[rel=canonical]').href="https://cimacima.online/?movie="+m[1]}})()</script>
 <meta name="theme-color" content="#090b10">
+<meta name="robots" content="noindex,follow">
 <meta property="og:type" content="website"><meta property="og:site_name" content="سيما سيما"><meta property="og:locale" content="ar_AR"><meta property="og:title" content="سيما سيما | أفلام ومسلسلات"><meta property="og:description" content="تصفح الأفلام والمسلسلات العربية والأجنبية بسهولة."><meta property="og:url" content="https://cimacima.online/">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23090b10'/%3E%3Cpath d='M24 18l22 14-22 14z' fill='%23ffb000'/%3E%3C/svg%3E">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/favicon.svg"><link rel="manifest" href="/site.webmanifest">
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#090b10;color:#f5f5f5;font-family:Tahoma,Arial,sans-serif}
@@ -552,6 +552,9 @@ async function loadMovies() {
   }
 }
 
+function prettyPath(x) {
+  return "/" + (isSeries(x.type) ? "series" : "movie") + "/" + encodeURIComponent(slugifyArabic(x.name)) + "~" + encodeURIComponent(String(x.id));
+}
 function slugifyArabic(value) {
   return String(value || "").trim()
     .toLowerCase()
@@ -756,7 +759,7 @@ function show(x, pushRoute = true) {
   document.getElementById("ddesc").textContent = x.desc || "لا يوجد وصف متاح.";
   window.currentMovie = x;
   document.title = x.name + " | سيما سيما";
-  const cu = document.querySelector("link[rel=canonical]"); if (cu) cu.href = "https://cimacima.online" + itemPath(x);
+  const cu = document.querySelector("link[rel=canonical]"); if (cu) cu.href = "https://cimacima.online" + prettyPath(x);
   const md = document.querySelector("meta[name=description]"); if (md) md.content = (x.desc || x.name).slice(0, 155);
   countView(x);
   setSeo(x);
@@ -1151,7 +1154,7 @@ document.addEventListener("keydown", function (e) { if (e.key === "Escape") { cl
 
 const PAGE_MODE = document.body.classList.contains("page-watch") ? "watch" : "movie";
 const originalItemPath = itemPath;
-function itemPath(x) { return "/movie.html?movie=" + encodeURIComponent(String(x.id)); }
+function itemPath(x) { return prettyPath(x); }
 function openWatchPage(){ if(window.currentMovie) location.href="/watch.html?movie="+encodeURIComponent(String(window.currentMovie.id)); }
 function renderWatchDownloads(){
   const box=document.getElementById("downloadWatchBox"), x=window.currentMovie;
