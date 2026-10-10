@@ -260,6 +260,15 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 .ep-range::-webkit-scrollbar{display:none}
 .ep-range button{flex:0 0 auto;height:34px;padding:0 14px;border-radius:999px;background:#151d29;border:1px solid #2a3649;color:#c9d1dd;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer}
 .ep-range button.on{background:#ffb000;border-color:#ffb000;color:#111}
+
+/* Episode servers */
+.page-watch #details > #epServers{order:4}
+.ep-servers{margin:12px 0 0;padding:12px 14px;background:#0f1622;border:1px solid #202c3e;border-radius:14px}
+.eps-title{font-size:13px;font-weight:800;color:#a3a8b3;margin-bottom:9px}
+.eps-row{display:flex;flex-wrap:wrap;gap:8px}
+.eps-btn{height:38px;padding:0 16px;border-radius:999px;background:#171f2b;border:1px solid #293548;color:#e6ebf3;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer}
+.eps-btn.active{background:#ffb000;border-color:#ffb000;color:#111}
+@media(hover:hover){.eps-btn:hover:not(.active){border-color:#ffb000;color:#ffb000}}
 </style>
 </head>
 <body class="page-watch">
@@ -347,6 +356,7 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
     <div id="epList" class="ep-list"></div>
   </div>
   <div id="playerWrap" class="player-wrap"><div id="playerInner" class="player-stage"></div></div>
+  <div id="epServers" class="ep-servers" style="display:none"></div>
   <button id="nextEp" class="btn" type="button" style="display:none;margin:12px auto 0" onclick="nextEpisode()">الحلقة التالية<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
   <section id="related" style="display:none"><div class="head"><h2>أعمال مشابهة</h2></div><div id="grid-related" class="grid rowmode"></div></section>
 </div>
@@ -1152,7 +1162,21 @@ function playEpisode(index) {
   if (usingSeasons) markSeasonEp(m.id,currentSeasonIndex,index); else markEp(m.id,index);
   document.querySelectorAll((usingSeasons ? "#seasonEpisodesList" : "#epList") + " .ep-btn").forEach((b, i) => { b.classList.remove("active"); if (i === index) b.classList.add("active", "done"); });
   document.getElementById("nextEp").style.display = index < eps.length - 1 ? "block" : "none";
+  renderEpServers(eps[index]);
   playUrl(eps[index].url);
+}
+function renderEpServers(ep){
+  var box=document.getElementById("epServers"); if(!box)return;
+  var list=ep&&Array.isArray(ep.servers)?ep.servers.filter(function(s){return s&&s.url;}):[];
+  window._epServerList=list;
+  if(list.length<2){box.innerHTML="";box.style.display="none";return;}
+  box.style.display="";
+  box.innerHTML='<div class="eps-title">سيرفرات الحلقة</div><div class="eps-row">'+list.map(function(s,i){return '<button type="button" class="eps-btn'+(i===0?" active":"")+'" onclick="playEpServer('+i+')">'+safe(s.name||("سيرفر "+(i+1)))+"</button>";}).join("")+"</div>";
+}
+function playEpServer(i){
+  var l=window._epServerList||[]; if(!l[i])return;
+  document.querySelectorAll("#epServers .eps-btn").forEach(function(b,k){b.classList.toggle("active",k===i);});
+  playUrl(l[i].url);
 }
 function nextEpisode() { playEpisode((window._epIdx || 0) + 1); }
 function watch() {

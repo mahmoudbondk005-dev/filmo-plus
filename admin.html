@@ -494,11 +494,11 @@ function addSeasonRow(name, episodes) {
   row.innerHTML = '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input type="text" placeholder="الموسم 1" value="' + escapeAttr(name || ("الموسم " + id)) + '" data-season-name style="flex:1"><button type="button" class="danger small" onclick="removeSeasonRow(' + id + ')">×</button></div>' +
     '<div id="seasonEps-' + id + '"></div><button type="button" class="secondary small" onclick="addSeasonEpisodeRow(' + id + ')">+ إضافة حلقة</button> ' +
     '<details style="margin-top:8px"><summary style="cursor:pointer;color:#8d929d;font-size:13px">لصق روابط كل الحلقات مرة واحدة</summary>' +
-    '<textarea id="seasonBulk-' + id + '" placeholder="الصق الروابط هنا، كل رابط في سطر" style="width:100%;min-height:90px;margin-top:6px"></textarea>' +
+    '<textarea id="seasonBulk-' + id + '" placeholder="الصق الروابط هنا، كل حلقة في سطر (ولو لها أكتر من سيرفر حط روابطها في نفس السطر بمسافة بينها)" style="width:100%;min-height:90px;margin-top:6px"></textarea>' +
     '<button type="button" class="secondary small" onclick="bulkAddSeasonEpisodes(' + id + ')">إضافة الروابط كحلقات</button></details>';
   document.getElementById("seasonsList").appendChild(row);
   const eps = Array.isArray(episodes) ? episodes : [];
-  if (eps.length) eps.forEach(ep => addSeasonEpisodeRow(id, ep.title || "", ep.url || ""));
+  if (eps.length) eps.forEach(ep => addSeasonEpisodeRow(id, ep.title || "", epLinks(ep)));
   else { addSeasonEpisodeRow(id); addSeasonEpisodeRow(id); }
 }
 
@@ -540,7 +540,7 @@ function getSeasonsFromForm() {
     const episodes=[];
     row.querySelectorAll("[data-sep-title]").forEach(titleEl=>{
       const epRow=titleEl.closest(".ep-row"); const url=(epRow.querySelector("[data-sep-url]")||{}).value||"";
-      if(url.trim()) episodes.push({title:titleEl.value.trim()||("حلقة "+(episodes.length+1)),url:url.trim()});
+      if(url.trim()) episodes.push(mkEp(titleEl.value.trim()||("حلقة "+(episodes.length+1)),url));
     });
     if(episodes.length) seasons.push({name:name.trim()||("الموسم "+(seasons.length+1)),episodes:episodes});
   });
@@ -577,6 +577,17 @@ function removeEpisodeRow(id) {
   if (el) el.remove();
 }
 
+function parseLinks(raw){return String(raw||"").split(/[\s,]+/).map(function(x){return x.trim();}).filter(function(x){return /^https?:\/\//i.test(x);});}
+function mkEp(title,raw){
+  var links=parseLinks(raw);
+  if(links.length<2) return {title:title,url:(links[0]||String(raw||"").trim())};
+  var seen={};
+  var servers=links.map(function(u,i){var h="";try{h=new URL(u).hostname.replace(/^www\./,"").split(".")[0];}catch(e){}
+    h=h||("سيرفر "+(i+1));seen[h]=(seen[h]||0)+1;return {name:seen[h]>1?h+" "+seen[h]:h,url:u};});
+  return {title:title,url:links[0],servers:servers};
+}
+function epLinks(ep){return Array.isArray(ep.servers)&&ep.servers.length?ep.servers.map(function(s){return s.url;}).join(" "):(ep.url||"");}
+
 function getEpisodesFromForm() {
   const rows = document.querySelectorAll("#episodesList .ep-row");
   const list = [];
@@ -584,7 +595,7 @@ function getEpisodesFromForm() {
     const title = (row.querySelector("[data-ep-title]") || {}).value || "";
     const url = (row.querySelector("[data-ep-url]") || {}).value || "";
     if (url.trim()) {
-      list.push({ title: title.trim() || ("حلقة " + (list.length + 1)), url: url.trim() });
+      list.push(mkEp(title.trim() || ("حلقة " + (list.length + 1)), url));
     }
   });
   return list;
@@ -596,7 +607,7 @@ function setEpisodesForm(episodes) {
   episodeCounter = 0;
   const cleanEpisodes = Array.isArray(episodes) ? episodes.filter(ep => ep && !ep.__cimaOverlay) : [];
   if (cleanEpisodes.length) {
-    cleanEpisodes.forEach(ep => addEpisodeRow(ep.title || "", ep.url || ""));
+    cleanEpisodes.forEach(ep => addEpisodeRow(ep.title || "", epLinks(ep)));
   } else {
     addEpisodeRow();
   }
