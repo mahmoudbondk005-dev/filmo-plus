@@ -270,10 +270,6 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 .eps-btn.active{background:#ffb000;border-color:#ffb000;color:#111}
 @media(hover:hover){.eps-btn:hover:not(.active){border-color:#ffb000;color:#ffb000}}
 
-/* Popup-ad protection bar */
-.page-watch #details > #sbBar{order:4}
-.sb-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0 0;padding:8px 12px;border-radius:12px;background:#0f1622;border:1px solid #202c3e;font-size:12px;color:#a3a8b3}
-.sb-bar button{flex:0 0 auto;background:none;border:0;color:#ffb000;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;text-decoration:underline}
 </style>
 </head>
 <body class="page-watch">
@@ -362,7 +358,6 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
   </div>
   <div id="playerWrap" class="player-wrap"><div id="playerInner" class="player-stage"></div></div>
   <div id="epServers" class="ep-servers" style="display:none"></div>
-  <div id="sbBar" class="sb-bar" style="display:none"></div>
   <button id="nextEp" class="btn" type="button" style="display:none;margin:12px auto 0" onclick="nextEpisode()">الحلقة التالية<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
   <section id="related" style="display:none"><div class="head"><h2>أعمال مشابهة</h2></div><div id="grid-related" class="grid rowmode"></div></section>
 </div>
@@ -985,23 +980,6 @@ function hlsErrorText(data) {
   return "تعذر تشغيل بث HLS. راجع Console لمعرفة الخطأ بالتفصيل.";
 }
 
-function _sbHost(u){try{return new URL(u).hostname;}catch(e){return "";}}
-function _sbOff(){try{return JSON.parse(localStorage.getItem("cc_nosb")||"[]");}catch(e){return [];}}
-function sbAttr(src){return _sbOff().indexOf(_sbHost(src))>=0?"":' sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"';}
-function sbBar(url,src){
-  var b=document.getElementById("sbBar"); if(!b)return;
-  if(!url||!src){b.style.display="none";b.innerHTML="";return;}
-  window._sbUrl=url;window._sbHostCur=_sbHost(src);
-  var off=_sbOff().indexOf(window._sbHostCur)>=0;
-  b.style.display="";
-  b.innerHTML="<span>"+(off?"حماية الإعلانات المنبثقة متوقفة لهذا السيرفر":"حماية من الإعلانات المنبثقة مفعّلة")+'</span><button type="button" onclick="sbToggle()">'+(off?"تفعيل الحماية":"الفيديو مش شغال؟ جرّب بدون حماية")+"</button>";
-}
-function sbToggle(){
-  var h=window._sbHostCur,l=_sbOff(),i=l.indexOf(h);
-  if(i>=0)l.splice(i,1);else l.push(h);
-  try{localStorage.setItem("cc_nosb",JSON.stringify(l));}catch(e){}
-  playUrl(window._sbUrl);
-}
 function playUrl(url) {
   if (!url || url === "https://example.com") {
     toast("رابط المشاهدة غير مضاف.");
@@ -1012,7 +990,6 @@ function playUrl(url) {
   const inner = document.getElementById("playerInner");
   wrap.classList.add("active");
   inner.innerHTML = "";
-  sbBar(null);
 
   if (window._cimaHls) {
     try { window._cimaHls.destroy(); } catch (e) {}
@@ -1035,8 +1012,7 @@ function playUrl(url) {
       throw new Error("رابط iframe غير صالح");
     }
     if (safeEmbedSrc) {
-      inner.innerHTML = '<iframe src="' + safe(safeEmbedSrc) + '" allow="autoplay; encrypted-media; fullscreen; picture-in-picture"' + sbAttr(safeEmbedSrc) + ' allowfullscreen></iframe>';
-      sbBar(url, safeEmbedSrc);
+      inner.innerHTML = '<iframe src="' + safe(safeEmbedSrc) + '" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>';
     } else if (yt) {
       inner.innerHTML = '<iframe src="https://www.youtube.com/embed/' + yt + '?autoplay=1&rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>';
     } else if (vim) {
@@ -1153,8 +1129,7 @@ function playUrl(url) {
       if (gd) embedUrl = "https://drive.google.com/file/d/" + gd[1] + "/preview";
       const safeEmbedUrl = safeHttpUrl(embedUrl);
       if (!safeEmbedUrl) throw new Error("رابط المشاهدة غير صالح");
-      inner.innerHTML = '<iframe src="' + safe(safeEmbedUrl) + '" allow="autoplay; encrypted-media; fullscreen"' + sbAttr(safeEmbedUrl) + ' allowfullscreen></iframe>';
-      sbBar(url, safeEmbedUrl);
+      inner.innerHTML = '<iframe src="' + safe(safeEmbedUrl) + '" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
     }
 
     const wm = window.currentMovie && window.currentMovie.overlay;
