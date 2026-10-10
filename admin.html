@@ -69,7 +69,7 @@ img,video,iframe{max-width:100%}
 <body>
 
 <div id="loginScreen" class="box login-box">
-  <h1>سيما سيما</h1>
+  <h1>سيما سيما <small style="font-size:11px;color:#8d929d;font-weight:400">نسخة اللوحة: d2e-3</small></h1>
   <p class="sub">لوحة التحكم — للمسؤول فقط</p>
   <label>البريد الإلكتروني</label>
   <input id="email" type="email" value="cimacima.egypt@gmail.com" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('password').focus()">
@@ -765,7 +765,7 @@ function autoNameHandler(e){
     }
   }else if(e.type==="input"&&t.matches("[data-watch-name],[data-dl-name]")){t.removeAttribute("data-auto");}
 }
-["input","change","focusout"].forEach(function(ev){document.addEventListener(ev,autoNameHandler,true);});
+["input","change","focusout","paste","keyup"].forEach(function(ev){document.addEventListener(ev,function(e){if(e.type==="paste"||e.type==="keyup"){setTimeout(function(){autoNameHandler(e);},0);}else{autoNameHandler(e);}},true);});
 function autoFillRow(row){
   var u=row.querySelector("[data-watch-url],[data-dl-url]"),n=row.querySelector("[data-watch-name],[data-dl-name]");
   if(!u||!n)return;var cur=n.value.trim();
