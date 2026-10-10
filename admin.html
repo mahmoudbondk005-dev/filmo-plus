@@ -498,7 +498,7 @@ function addSeasonRow(name, episodes) {
     '<button type="button" class="secondary small" onclick="bulkAddSeasonEpisodes(' + id + ')">إضافة الروابط كحلقات</button></details>';
   document.getElementById("seasonsList").appendChild(row);
   const eps = Array.isArray(episodes) ? episodes : [];
-  if (eps.length) eps.forEach(ep => addSeasonEpisodeRow(id, ep.title || "", epLinks(ep)));
+  if (eps.length) eps.forEach(ep => addSeasonEpisodeRow(id, ep.title || "", epLinks(ep), epDl(ep)));
   else { addSeasonEpisodeRow(id); addSeasonEpisodeRow(id); }
 }
 
@@ -518,7 +518,7 @@ function bulkAddSeasonEpisodes(seasonId) {
 }
 function removeSeasonRow(id) { const el=document.getElementById("season-"+id); if(el) el.remove(); }
 
-function addSeasonEpisodeRow(seasonId, title, url) {
+function addSeasonEpisodeRow(seasonId, title, url, dl) {
   const box = document.getElementById("seasonEps-" + seasonId);
   if (!box) return;
   seasonEpisodeCounters[seasonId] = (seasonEpisodeCounters[seasonId] || 0) + 1;
@@ -526,8 +526,9 @@ function addSeasonEpisodeRow(seasonId, title, url) {
   const row = document.createElement("div");
   row.className = "ep-row"; row.id = "sep-" + seasonId + "-" + id;
   row.innerHTML = '<input type="text" placeholder="الحلقة ' + id + '" value="' + escapeAttr(title || ("الحلقة " + id)) + '" data-sep-title>' +
-    '<input type="text" placeholder="رابط الحلقة" value="' + escapeAttr(url || "") + '" data-sep-url style="grid-column:span 2">' +
-    '<button type="button" class="danger small" onclick="removeSeasonEpisodeRow(' + seasonId + ',' + id + ')">×</button>';
+    '<input type="text" placeholder="رابط الحلقة (لو عندها أكتر من سيرفر حط الروابط بمسافة بينها)" value="' + escapeAttr(url || "") + '" data-sep-url style="grid-column:span 2">' +
+    '<button type="button" class="danger small" onclick="removeSeasonEpisodeRow(' + seasonId + ',' + id + ')">×</button>' +
+    '<input type="text" placeholder="روابط تحميل الحلقة (اختياري، بمسافة بين كل رابط)" value="' + escapeAttr(dl || "") + '" data-sep-dl style="grid-column:1/-1">';
   box.appendChild(row);
 }
 
@@ -540,7 +541,7 @@ function getSeasonsFromForm() {
     const episodes=[];
     row.querySelectorAll("[data-sep-title]").forEach(titleEl=>{
       const epRow=titleEl.closest(".ep-row"); const url=(epRow.querySelector("[data-sep-url]")||{}).value||"";
-      if(url.trim()) episodes.push(mkEp(titleEl.value.trim()||("حلقة "+(episodes.length+1)),url));
+      if(url.trim()){ var ep=mkEp(titleEl.value.trim()||("حلقة "+(episodes.length+1)),url); var dls=dlLinks((epRow.querySelector("[data-sep-dl]")||{}).value); if(dls.length)ep.downloads=dls; episodes.push(ep); }
     });
     if(episodes.length) seasons.push({name:name.trim()||("الموسم "+(seasons.length+1)),episodes:episodes});
   });
@@ -553,7 +554,7 @@ function setSeasonsForm(seasons) {
   else addSeasonRow();
 }
 
-function addEpisodeRow(title, url) {
+function addEpisodeRow(title, url, dl) {
   episodeCounter++;
   const id = episodeCounter;
   const row = document.createElement("div");
@@ -563,12 +564,14 @@ function addEpisodeRow(title, url) {
     '<input type="text" placeholder="رقم" value="' + escapeAttr(title ? "" : String(id)) + '" data-ep-num>' +
     '<input type="text" placeholder="اسم الحلقة (اختياري)" value="' + escapeAttr(title || "") + '" data-ep-title>' +
     '<input type="text" placeholder="رابط الحلقة https://..." value="' + escapeAttr(url || "") + '" data-ep-url>' +
-    '<button type="button" class="danger small" onclick="removeEpisodeRow(' + id + ')">×</button>';
+    '<button type="button" class="danger small" onclick="removeEpisodeRow(' + id + ')">×</button>' +
+    '<input type="text" placeholder="روابط تحميل الحلقة (اختياري، بمسافة بين كل رابط)" value="' + escapeAttr(dl || "") + '" data-ep-dl style="grid-column:1/-1">';
   // fix: first field should be episode number label style - simplify
   row.innerHTML =
     '<input type="text" placeholder="الحلقة 1" value="' + escapeAttr(title || ("الحلقة " + id)) + '" data-ep-title>' +
-    '<input type="text" placeholder="رابط الحلقة" value="' + escapeAttr(url || "") + '" data-ep-url style="grid-column: span 2">' +
-    '<button type="button" class="danger small" onclick="removeEpisodeRow(' + id + ')">×</button>';
+    '<input type="text" placeholder="رابط الحلقة (لو عندها أكتر من سيرفر حط الروابط بمسافة بينها)" value="' + escapeAttr(url || "") + '" data-ep-url style="grid-column: span 2">' +
+    '<button type="button" class="danger small" onclick="removeEpisodeRow(' + id + ')">×</button>' +
+    '<input type="text" placeholder="روابط تحميل الحلقة (اختياري، بمسافة بين كل رابط)" value="' + escapeAttr(dl || "") + '" data-ep-dl style="grid-column:1/-1">';
   document.getElementById("episodesList").appendChild(row);
 }
 
@@ -595,6 +598,11 @@ function mkEp(title,raw){
   var servers=links.map(function(u,i){var h=linkHost(u,i);seen[h]=(seen[h]||0)+1;return {name:seen[h]>1?h+" "+seen[h]:h,url:u};});
   return {title:title,url:links[0],servers:servers};
 }
+function dlLinks(raw){
+  var l=String(raw||"").split(/[\s,]+/).map(function(x){return x.trim();}).filter(function(x){return /^https?:\/\//i.test(x);}),seen={};
+  return l.map(function(u,i){var h=linkHost(u,i);seen[h]=(seen[h]||0)+1;return {name:seen[h]>1?h+" "+seen[h]:h,url:u};});
+}
+function epDl(ep){return Array.isArray(ep.downloads)?ep.downloads.map(function(d){return d.url;}).join(" "):"";}
 function epLinks(ep){return Array.isArray(ep.servers)&&ep.servers.length?ep.servers.map(function(s){return s.url;}).join(" "):(ep.url||"");}
 
 function getEpisodesFromForm() {
@@ -604,7 +612,7 @@ function getEpisodesFromForm() {
     const title = (row.querySelector("[data-ep-title]") || {}).value || "";
     const url = (row.querySelector("[data-ep-url]") || {}).value || "";
     if (url.trim()) {
-      list.push(mkEp(title.trim() || ("حلقة " + (list.length + 1)), url));
+      const ep = mkEp(title.trim() || ("حلقة " + (list.length + 1)), url); const dls = dlLinks((row.querySelector("[data-ep-dl]") || {}).value); if (dls.length) ep.downloads = dls; list.push(ep);
     }
   });
   return list;
@@ -616,7 +624,7 @@ function setEpisodesForm(episodes) {
   episodeCounter = 0;
   const cleanEpisodes = Array.isArray(episodes) ? episodes.filter(ep => ep && !ep.__cimaOverlay) : [];
   if (cleanEpisodes.length) {
-    cleanEpisodes.forEach(ep => addEpisodeRow(ep.title || "", epLinks(ep)));
+    cleanEpisodes.forEach(ep => addEpisodeRow(ep.title || "", epLinks(ep), epDl(ep)));
   } else {
     addEpisodeRow();
   }

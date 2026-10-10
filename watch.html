@@ -1163,6 +1163,7 @@ function playEpisode(index) {
   document.querySelectorAll((usingSeasons ? "#seasonEpisodesList" : "#epList") + " .ep-btn").forEach((b, i) => { b.classList.remove("active"); if (i === index) b.classList.add("active", "done"); });
   document.getElementById("nextEp").style.display = index < eps.length - 1 ? "block" : "none";
   renderEpServers(eps[index]);
+  { const d = eps[index].downloads; renderWatchDownloads(d, Array.isArray(d) && d.length ? safe("تحميل " + (eps[index].title || ("الحلقة " + (index + 1)))) : null); }
   playUrl(eps[index].url);
 }
 function renderEpServers(ep){
@@ -1222,10 +1223,10 @@ const PAGE_MODE = document.body.classList.contains("page-watch") ? "watch" : "mo
 const originalItemPath = itemPath;
 function itemPath(x) { return "/movie.html?movie=" + encodeURIComponent(String(x.id)); }
 function openWatchPage(){ if(window.currentMovie) location.href="/watch.html?movie="+encodeURIComponent(String(window.currentMovie.id)); }
-function renderWatchDownloads(){
+function renderWatchDownloads(over,ttl){
   const box=document.getElementById("downloadWatchBox"), x=window.currentMovie;
   if(!box || !x) return;
-  const list=(Array.isArray(x.downloads)?x.downloads:[]).filter(function(d){ return d && safeHttpUrl(d.url); });
+  const list=(Array.isArray(over)&&over.length?over:(Array.isArray(x.downloads)?x.downloads:[])).filter(function(d){ return d && safeHttpUrl(d.url); });
   if(!list.length){ box.style.display="none"; box.innerHTML=""; return; }
   const icon='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>';
   const chev='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
@@ -1234,7 +1235,7 @@ function renderWatchDownloads(){
     const name=raw.replace(/^\s*(تحميل|تنزيل)\s+/,"")||raw;
     return '<a class="dl-item" href="'+safe(safeHttpUrl(d.url))+'" target="_blank" rel="noopener noreferrer"><span>'+safe(name)+'</span>'+icon+'</a>';
   }).join("");
-  const title=isSeries(x.type)?"روابط تحميل الحلقات":"روابط تحميل الفيلم";
+  const title=ttl||(isSeries(x.type)?"روابط تحميل الحلقات":"روابط تحميل الفيلم");
   box.innerHTML='<details class="dl-box"'+(list.length<=4?' open':'')+'><summary><span class="dl-ico">'+icon+'</span><span class="dl-title"><b>'+title+'</b><small>'+list.length+' رابط</small></span><span class="dl-chev">'+chev+'</span></summary><div class="dl-grid">'+items+'</div></details>';
   box.style.display="block";
 }
