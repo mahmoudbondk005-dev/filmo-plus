@@ -227,6 +227,32 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 .toast{max-width:90vw;text-align:center}
 @media(max-width:600px){.hero{padding:20px;min-height:180px}.hero.banner{min-height:260px}}
 @media(prefers-reduced-motion:reduce){.card,.card:hover{transition:none;transform:none}}
+
+/* Pro polish: shared */
+.back{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:999px;background:#141b27;border:1px solid #253145;font-weight:700;font-size:14px}
+@media(hover:hover){.back:hover{border-color:#ffb000}}
+
+/* Watch page: pro episode cards */
+.page-watch .detail{box-shadow:0 14px 40px #0006}
+.page-watch .detail h1{line-height:1.35}
+.page-watch #dmeta{color:#a3a8b3;font-size:13px}
+.page-watch #playerWrap{box-shadow:0 18px 50px #000a;border:1px solid #1d2636}
+.page-watch #episodesBox{background:#0f1622;border:1px solid #202c3e;border-radius:16px;padding:16px}
+.page-watch #episodesBox h3{display:flex;align-items:center;gap:8px;font-size:17px;margin-bottom:14px}
+.page-watch #episodesBox h3::before{content:"";width:4px;height:18px;border-radius:4px;background:#ffb000}
+.page-watch #epList:not(:has(#seasonTabs)),.page-watch #seasonEpisodesList{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(92px,1fr))!important;gap:10px!important;max-height:340px;overflow-y:auto!important;overflow-x:hidden!important;padding:2px 2px 4px!important;scrollbar-width:thin;scrollbar-color:#344055 transparent}
+.page-watch #episodesBox .ep-btn{position:relative;display:flex;align-items:center;justify-content:center;gap:6px;min-width:0!important;height:48px!important;padding:0 10px!important;border-radius:12px!important;font-size:13px!important;font-weight:800;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:linear-gradient(180deg,#1a2332,#141c29)!important;border:1px solid #2a3649!important;color:#e6ebf3!important;transition:transform .15s,border-color .15s,box-shadow .15s}
+@media(hover:hover){.page-watch #episodesBox .ep-btn:hover{border-color:#ffb000!important;color:#ffb000!important;transform:translateY(-2px);box-shadow:0 8px 18px #0006}}
+.page-watch #episodesBox .ep-btn.done:not(.active){color:#a9b3c2!important;opacity:.9!important}
+.page-watch #episodesBox .ep-btn.done::after{content:"✓";position:absolute;top:5px;left:6px;width:16px;height:16px;border-radius:50%;background:#1f8a4c;color:#fff;font-size:10px;display:grid;place-items:center}
+.page-watch #episodesBox .ep-btn.active{background:linear-gradient(135deg,#ffb000,#ffca52)!important;border-color:#ffb000!important;color:#111!important;box-shadow:0 6px 16px #ffb00040}
+.page-watch #episodesBox .ep-btn.active::before{content:"▶";font-size:10px}
+.page-watch #episodesBox .ep-btn.active.done::after{background:#111;color:#ffb000}
+.page-watch #seasonTabs{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto;gap:8px!important;padding-bottom:6px;margin-bottom:12px!important;scrollbar-width:none}
+.page-watch #seasonTabs::-webkit-scrollbar{display:none}
+.page-watch #seasonTabs .ep-btn{flex:0 0 auto;height:38px!important;padding:0 18px!important;border-radius:999px!important;font-size:13px!important;overflow:visible;text-overflow:clip}
+.page-watch #seasonTabs .ep-btn.active::before{content:none}
+@media(max-width:600px){.page-watch #episodesBox{padding:12px}.page-watch #epList:not(:has(#seasonTabs)),.page-watch #seasonEpisodesList{grid-template-columns:repeat(auto-fill,minmax(78px,1fr))!important;max-height:300px}.page-watch #episodesBox .ep-btn{height:44px!important;font-size:12px!important}}
 </style>
 </head>
 <body class="page-watch">
