@@ -524,11 +524,26 @@ function bulkAddSeasonEpisodes(seasonId) {
   urls.forEach(function(u){ n++; addSeasonEpisodeRow(seasonId, "الحلقة " + n, u); });
   ta.value = "";
 }
+function allVals(row,sel){return [].map.call(row.querySelectorAll(sel),function(e){return e.value;}).join(" ");}
+function epAddDl(row,attr,val){
+  var box=row&&row.querySelector('[data-extra="'+attr+'"]');if(!box)return;
+  var w=document.createElement("div");w.style.cssText="display:flex;gap:8px";
+  var inp=document.createElement("input");inp.type="text";inp.setAttribute(attr,"");inp.placeholder="رابط تحميل الحلقة";inp.value=val||"";inp.style.cssText="flex:1;margin:0";
+  var x=document.createElement("button");x.type="button";x.className="danger small";x.textContent="×";x.onclick=function(){w.remove();};
+  w.appendChild(inp);w.appendChild(x);box.appendChild(w);
+}
+function epPlus(btn){epAddDl(btn.closest(".ep-row"),btn.getAttribute("data-plus"));}
+function epFillDl(row,attr,raw){
+  var toks=String(raw||"").split(/\s+/).filter(Boolean);
+  var first=row.querySelector("["+attr+"]");if(first)first.value=toks[0]||"";
+  var box=row.querySelector('[data-extra="'+attr+'"]');if(box)box.innerHTML="";
+  toks.slice(1).forEach(function(t){epAddDl(row,attr,t);});
+}
 function fillDl(rows,sel,ta){
   if(!ta)return;
   var lines=ta.value.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
   if(!lines.length)return;
-  rows.forEach(function(r,i){var el=r.querySelector(sel);if(el&&lines[i])el.value=lines[i];});
+  rows.forEach(function(r,i){if(lines[i])epFillDl(r,sel.slice(1,-1),lines[i]);});
   ta.value="";
   if(lines.length>rows.length)alert("عدد الروابط ("+lines.length+") أكبر من عدد الحلقات ("+rows.length+")، اتملى أول "+rows.length+" فقط.");
 }
@@ -553,9 +568,12 @@ function addSeasonEpisodeRow(seasonId, title, url, dl) {
   const row = document.createElement("div");
   row.className = "ep-row"; row.id = "sep-" + seasonId + "-" + id;
   row.innerHTML = '<input type="text" placeholder="الحلقة ' + id + '" value="' + escapeAttr(title || ("الحلقة " + id)) + '" data-sep-title>' +
-    '<input type="text" placeholder="رابط الحلقة (لو عندها أكتر من سيرفر حط الروابط بمسافة بينها)" value="' + escapeAttr(url || "") + '" data-sep-url style="grid-column:span 2">' +
+    '<input type="text" placeholder="رابط مشاهدة الحلقة" value="' + escapeAttr(url || "") + '" data-sep-url style="grid-column:span 2">' +
     '<button type="button" class="danger small" onclick="removeSeasonEpisodeRow(' + seasonId + ',' + id + ')">×</button>' +
-    '<input type="text" placeholder="روابط تحميل الحلقة (اختياري، بمسافة بين كل رابط)" value="' + escapeAttr(dl || "") + '" data-sep-dl style="grid-column:1/-1">';
+    '<input type="text" placeholder="رابط تحميل الحلقة (سيرفر تحميل واحد)" value="' + escapeAttr(dl || "") + '" data-sep-dl style="grid-column:1/-1">' +
+    '<div data-extra="data-sep-dl" style="grid-column:1/-1;display:grid;gap:8px"></div>' +
+    '<button type="button" class="secondary small" data-plus="data-sep-dl" style="grid-column:1/-1" onclick="epPlus(this)">+ سيرفر تحميل</button>';
+  epFillDl(row,"data-sep-dl",dl);
   box.appendChild(row);
 }
 
@@ -568,7 +586,7 @@ function getSeasonsFromForm() {
     const episodes=[];
     row.querySelectorAll("[data-sep-title]").forEach(titleEl=>{
       const epRow=titleEl.closest(".ep-row"); const url=(epRow.querySelector("[data-sep-url]")||{}).value||"";
-      if(url.trim()){ var ep=mkEp(titleEl.value.trim()||("حلقة "+(episodes.length+1)),url); var dls=dlLinks((epRow.querySelector("[data-sep-dl]")||{}).value); if(dls.length)ep.downloads=dls; episodes.push(ep); }
+      if(url.trim()){ var ep=mkEp(titleEl.value.trim()||("حلقة "+(episodes.length+1)),url); var dls=dlLinks(allVals(epRow,"[data-sep-dl]")); if(dls.length)ep.downloads=dls; episodes.push(ep); }
     });
     if(episodes.length) seasons.push({name:name.trim()||("الموسم "+(seasons.length+1)),episodes:episodes});
   });
@@ -592,13 +610,18 @@ function addEpisodeRow(title, url, dl) {
     '<input type="text" placeholder="اسم الحلقة (اختياري)" value="' + escapeAttr(title || "") + '" data-ep-title>' +
     '<input type="text" placeholder="رابط الحلقة https://..." value="' + escapeAttr(url || "") + '" data-ep-url>' +
     '<button type="button" class="danger small" onclick="removeEpisodeRow(' + id + ')">×</button>' +
-    '<input type="text" placeholder="روابط تحميل الحلقة (اختياري، بمسافة بين كل رابط)" value="' + escapeAttr(dl || "") + '" data-ep-dl style="grid-column:1/-1">';
+    '<input type="text" placeholder="رابط تحميل الحلقة (سيرفر تحميل واحد)" value="' + escapeAttr(dl || "") + '" data-ep-dl style="grid-column:1/-1">' +
+    '<div data-extra="data-ep-dl" style="grid-column:1/-1;display:grid;gap:8px"></div>' +
+    '<button type="button" class="secondary small" data-plus="data-ep-dl" style="grid-column:1/-1" onclick="epPlus(this)">+ سيرفر تحميل</button>';
   // fix: first field should be episode number label style - simplify
   row.innerHTML =
     '<input type="text" placeholder="الحلقة 1" value="' + escapeAttr(title || ("الحلقة " + id)) + '" data-ep-title>' +
-    '<input type="text" placeholder="رابط الحلقة (لو عندها أكتر من سيرفر حط الروابط بمسافة بينها)" value="' + escapeAttr(url || "") + '" data-ep-url style="grid-column: span 2">' +
+    '<input type="text" placeholder="رابط مشاهدة الحلقة" value="' + escapeAttr(url || "") + '" data-ep-url style="grid-column: span 2">' +
     '<button type="button" class="danger small" onclick="removeEpisodeRow(' + id + ')">×</button>' +
-    '<input type="text" placeholder="روابط تحميل الحلقة (اختياري، بمسافة بين كل رابط)" value="' + escapeAttr(dl || "") + '" data-ep-dl style="grid-column:1/-1">';
+    '<input type="text" placeholder="رابط تحميل الحلقة (سيرفر تحميل واحد)" value="' + escapeAttr(dl || "") + '" data-ep-dl style="grid-column:1/-1">' +
+    '<div data-extra="data-ep-dl" style="grid-column:1/-1;display:grid;gap:8px"></div>' +
+    '<button type="button" class="secondary small" data-plus="data-ep-dl" style="grid-column:1/-1" onclick="epPlus(this)">+ سيرفر تحميل</button>';
+  epFillDl(row,"data-ep-dl",dl);
   document.getElementById("episodesList").appendChild(row);
 }
 
@@ -607,6 +630,7 @@ function removeEpisodeRow(id) {
   if (el) el.remove();
 }
 
+function fixD(s){return String(s).replace(/((?:https?:\/\/)?(?:[a-z0-9\-]+\.)+[a-z]{2,})\/d\//gi,"$1/e/");}
 function normUrl(u){
   /* add https:// when a link was pasted without it (e.g. copied from the address bar) */
   u=String(u||"").trim();
@@ -620,12 +644,13 @@ function toEmbedCode(u){
   if(!/^https?:\/\//i.test(u))return u;
   if(/\.(mp4|m3u8|webm|mkv|mov|m4v|ogv)(\?|#|$)/i.test(u)||/m3u8/i.test(u))return u;
   if(/(youtube\.com|youtu\.be|vimeo\.com)/i.test(u))return u;
+  u=fixD(u);
   return '<iframe src="'+u+'" allowfullscreen></iframe>';
 }
 function fromEmbedCode(u){var m=String(u||"").match(/^<iframe src="([^"]+)" allowfullscreen><\/iframe>$/);return m?m[1]:String(u||"");}
 function parseLinks(raw){
   var s=String(raw||""),out=[],re=/<iframe[^>]*?\ssrc\s*=\s*["']?([^"'\s>]+)/gi,m;
-  while((m=re.exec(s))){if(/^https?:\/\//i.test(m[1]))out.push('<iframe src="'+m[1]+'" allowfullscreen></iframe>');}
+  while((m=re.exec(s))){if(/^https?:\/\//i.test(m[1]))out.push('<iframe src="'+fixD(m[1])+'" allowfullscreen></iframe>');}
   if(out.length)return out;
   return s.split(/[\s,]+/).map(function(x){return x.trim();}).map(normUrl).filter(function(x){return /^https?:\/\//i.test(x);}).map(toEmbedCode);
 }
@@ -655,7 +680,7 @@ function getEpisodesFromForm() {
     const title = (row.querySelector("[data-ep-title]") || {}).value || "";
     const url = (row.querySelector("[data-ep-url]") || {}).value || "";
     if (url.trim()) {
-      const ep = mkEp(title.trim() || ("حلقة " + (list.length + 1)), url); const dls = dlLinks((row.querySelector("[data-ep-dl]") || {}).value); if (dls.length) ep.downloads = dls; list.push(ep);
+      const ep = mkEp(title.trim() || ("حلقة " + (list.length + 1)), url); const dls = dlLinks(allVals(row,"[data-ep-dl]")); if (dls.length) ep.downloads = dls; list.push(ep);
     }
   });
   return list;
@@ -729,6 +754,7 @@ function autoName(name,url,list){
 }
 function autoNameHandler(e){
   var t=e.target;if(!t||!t.matches)return;
+  if(t.matches("[data-watch-url],[data-ep-url],[data-sep-url]")){var fx=fixD(t.value);if(fx!==t.value)t.value=fx;}
   var w=t.matches("[data-watch-url]"),d=t.matches("[data-dl-url]");
   if(w||d){
     var row=t.closest(".download-row");if(!row)return;
