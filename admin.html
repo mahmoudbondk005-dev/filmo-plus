@@ -681,7 +681,30 @@ function addWatchRow(name, url) {
   document.getElementById("watchList").appendChild(row);
 }
 function removeWatchRow(id){const el=document.getElementById("watch-"+id);if(el)el.remove();}
-function getWatchServersFromForm(){const list=[];document.querySelectorAll("#watchList .download-row").forEach(row=>{const name=(row.querySelector("[data-watch-name]")||{}).value||"";const url=(row.querySelector("[data-watch-url]")||{}).value||"";if(url.trim())list.push({name:name.trim()||("سيرفر "+(list.length+1)),url:toEmbedCode(url.trim())});});return list;}
+function hostLabel(u){
+  var s=String(u||""),m=s.match(/\ssrc\s*=\s*["']([^"']+)/i);if(m)s=m[1];
+  try{var h=new URL(s.trim()).hostname.replace(/^www\./,"");return h.indexOf(".")>0?h.split(".")[0]:"";}catch(e){return "";}
+}
+function autoName(name,url,list){
+  var n=String(name||"").trim();
+  if(!n||/^سيرفر\s*\d+$/.test(n)||n==="السيرفر الأساسي"){n=hostLabel(url)||n||("سيرفر "+(list.length+1));}
+  var base=n,k=1;
+  while(list.some(function(x){return x.name===n;})){k++;n=base+" "+k;}
+  return n;
+}
+document.addEventListener("input",function(e){
+  var t=e.target;if(!t||!t.matches)return;
+  var w=t.matches("[data-watch-url]"),d=t.matches("[data-dl-url]");
+  if(w||d){
+    var row=t.closest(".download-row");if(!row)return;
+    var n=row.querySelector(w?"[data-watch-name]":"[data-dl-name]");if(!n)return;
+    var cur=n.value.trim();
+    if(!cur||/^سيرفر\s*\d+$/.test(cur)||n.getAttribute("data-auto")==="1"){
+      var h=hostLabel(t.value);if(h){n.value=h;n.setAttribute("data-auto","1");}
+    }
+  }else if(t.matches("[data-watch-name],[data-dl-name]")){t.removeAttribute("data-auto");}
+},true);
+function getWatchServersFromForm(){const list=[];document.querySelectorAll("#watchList .download-row").forEach(row=>{const name=(row.querySelector("[data-watch-name]")||{}).value||"";const url=(row.querySelector("[data-watch-url]")||{}).value||"";if(url.trim())list.push({name:autoName(name,url,list),url:toEmbedCode(url.trim())});});return list;}
 function parseWatchServers(val){if(!val)return [];if(Array.isArray(val))return val.filter(x=>x&&x.url);try{const p=JSON.parse(val);if(Array.isArray(p))return p.filter(x=>x&&x.url);}catch{}return val?[{name:"السيرفر الأساسي",url:String(val)}]:[];}
 
 let downloadCounter = 0;
@@ -703,7 +726,7 @@ function getDownloadsFromForm() {
   rows.forEach(row=>{
     const name=(row.querySelector("[data-dl-name]")||{}).value||"";
     const url=(row.querySelector("[data-dl-url]")||{}).value||"";
-    if(url.trim()) list.push({name:name.trim() || ("سيرفر " + (list.length+1)), url:url.trim()});
+    if(url.trim()) list.push({name:autoName(name,url,list), url:url.trim()});
   });
   return list;
 }
