@@ -260,6 +260,15 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 .ep-range::-webkit-scrollbar{display:none}
 .ep-range button{flex:0 0 auto;height:34px;padding:0 14px;border-radius:999px;background:#151d29;border:1px solid #2a3649;color:#c9d1dd;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer}
 .ep-range button.on{background:#ffb000;border-color:#ffb000;color:#111}
+
+/* Labeled sponsor slot */
+.ad-slot{display:flex;align-items:center;gap:12px;margin:18px 0;padding:12px 14px;border-radius:14px;background:linear-gradient(135deg,#171d27,#10151e);border:1px dashed #ffb00066;color:#dfe3eb;text-decoration:none;font-size:13px;line-height:1.6}
+.ad-slot .ad-tag{flex:0 0 auto;background:#ffb000;color:#111;font-weight:800;font-size:11px;padding:3px 9px;border-radius:999px}
+.ad-slot .ad-txt{flex:1;min-width:0}
+.ad-slot .ad-cta{flex:0 0 auto;color:#ffb000;font-weight:800}
+@media(hover:hover){.ad-slot:hover{border-color:#ffb000}}
+.route-movie .ad-home{display:none}
+.page-watch #details > .ad-slot{order:5}
 </style>
 </head>
 <body class="page-watch">
@@ -348,7 +357,8 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
   </div>
   <div id="playerWrap" class="player-wrap"><div id="playerInner" class="player-stage"></div></div>
   <button id="nextEp" class="btn" type="button" style="display:none;margin:12px auto 0" onclick="nextEpisode()">الحلقة التالية<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
-  <section id="related" style="display:none"><div class="head"><h2>أعمال مشابهة</h2></div><div id="grid-related" class="grid rowmode"></div></section>
+  <a class="ad-slot " href="https://uplcm.com/4/11977439" target="_blank" rel="sponsored noopener noreferrer"><span class="ad-tag">إعلان</span><span class="ad-txt">ادعم الموقع بزيارة الراعي، بيساعدنا نكمّل ونضيف أفلام ومسلسلات جديدة</span><span class="ad-cta">زيارة ›</span></a>
+<section id="related" style="display:none"><div class="head"><h2>أعمال مشابهة</h2></div><div id="grid-related" class="grid rowmode"></div></section>
 </div>
 
 
@@ -1281,6 +1291,21 @@ loadMovies();
     }finally{obs.observe(box,opts);}
   }
   obs.observe(box,opts);apply();
+})();
+</script>
+<script>
+/* Ads: ad on "next episode" (max once / 4 min), shared cooldown with server ads */
+(function(){
+  var AD="https://uplcm.com/4/11977439",K="cc_ad_last";
+  function can(g){try{return Date.now()-Number(sessionStorage.getItem(K)||0)>g;}catch(e){return true;}}
+  function mark(){try{sessionStorage.setItem(K,String(Date.now()));}catch(e){}}
+  var os=window.openServerAd;
+  if(typeof os==="function"){window.openServerAd=function(f){mark();return os(f);};}
+  var ne=window.nextEpisode;
+  if(typeof ne==="function"){window.nextEpisode=function(){
+    if(can(240000)){mark();try{window.open(AD,"_blank","noopener,noreferrer");}catch(e){}}
+    return ne.apply(this,arguments);
+  };}
 })();
 </script>
 </body>
