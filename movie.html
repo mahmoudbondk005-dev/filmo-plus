@@ -9,7 +9,7 @@
 <link rel="canonical" href="https://cimacima.online/">
 <meta name="theme-color" content="#090b10">
 <meta property="og:type" content="website"><meta property="og:site_name" content="سيما سيما"><meta property="og:locale" content="ar_AR"><meta property="og:title" content="سيما سيما | أفلام ومسلسلات"><meta property="og:description" content="تصفح الأفلام والمسلسلات العربية والأجنبية بسهولة."><meta property="og:url" content="https://cimacima.online/">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23090b10'/%3E%3Cpath d='M24 18l22 14-22 14z' fill='%23ffb000'/%3E%3C/svg%3E">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/favicon.svg"><link rel="manifest" href="/site.webmanifest">
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#090b10;color:#f5f5f5;font-family:Tahoma,Arial,sans-serif}
@@ -96,8 +96,8 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 .head .muted{margin-inline-start:auto}.all{color:#ffb000;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}.all:hover{text-decoration:underline}.filtered .all{display:none}
 .hero.banner{min-height:340px;display:flex;flex-direction:column;justify-content:flex-end}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
-<script>if(/[?&]movie=/.test(location.search))document.documentElement.classList.add("route-movie")</script>
+<script defer src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
+<script>if(/[?&]movie=/.test(location.search)||/^\/(movie|series)\//.test(location.pathname))document.documentElement.classList.add("route-movie")</script>
 
 <style>
 .page-movie #homePage,.page-movie #favoritesSection,.page-movie #historySection,.page-watch #homePage,.page-watch #favoritesSection,.page-watch #historySection{display:none!important}
@@ -429,7 +429,7 @@ function renderRelated(x) {
 }
 function skeletons(n){return Array(n).fill('<div class="skel" aria-hidden="true"><div class="sp"></div><div class="sl"></div><div class="sl s"></div></div>').join("");}
 async function loadMovies() {
-  const requestedId=new URLSearchParams(location.search).get("movie");
+  const requestedId=new URLSearchParams(location.search).get("movie")||((location.pathname.match(/^\/(?:movie|series)\/[^/]+~([^/]+)$/i)||[])[1]?decodeURIComponent(location.pathname.match(/^\/(?:movie|series)\/[^/]+~([^/]+)$/i)[1]):null);
   try{const cached=JSON.parse(sessionStorage.getItem("cima_nav_movie")||"null");if(cached&&(!requestedId||String(cached.id)===String(requestedId))){allItems=[cached];show(cached,false);}}catch(e){}
   const hasCachedMovie=!!window.currentMovie;
   CATEGORIES.forEach(c => {
@@ -1062,7 +1062,7 @@ document.addEventListener("keydown", function (e) { if (e.key === "Escape") { cl
 
 const PAGE_MODE = document.body.classList.contains("page-watch") ? "watch" : "movie";
 const originalItemPath = itemPath;
-function itemPath(x) { return "/movie.html?movie=" + encodeURIComponent(String(x.id)); }
+function itemPath(x) { return prettyPath(x); }
 const DIRECT_ADS_URL = "https://uplcm.com/4/11977439";
 function openDirectAdsThenWatch(){
   try {
@@ -1088,7 +1088,8 @@ show = function(x, pushRoute){
 
 const _oldRestoreRoute = restoreRoute;
 restoreRoute = function(){
-  const id=new URLSearchParams(location.search).get("movie");
+  const pm=location.pathname.match(/^\/(?:movie|series)\/[^/]+~([^/]+)$/i);
+  const id=new URLSearchParams(location.search).get("movie")||(pm?decodeURIComponent(pm[1]):null);
   if(id){ const it=allItems.find(x=>String(x.id)===String(id)); if(it){ show(it,false); return; } }
   location.href="/";
 };
