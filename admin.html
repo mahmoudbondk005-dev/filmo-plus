@@ -745,7 +745,9 @@ function autoFillRow(row){
   if(!u||!n)return;var cur=n.value.trim();
   if((!cur||/^سيرفر\s*\d+$/.test(cur))&&u.value){var h=hostLabel(u.value);if(h){n.value=h;n.setAttribute("data-auto","1");}}
 }
-function getWatchServersFromForm(){const list=[];document.querySelectorAll("#watchList .download-row").forEach(row=>{const name=(row.querySelector("[data-watch-name]")||{}).value||"";const url=(row.querySelector("[data-watch-url]")||{}).value||"";if(url.trim())list.push({name:autoName(name,url,list),url:toEmbedCode(url.trim())});});return list;}
+function splitWatchRow(raw){var it=parseLinks(raw);return it.length?it:[toEmbedCode(String(raw||"").trim())];}
+function splitDlRow(raw){var it=String(raw||"").split(/[\s,]+/).map(normUrl).filter(function(x){return /^https?:\/\//i.test(x);});return it.length?it:[normUrl(raw)];}
+function getWatchServersFromForm(){const list=[];document.querySelectorAll("#watchList .download-row").forEach(row=>{const name=(row.querySelector("[data-watch-name]")||{}).value||"";const url=(row.querySelector("[data-watch-url]")||{}).value||"";if(url.trim())splitWatchRow(url).forEach(function(it,k){list.push({name:autoName(k===0?name:"",it,list),url:it});});});return list;}
 function parseWatchServers(val){if(!val)return [];if(Array.isArray(val))return val.filter(x=>x&&x.url);try{const p=JSON.parse(val);if(Array.isArray(p))return p.filter(x=>x&&x.url);}catch{}return val?[{name:"السيرفر الأساسي",url:String(val)}]:[];}
 
 let downloadCounter = 0;
@@ -768,7 +770,7 @@ function getDownloadsFromForm() {
   rows.forEach(row=>{
     const name=(row.querySelector("[data-dl-name]")||{}).value||"";
     const url=(row.querySelector("[data-dl-url]")||{}).value||"";
-    if(url.trim()) list.push({name:autoName(name,url,list), url:normUrl(url)});
+    if(url.trim()) splitDlRow(url).forEach(function(it,k){list.push({name:autoName(k===0?name:"",it,list),url:it});});
   });
   return list;
 }
