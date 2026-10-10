@@ -577,13 +577,22 @@ function removeEpisodeRow(id) {
   if (el) el.remove();
 }
 
-function parseLinks(raw){return String(raw||"").split(/[\s,]+/).map(function(x){return x.trim();}).filter(function(x){return /^https?:\/\//i.test(x);});}
+function parseLinks(raw){
+  var s=String(raw||""),out=[],re=/<iframe[^>]*?\ssrc\s*=\s*["']?([^"'\s>]+)/gi,m;
+  while((m=re.exec(s))){if(/^https?:\/\//i.test(m[1]))out.push('<iframe src="'+m[1]+'" allowfullscreen></iframe>');}
+  if(out.length)return out;
+  return s.split(/[\s,]+/).map(function(x){return x.trim();}).filter(function(x){return /^https?:\/\//i.test(x);});
+}
+function linkHost(item,i){
+  var u=item,m=String(item).match(/\ssrc="([^"]+)"/i);if(m)u=m[1];
+  var h="";try{h=new URL(u).hostname.replace(/^www\./,"").split(".")[0];}catch(e){}
+  return h||("سيرفر "+(i+1));
+}
 function mkEp(title,raw){
   var links=parseLinks(raw);
   if(links.length<2) return {title:title,url:(links[0]||String(raw||"").trim())};
   var seen={};
-  var servers=links.map(function(u,i){var h="";try{h=new URL(u).hostname.replace(/^www\./,"").split(".")[0];}catch(e){}
-    h=h||("سيرفر "+(i+1));seen[h]=(seen[h]||0)+1;return {name:seen[h]>1?h+" "+seen[h]:h,url:u};});
+  var servers=links.map(function(u,i){var h=linkHost(u,i);seen[h]=(seen[h]||0)+1;return {name:seen[h]>1?h+" "+seen[h]:h,url:u};});
   return {title:title,url:links[0],servers:servers};
 }
 function epLinks(ep){return Array.isArray(ep.servers)&&ep.servers.length?ep.servers.map(function(s){return s.url;}).join(" "):(ep.url||"");}
