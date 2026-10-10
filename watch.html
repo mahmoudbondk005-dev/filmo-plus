@@ -240,7 +240,7 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 .page-watch #episodesBox{background:#0f1622;border:1px solid #202c3e;border-radius:16px;padding:16px}
 .page-watch #episodesBox h3{display:flex;align-items:center;gap:8px;font-size:17px;margin-bottom:14px}
 .page-watch #episodesBox h3::before{content:"";width:4px;height:18px;border-radius:4px;background:#ffb000}
-.page-watch #epList:not(:has(#seasonTabs)),.page-watch #seasonEpisodesList{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(92px,1fr))!important;gap:10px!important;max-height:340px;overflow-y:auto!important;overflow-x:hidden!important;padding:2px 2px 4px!important;scrollbar-width:thin;scrollbar-color:#344055 transparent}
+.page-watch #epList:not(:has(#seasonTabs)),.page-watch #seasonEpisodesList{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(92px,1fr))!important;gap:10px!important;padding:2px 2px 4px!important;scrollbar-width:thin;scrollbar-color:#344055 transparent}
 .page-watch #episodesBox .ep-btn{position:relative;display:flex;align-items:center;justify-content:center;gap:6px;min-width:0!important;height:48px!important;padding:0 10px!important;border-radius:12px!important;font-size:13px!important;font-weight:800;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:linear-gradient(180deg,#1a2332,#141c29)!important;border:1px solid #2a3649!important;color:#e6ebf3!important;transition:transform .15s,border-color .15s,box-shadow .15s}
 @media(hover:hover){.page-watch #episodesBox .ep-btn:hover{border-color:#ffb000!important;color:#ffb000!important;transform:translateY(-2px);box-shadow:0 8px 18px #0006}}
 .page-watch #episodesBox .ep-btn.done:not(.active){color:#a9b3c2!important;opacity:.9!important}
@@ -252,7 +252,14 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 .page-watch #seasonTabs::-webkit-scrollbar{display:none}
 .page-watch #seasonTabs .ep-btn{flex:0 0 auto;height:38px!important;padding:0 18px!important;border-radius:999px!important;font-size:13px!important;overflow:visible;text-overflow:clip}
 .page-watch #seasonTabs .ep-btn.active::before{content:none}
-@media(max-width:600px){.page-watch #episodesBox{padding:12px}.page-watch #epList:not(:has(#seasonTabs)),.page-watch #seasonEpisodesList{grid-template-columns:repeat(auto-fill,minmax(78px,1fr))!important;max-height:300px}.page-watch #episodesBox .ep-btn{height:44px!important;font-size:12px!important}}
+@media(max-width:600px){.page-watch #episodesBox{padding:12px}.page-watch #epList:not(:has(#seasonTabs)),.page-watch #seasonEpisodesList{grid-template-columns:repeat(auto-fill,minmax(78px,1fr))!important}.page-watch #episodesBox .ep-btn{height:44px!important;font-size:12px!important}}
+
+/* hide episodes box when empty (movies) + range chips */
+.page-watch #episodesBox:has(#epList:empty){display:none!important}
+.ep-range{display:flex;gap:8px;overflow-x:auto;margin:0 0 12px;padding-bottom:4px;scrollbar-width:none}
+.ep-range::-webkit-scrollbar{display:none}
+.ep-range button{flex:0 0 auto;height:34px;padding:0 14px;border-radius:999px;background:#151d29;border:1px solid #2a3649;color:#c9d1dd;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.ep-range button.on{background:#ffb000;border-color:#ffb000;color:#111}
 </style>
 </head>
 <body class="page-watch">
@@ -1236,6 +1243,45 @@ restoreRoute = function(){
 };
 
 loadMovies();
+</script>
+<script>
+/* Episode ranges: show 12 episodes at a time for long series */
+(function(){
+  var SIZE=12,cur=0,key='',lastAct=-1,box=document.getElementById("episodesBox");
+  if(!box)return;
+  var opts={childList:true,subtree:true,attributes:true,attributeFilter:["class"]};
+  var obs=new MutationObserver(apply);
+  function holder(){
+    return document.getElementById("seasonEpisodesList")||(document.getElementById("seasonTabs")?null:document.getElementById("epList"));
+  }
+  function apply(){
+    obs.disconnect();
+    try{
+      var c=holder(),bar=document.getElementById("epRange");
+      if(!c){if(bar)bar.remove();return;}
+      var b=[].slice.call(c.querySelectorAll(".ep-btn")),n=b.length;
+      if(n<=SIZE){if(bar)bar.remove();b.forEach(function(x){x.style.display="";});return;}
+      var pages=Math.ceil(n/SIZE),k=(c.id||"")+":"+n;
+      var act=-1;b.forEach(function(x,i){if(x.classList.contains("active"))act=i;});
+      if(k!==key){key=k;cur=0;lastAct=-1;}
+      if(act>=0&&act!==lastAct){cur=Math.floor(act/SIZE);}
+      lastAct=act;
+      if(cur>=pages)cur=0;
+      if(!bar||bar.getAttribute("data-k")!==k){
+        if(bar)bar.remove();
+        bar=document.createElement("div");bar.id="epRange";bar.className="ep-range";bar.setAttribute("data-k",k);
+        var h="";
+        for(var p=0;p<pages;p++){h+='<button type="button" data-p="'+p+'">'+(p*SIZE+1)+"\u2013"+Math.min(n,(p+1)*SIZE)+"</button>";}
+        bar.innerHTML=h;
+        bar.addEventListener("click",function(e){var t=e.target.closest("button");if(!t)return;cur=Number(t.getAttribute("data-p"));apply();});
+        c.parentNode.insertBefore(bar,c);
+      }
+      [].forEach.call(bar.querySelectorAll("button"),function(x){x.classList.toggle("on",Number(x.getAttribute("data-p"))===cur);});
+      b.forEach(function(x,i){x.style.display=(i>=cur*SIZE&&i<(cur+1)*SIZE)?"":"none";});
+    }finally{obs.observe(box,opts);}
+  }
+  obs.observe(box,opts);apply();
+})();
 </script>
 </body>
 </html>
