@@ -152,6 +152,14 @@ img,video,iframe{max-width:100%}
     <div id="episodesNormalBox">
       <div id="episodesList"></div>
       <button type="button" class="secondary small" onclick="addEpisodeRow()">+ إضافة حلقة</button>
+      <details style="margin-top:10px"><summary style="cursor:pointer;color:#8d929d;font-size:13px">لصق روابط كل الحلقات مرة واحدة</summary>
+        <label>روابط المشاهدة (كل حلقة في سطر، ولو لها أكتر من سيرفر حط الروابط بمسافة)</label>
+        <textarea id="bulkEpWatch" style="width:100%;min-height:90px"></textarea>
+        <button type="button" class="secondary small" onclick="bulkAddEpisodes()">إضافة الروابط كحلقات</button>
+        <label style="margin-top:10px">روابط التحميل (السطر 1 للحلقة 1، السطر 2 للحلقة 2، وهكذا)</label>
+        <textarea id="bulkEpDl" style="width:100%;min-height:90px"></textarea>
+        <button type="button" class="secondary small" onclick="bulkFillDownloads()">ملء روابط التحميل</button>
+      </details>
     </div>
     <div id="seasonsBox" style="display:none">
       <div id="seasonsList"></div>
@@ -495,7 +503,7 @@ function addSeasonRow(name, episodes) {
     '<div id="seasonEps-' + id + '"></div><button type="button" class="secondary small" onclick="addSeasonEpisodeRow(' + id + ')">+ إضافة حلقة</button> ' +
     '<details style="margin-top:8px"><summary style="cursor:pointer;color:#8d929d;font-size:13px">لصق روابط كل الحلقات مرة واحدة</summary>' +
     '<textarea id="seasonBulk-' + id + '" placeholder="الصق الروابط هنا، كل حلقة في سطر (ولو لها أكتر من سيرفر حط روابطها في نفس السطر بمسافة بينها)" style="width:100%;min-height:90px;margin-top:6px"></textarea>' +
-    '<button type="button" class="secondary small" onclick="bulkAddSeasonEpisodes(' + id + ')">إضافة الروابط كحلقات</button></details>';
+    '<button type="button" class="secondary small" onclick="bulkAddSeasonEpisodes(' + id + ')">إضافة الروابط كحلقات</button>' + '<label style="margin-top:10px">روابط التحميل (السطر 1 للحلقة 1، السطر 2 للحلقة 2، وهكذا)</label><textarea id="seasonBulkDl-' + id + '" style="width:100%;min-height:90px;margin-top:6px"></textarea><button type="button" class="secondary small" onclick="bulkFillSeasonDownloads(' + id + ')">ملء روابط التحميل</button></details>';
   document.getElementById("seasonsList").appendChild(row);
   const eps = Array.isArray(episodes) ? episodes : [];
   if (eps.length) eps.forEach(ep => addSeasonEpisodeRow(id, ep.title || "", epLinks(ep), epDl(ep)));
@@ -515,6 +523,25 @@ function bulkAddSeasonEpisodes(seasonId) {
   let n = box.querySelectorAll(".ep-row").length;
   urls.forEach(function(u){ n++; addSeasonEpisodeRow(seasonId, "الحلقة " + n, u); });
   ta.value = "";
+}
+function fillDl(rows,sel,ta){
+  if(!ta)return;
+  var lines=ta.value.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
+  if(!lines.length)return;
+  rows.forEach(function(r,i){var el=r.querySelector(sel);if(el&&lines[i])el.value=lines[i];});
+  ta.value="";
+  if(lines.length>rows.length)alert("عدد الروابط ("+lines.length+") أكبر من عدد الحلقات ("+rows.length+")، اتملى أول "+rows.length+" فقط.");
+}
+function bulkFillDownloads(){fillDl([].slice.call(document.querySelectorAll("#episodesList .ep-row")),"[data-ep-dl]",document.getElementById("bulkEpDl"));}
+function bulkFillSeasonDownloads(id){fillDl([].slice.call(document.querySelectorAll("#seasonEps-"+id+" .ep-row")),"[data-sep-dl]",document.getElementById("seasonBulkDl-"+id));}
+function bulkAddEpisodes(){
+  var ta=document.getElementById("bulkEpWatch");if(!ta)return;
+  var lines=ta.value.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
+  if(!lines.length)return;
+  document.querySelectorAll("#episodesList .ep-row").forEach(function(r){var u=r.querySelector("[data-ep-url]");if(u&&!u.value.trim())r.remove();});
+  var n=document.querySelectorAll("#episodesList .ep-row").length;
+  lines.forEach(function(l){n++;addEpisodeRow("الحلقة "+n,l);});
+  ta.value="";
 }
 function removeSeasonRow(id) { const el=document.getElementById("season-"+id); if(el) el.remove(); }
 
