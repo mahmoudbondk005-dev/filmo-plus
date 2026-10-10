@@ -580,11 +580,20 @@ function removeEpisodeRow(id) {
   if (el) el.remove();
 }
 
+function toEmbedCode(u){
+  /* any page/embed link -> iframe, except direct video files, HLS, YouTube and Vimeo */
+  u=String(u||"").trim();
+  if(!/^https?:\/\//i.test(u))return u;
+  if(/\.(mp4|m3u8|webm|mkv|mov|m4v|ogv)(\?|#|$)/i.test(u)||/m3u8/i.test(u))return u;
+  if(/(youtube\.com|youtu\.be|vimeo\.com)/i.test(u))return u;
+  return '<iframe src="'+u+'" allowfullscreen></iframe>';
+}
+function fromEmbedCode(u){var m=String(u||"").match(/^<iframe src="([^"]+)" allowfullscreen><\/iframe>$/);return m?m[1]:String(u||"");}
 function parseLinks(raw){
   var s=String(raw||""),out=[],re=/<iframe[^>]*?\ssrc\s*=\s*["']?([^"'\s>]+)/gi,m;
   while((m=re.exec(s))){if(/^https?:\/\//i.test(m[1]))out.push('<iframe src="'+m[1]+'" allowfullscreen></iframe>');}
   if(out.length)return out;
-  return s.split(/[\s,]+/).map(function(x){return x.trim();}).filter(function(x){return /^https?:\/\//i.test(x);});
+  return s.split(/[\s,]+/).map(function(x){return x.trim();}).filter(function(x){return /^https?:\/\//i.test(x);}).map(toEmbedCode);
 }
 function linkHost(item,i){
   var u=item,m=String(item).match(/\ssrc="([^"]+)"/i);if(m)u=m[1];
@@ -603,7 +612,7 @@ function dlLinks(raw){
   return l.map(function(u,i){var h=linkHost(u,i);seen[h]=(seen[h]||0)+1;return {name:seen[h]>1?h+" "+seen[h]:h,url:u};});
 }
 function epDl(ep){return Array.isArray(ep.downloads)?ep.downloads.map(function(d){return d.url;}).join(" "):"";}
-function epLinks(ep){return Array.isArray(ep.servers)&&ep.servers.length?ep.servers.map(function(s){return s.url;}).join(" "):(ep.url||"");}
+function epLinks(ep){return Array.isArray(ep.servers)&&ep.servers.length?ep.servers.map(function(s){return fromEmbedCode(s.url);}).join(" "):fromEmbedCode(ep.url||"");}
 
 function getEpisodesFromForm() {
   const rows = document.querySelectorAll("#episodesList .ep-row");
@@ -668,11 +677,11 @@ function parseDownloads(val) {
 let watchCounter = 0;
 function addWatchRow(name, url) {
   watchCounter++; const id=watchCounter; const row=document.createElement("div"); row.className="download-row"; row.id="watch-"+id;
-  row.innerHTML='<input type="text" placeholder="سيرفر 1" value="'+escapeAttr(name || ("سيرفر "+id))+'" data-watch-name><input type="url" placeholder="https://..." value="'+escapeAttr(url || "")+'" data-watch-url><button type="button" class="danger small" onclick="removeWatchRow('+id+')">×</button>';
+  row.innerHTML='<input type="text" placeholder="سيرفر 1" value="'+escapeAttr(name || ("سيرفر "+id))+'" data-watch-name><input type="url" placeholder="رابط الفيديو (أي موقع)" value="'+escapeAttr(fromEmbedCode(url || ""))+'" data-watch-url><button type="button" class="danger small" onclick="removeWatchRow('+id+')">×</button>';
   document.getElementById("watchList").appendChild(row);
 }
 function removeWatchRow(id){const el=document.getElementById("watch-"+id);if(el)el.remove();}
-function getWatchServersFromForm(){const list=[];document.querySelectorAll("#watchList .download-row").forEach(row=>{const name=(row.querySelector("[data-watch-name]")||{}).value||"";const url=(row.querySelector("[data-watch-url]")||{}).value||"";if(url.trim())list.push({name:name.trim()||("سيرفر "+(list.length+1)),url:url.trim()});});return list;}
+function getWatchServersFromForm(){const list=[];document.querySelectorAll("#watchList .download-row").forEach(row=>{const name=(row.querySelector("[data-watch-name]")||{}).value||"";const url=(row.querySelector("[data-watch-url]")||{}).value||"";if(url.trim())list.push({name:name.trim()||("سيرفر "+(list.length+1)),url:toEmbedCode(url.trim())});});return list;}
 function parseWatchServers(val){if(!val)return [];if(Array.isArray(val))return val.filter(x=>x&&x.url);try{const p=JSON.parse(val);if(Array.isArray(p))return p.filter(x=>x&&x.url);}catch{}return val?[{name:"السيرفر الأساسي",url:String(val)}]:[];}
 
 let downloadCounter = 0;
