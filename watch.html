@@ -670,13 +670,25 @@ function renderAll() {
 
 function toggleMenu(){document.getElementById("menuPanel").classList.toggle("open");}
 function closeMenu(){document.getElementById("menuPanel").classList.remove("open");}
+function srvBase(d,i){
+  var n=String((d&&d.name)||"").trim();
+  if(n&&!/^سيرفر\s*\d+$/.test(n)&&n!=="السيرفر الأساسي")return n;
+  var u=String((d&&d.url)||""),m=u.match(/\ssrc\s*=\s*["']([^"']+)/i);if(m)u=m[1];
+  try{var h=new URL(u.trim()).hostname.replace(/^www\./,"");if(h.indexOf(".")>0)return h.split(".")[0];}catch(e){}
+  return n||("سيرفر "+(i+1));
+}
+function srvLabelAt(list,i){
+  var seen={},out=[];
+  (list||[]).forEach(function(d,k){var l=srvBase(d,k);seen[l]=(seen[l]||0)+1;out.push(seen[l]>1?l+" "+seen[l]:l);});
+  return out[i]||"";
+}
 function renderServerBox(title, list, mode) {
   const box = document.getElementById("serverBox");
   const items = (list || []).map(function(d,i){
     const href = safeHttpUrl(d.url);
     if (!href) return "";
-    if (mode === "watch") return '<button type="button" class="download-btn" data-server-index="' + i + '" onclick="playWatchServer(' + i + ')"><span>' + safe(d.name || ("سيرفر " + (i+1))) + '</span><span aria-hidden="true">›</span></button>';
-    return '<a class="download-btn" href="' + safe(href) + '" target="_blank" rel="noopener noreferrer" onclick="openServerAd(function(){})">' + safe(d.name || ("سيرفر " + (i+1))) + '</a>';
+    if (mode === "watch") return '<button type="button" class="download-btn" data-server-index="' + i + '" onclick="playWatchServer(' + i + ')"><span>' + safe(srvLabelAt(list, i)) + '</span><span aria-hidden="true">›</span></button>';
+    return '<a class="download-btn" href="' + safe(href) + '" target="_blank" rel="noopener noreferrer" onclick="openServerAd(function(){})">' + safe(srvLabelAt(list, i)) + '</a>';
   }).join("");
   if (!items) { box.style.display = "none"; box.innerHTML = ""; return; }
   box.innerHTML = '<div style="margin-top:18px"><h3 style="margin:0 0 10px;color:#ffb000;font-size:17px">' + title + '</h3><div class="download-list">' + items + '</div></div>';
@@ -1232,7 +1244,7 @@ function renderWatchDownloads(over,ttl){
   const icon='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>';
   const chev='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
   const items=list.map(function(d,i){
-    const raw=String(d.name||("سيرفر "+(i+1)));
+    const raw=String(srvLabelAt(list,i));
     const name=raw.replace(/^\s*(تحميل|تنزيل)\s+/,"")||raw;
     return '<a class="dl-item" href="'+safe(safeHttpUrl(d.url))+'" target="_blank" rel="noopener noreferrer"><span>'+safe(name)+'</span>'+icon+'</a>';
   }).join("");

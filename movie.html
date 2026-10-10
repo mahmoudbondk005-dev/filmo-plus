@@ -560,13 +560,25 @@ function renderAll() {
 
 function toggleMenu(){document.getElementById("menuPanel").classList.toggle("open");}
 function closeMenu(){document.getElementById("menuPanel").classList.remove("open");}
+function srvBase(d,i){
+  var n=String((d&&d.name)||"").trim();
+  if(n&&!/^سيرفر\s*\d+$/.test(n)&&n!=="السيرفر الأساسي")return n;
+  var u=String((d&&d.url)||""),m=u.match(/\ssrc\s*=\s*["']([^"']+)/i);if(m)u=m[1];
+  try{var h=new URL(u.trim()).hostname.replace(/^www\./,"");if(h.indexOf(".")>0)return h.split(".")[0];}catch(e){}
+  return n||("سيرفر "+(i+1));
+}
+function srvLabelAt(list,i){
+  var seen={},out=[];
+  (list||[]).forEach(function(d,k){var l=srvBase(d,k);seen[l]=(seen[l]||0)+1;out.push(seen[l]>1?l+" "+seen[l]:l);});
+  return out[i]||"";
+}
 function renderServerBox(title, list, mode) {
   const box = document.getElementById("serverBox");
   const items = (list || []).map(function(d,i){
     const href = safeHttpUrl(d.url);
     if (!href) return "";
-    if (mode === "watch") return '<button type="button" class="download-btn" onclick="playWatchServer(' + i + ')">' + safe(d.name || ("سيرفر " + (i+1))) + '</button>';
-    return '<a class="download-btn" href="' + safe(href) + '" target="_blank" rel="noopener noreferrer">' + safe(d.name || ("سيرفر " + (i+1))) + '</a>';
+    if (mode === "watch") return '<button type="button" class="download-btn" onclick="playWatchServer(' + i + ')">' + safe(srvLabelAt(list, i)) + '</button>';
+    return '<a class="download-btn" href="' + safe(href) + '" target="_blank" rel="noopener noreferrer">' + safe(srvLabelAt(list, i)) + '</a>';
   }).join("");
   if (!items) { box.style.display = "none"; box.innerHTML = ""; return; }
   box.innerHTML = '<div style="margin-top:18px"><h3 style="margin:0 0 10px;color:#ffb000;font-size:17px">' + title + '</h3><div class="download-list">' + items + '</div></div>';
