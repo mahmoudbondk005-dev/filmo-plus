@@ -270,6 +270,36 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 .eps-btn.active{background:#ffb000;border-color:#ffb000;color:#111}
 @media(hover:hover){.eps-btn:hover:not(.active){border-color:#ffb000;color:#ffb000}}
 
+
+/* Watch page layout: servers > video > episode nav > episodes > downloads > details */
+.page-watch #details > .back{order:0!important}
+.page-watch #details > #serverBox{order:1!important}
+.page-watch #details > #epServers{order:2!important}
+.page-watch #details > #playerWrap{order:3!important}
+.page-watch #details > #epNav{order:4!important}
+.page-watch #details > #episodesBox{order:5!important}
+.page-watch #details > #downloadWatchBox{order:6!important}
+.page-watch #details > .detail{order:7!important;margin-top:18px}
+.page-watch #details > #related{order:8!important}
+.page-watch #details > #nextEp{display:none!important}
+/* server cards (2 columns) */
+.page-watch #serverBox,.page-watch #epServers{background:#0f1622;border:1px solid #202c3e;border-radius:18px;padding:12px;margin:12px 0 0}
+.page-watch #serverBox > div{margin-top:0!important}
+.page-watch #serverBox h3,.eps-title{display:block;margin:0 0 12px!important;padding:12px 16px;border-radius:14px;background:linear-gradient(135deg,#ffb000,#ff8a00);color:#111!important;text-align:center;font-size:16px!important;font-weight:900}
+.page-watch #serverBox .download-list,.eps-row{display:grid!important;grid-template-columns:1fr 1fr;gap:10px}
+.page-watch #serverBox .download-btn,.eps-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:54px;height:auto;padding:8px 12px;border-radius:14px;background:#171f2b;border:1px solid #293548;color:#f1f4fa;font-family:inherit;font-size:15px;font-weight:800;text-align:right}
+.page-watch #serverBox .download-btn span:last-child,.eps-btn::after{flex:0 0 auto;width:32px;height:32px;border-radius:50%;background:#ffb000;color:#111;display:grid;place-items:center;font-size:0}
+.page-watch #serverBox .download-btn span:last-child::before{content:"\25B6";font-size:11px}
+.eps-btn::after{content:"\25B6";font-size:11px}
+.page-watch #serverBox .download-btn.server-active,.eps-btn.active{background:linear-gradient(135deg,#ffb000,#ffca52);border-color:#ffb000;color:#111}
+.page-watch #serverBox .download-btn.server-active span:last-child,.eps-btn.active::after{background:#111;color:#ffb000}
+/* episode navigator: previous | current | next */
+.ep-nav{display:flex;gap:10px;align-items:stretch;margin:12px 0 0;padding:10px;background:#0f1622;border:1px solid #202c3e;border-radius:18px}
+.epn-side{flex:0 0 28%;display:flex;align-items:center;justify-content:center;gap:8px;height:54px;border-radius:14px;background:#151d29;border:1px solid #2a3649;color:#e6ebf3;font-family:inherit;font-size:18px;font-weight:800;cursor:pointer}
+.epn-side:disabled{opacity:.3;cursor:default}
+.epn-chev{color:#ffb000;font-size:24px;line-height:1}
+.epn-cur{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:8px;height:54px;padding:0 8px;border-radius:14px;background:linear-gradient(135deg,#ffb000,#ffca52);color:#111;font-weight:900;font-size:16px;white-space:nowrap;overflow:hidden}
+@media(hover:hover){.epn-side:not(:disabled):hover{border-color:#ffb000}}
 </style>
 </head>
 <body class="page-watch">
@@ -358,6 +388,7 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
   </div>
   <div id="playerWrap" class="player-wrap"><div id="playerInner" class="player-stage"></div></div>
   <div id="epServers" class="ep-servers" style="display:none"></div>
+  <div id="epNav" class="ep-nav" style="display:none"></div>
   <button id="nextEp" class="btn" type="button" style="display:none;margin:12px auto 0" onclick="nextEpisode()">الحلقة التالية<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
   <section id="related" style="display:none"><div class="head"><h2>أعمال مشابهة</h2></div><div id="grid-related" class="grid rowmode"></div></section>
 </div>
@@ -699,7 +730,7 @@ function watch(){
   if (!x) return;
   const servers = Array.isArray(x.watchServers) ? x.watchServers : [];
   if (servers.length) {
-    renderServerBox("▶ اختر سيرفر المشاهدة", servers, "watch");
+    renderServerBox("🎞️ سيرفرات المشاهدة", servers, "watch");
     document.getElementById("serverBox").scrollIntoView({behavior:"smooth",block:"nearest"});
     return;
   }
@@ -1176,16 +1207,29 @@ function playEpisode(index) {
   document.querySelectorAll((usingSeasons ? "#seasonEpisodesList" : "#epList") + " .ep-btn").forEach((b, i) => { b.classList.remove("active"); if (i === index) b.classList.add("active", "done"); });
   document.getElementById("nextEp").style.display = index < eps.length - 1 ? "block" : "none";
   renderEpServers(eps[index]);
+  updateEpNav(index, eps);
   { const d = eps[index].downloads; renderWatchDownloads(d, Array.isArray(d) && d.length ? safe("تحميل " + (eps[index].title || ("الحلقة " + (index + 1)))) : null); }
   playUrl(eps[index].url);
 }
+function _epNum(e,i){var m=String((e&&e.title)||"").match(/\d+/);return m?m[0]:String(i+1);}
+function updateEpNav(i,eps){
+  var n=document.getElementById("epNav");if(!n)return;
+  if(!eps||eps.length<2){n.style.display="none";n.innerHTML="";return;}
+  n.style.display="";
+  var prev=i>0?eps[i-1]:null,next=i<eps.length-1?eps[i+1]:null;
+  var cur=(eps[i]&&eps[i].title)||("الحلقة "+(i+1));
+  n.innerHTML='<button type="button" class="epn-side"'+(prev?' onclick="prevEpisode()"':" disabled")+'><span class="epn-chev">\u203A</span><span>'+(prev?safe(_epNum(prev,i-1)):"")+'</span></button>'
+    +'<div class="epn-cur"><span>'+safe(cur)+'</span><span>\u25B6</span></div>'
+    +'<button type="button" class="epn-side"'+(next?' onclick="nextEpisode()"':" disabled")+'><span>'+(next?safe(_epNum(next,i+1)):"")+'</span><span class="epn-chev">\u2039</span></button>';
+}
+function prevEpisode(){var i=(window._epIdx||0)-1;if(i>=0)playEpisode(i);}
 function renderEpServers(ep){
   var box=document.getElementById("epServers"); if(!box)return;
   var list=ep&&Array.isArray(ep.servers)?ep.servers.filter(function(s){return s&&s.url;}):[];
   window._epServerList=list;
   if(list.length<2){box.innerHTML="";box.style.display="none";return;}
   box.style.display="";
-  box.innerHTML='<div class="eps-title">سيرفرات الحلقة</div><div class="eps-row">'+list.map(function(s,i){return '<button type="button" class="eps-btn'+(i===0?" active":"")+'" onclick="playEpServer('+i+')">'+safe(s.name||("سيرفر "+(i+1)))+"</button>";}).join("")+"</div>";
+  box.innerHTML='<div class="eps-title">🎞️ سيرفرات المشاهدة</div><div class="eps-row">'+list.map(function(s,i){return '<button type="button" class="eps-btn'+(i===0?" active":"")+'" onclick="playEpServer('+i+')">'+safe(s.name||("سيرفر "+(i+1)))+"</button>";}).join("")+"</div>";
 }
 function playEpServer(i){
   var l=window._epServerList||[]; if(!l[i])return;
@@ -1199,7 +1243,7 @@ function watch() {
   if (m && isSeries(m.type) && m.seasonsEnabled && m.seasons.length) { const eb=document.getElementById("episodesBox"); eb.style.display="block"; eb.scrollIntoView({behavior:"smooth",block:"nearest"}); return; }
   if (m && isSeries(m.type) && m.episodes.length) { const st = epState(m.id); playEpisode(st.last != null ? st.last : 0); return; }
   const servers = Array.isArray(m.watchServers) ? m.watchServers : [];
-  if (servers.length) { renderServerBox("▶ اختر سيرفر المشاهدة", servers, "watch"); document.getElementById("serverBox").scrollIntoView({behavior:"smooth",block:"nearest"}); return; }
+  if (servers.length) { renderServerBox("🎞️ سيرفرات المشاهدة", servers, "watch"); document.getElementById("serverBox").scrollIntoView({behavior:"smooth",block:"nearest"}); return; }
   playUrl(m.movie_url);
 }
 function countView(x) {
