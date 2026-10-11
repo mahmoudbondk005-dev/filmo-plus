@@ -94,7 +94,7 @@ async function loadHtml(env, url, request, paths) {
   return null;
 }
 function staticSitemap(rows) {
-  const urls = ["/", "/privacy", "/terms", "/contact"];
+  const urls = ["/", "/privacy", "/terms", "/contact", "/dmca"];
   for (const row of rows) {
     if (row && (row.Id ?? row.id) != null && row.title) urls.push(itemPath(row));
   }
@@ -116,11 +116,17 @@ export default {
       if (match) {
         const id = decodeURIComponent(match[2]);
         const row = await getMovie(id);
-        const asset = await loadHtml(env, url, request, ["/index.html", "/"]);
+        // الرابط الجميل يعرض صفحة الفيلم الحقيقية (movie.html) بنفس الـ SEO
+        const page = await loadHtml(env, url, request, ["/movie.html", "/movie"]);
+        const asset = page || await loadHtml(env, url, request, ["/index.html", "/"]);
         if (!asset) return env.ASSETS.fetch(request);
         if (!row) return asset;
-        const html = await asset.text();
-        return new Response(injectSeo(html, row, SITE + itemPath(row)), {
+        let html = injectSeo(await asset.text(), row, SITE + itemPath(row));
+        if (page) {
+          const fix = '<script>history.replaceState(null,"","/movie.html?movie="+' + JSON.stringify(encodeURIComponent(String(row.Id ?? row.id))) + ')</script>';
+          html = html.replace(/<head[^>]*>/i, m => m + fix);
+        }
+        return new Response(html, {
           status: 200,
           headers: { "content-type": "text/html; charset=UTF-8", "cache-control": "public, max-age=300" }
         });
