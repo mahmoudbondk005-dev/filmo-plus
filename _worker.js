@@ -112,6 +112,11 @@ export default {
         catch (e) { return new Response("Sitemap temporarily unavailable", { status: 503, headers: { "content-type": "text/plain; charset=UTF-8", "retry-after": "300" } }); }
         return new Response(staticSitemap(rows), { headers: { "content-type": "application/xml; charset=UTF-8", "cache-control": "public, max-age=300" } });
       }
+      // الروابط القديمة /?movie=ID تتحول بشكل دائم (301) للرابط الأساسي
+      if (url.pathname === "/" && url.searchParams.get("movie")) {
+        const oldRow = await getMovie(url.searchParams.get("movie"));
+        if (oldRow && oldRow.title) return Response.redirect(SITE + itemPath(oldRow), 301);
+      }
       const match = url.pathname.match(/^\/(movie|series)\/[^/]+~([^/]+)$/i);
       if (match) {
         const id = decodeURIComponent(match[2]);

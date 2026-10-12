@@ -651,7 +651,7 @@ function slugifyArabic(value) {
     .replace(/^-+|-+$/g, "") || "item";
 }
 function itemPath(x) {
-  return "/?movie=" + encodeURIComponent(String(x.id));
+  return "/movie.html?movie=" + encodeURIComponent(String(x.id));
 }
 function card(x) {
   const poster = safe(x.img || PLACEHOLDER);
