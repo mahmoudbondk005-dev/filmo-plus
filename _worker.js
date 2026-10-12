@@ -20,11 +20,11 @@ function itemPath(row) {
   return `/${kind}/${encodeURIComponent(slugify(row.title))}~${encodeURIComponent(String(row.Id ?? row.id))}`;
 }
 function description(row) {
-  const d = String(row.description || "").trim();
-  if (d) return d.slice(0, 160);
   const type = isSeries(row.category) ? "مسلسل" : "فيلم";
   const year = row.year ? ` ${row.year}` : "";
-  return `شاهد ${type}${year} ${row.title || ""} عبر سيما سيما. معلومات العمل والصورة وبيانات المشاهدة.`.trim().slice(0,160);
+  const lead = `مشاهدة وتحميل ${type} ${row.title || ""}${year} كامل اون لاين.`.replace(/\s+/g, " ");
+  const d = String(row.description || "").trim().replace(/\s+/g, " ");
+  return (d ? `${lead} ${d}` : `${lead} معلومات العمل وقصته وروابط المشاهدة عبر سيما سيما.`).slice(0, 160);
 }
 async function getMovie(id) {
   const queries = ["Id", "id"];
