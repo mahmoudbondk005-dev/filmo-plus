@@ -207,7 +207,7 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 </div>
 
 
-<footer>سيما سيما © 2026 | <a href="/privacy.html" style="color:#aaa">الخصوصية</a> · <a href="/terms.html" style="color:#aaa">الشروط</a> · <a href="/dmca.html" style="color:#aaa">حقوق الملكية</a> · <a href="/contact.html" style="color:#aaa">تواصل معنا</a></footer>
+<footer>سيما سيما © 2026 | <a href="/privacy" style="color:#aaa">الخصوصية</a> · <a href="/terms" style="color:#aaa">الشروط</a> · <a href="/dmca" style="color:#aaa">حقوق الملكية</a> · <a href="/contact" style="color:#aaa">تواصل معنا</a></footer>
 <div id="toast" class="toast"></div>
 
 <script>
@@ -484,7 +484,7 @@ function card(x) {
   const favClass = isFav(x.id) ? " on" : "";
   const heart = isFav(x.id) ? "♥" : "♡";
   const id = safe(x.id);
-  const href = safe(itemPath(x));
+  const href = safe(prettyPath(x));
   return '<div class="card" data-id="' + id + '">' +
     '<a class="card-link" href="' + href + '" aria-label="' + safe(x.name) + '" onclick="cacheMovieForNavigation(' + id + ')">' +
     '<div class="poster"><img src="' + poster + '" width="200" height="300" alt="' + safe(x.name) + '" loading="lazy" decoding="async" onerror="this.onerror=null;this.src=PLACEHOLDER"><span class="poster-rating"><svg viewBox="0 0 24 24" width="12" height="12" class="st" fill="currentColor" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.7l5.9-.8z"/></svg> ' + safe(x.rating) + '</span><span class="poster-watermark">سيما سيما</span></div>' +
@@ -1081,7 +1081,7 @@ function setupBanner() {
     const x = pool[i++ % pool.length];
     hero.classList.add("banner");
     hero.style.background = 'linear-gradient(0deg,#090b10 8%,#090b10b3 50%,#090b1040),url("' + safe(x.img) + '") center 20%/cover';
-    hero.innerHTML = "<h1>" + safe(x.name) + '</h1><div class="muted">' + safe(x.type) + " • " + safe(x.year) + " • ⭐ " + safe(x.rating) + "</div><p>" + safe((x.desc || "").slice(0, 180)) + '</p><button class="btn" type="button" onclick="location.href=\'' + safe(itemPath(x)) + '\'">▶ شاهد الآن</button>';
+    hero.innerHTML = "<h1>" + safe(x.name) + '</h1><div class="muted">' + safe(x.type) + " • " + safe(x.year) + " • ⭐ " + safe(x.rating) + "</div><p>" + safe((x.desc || "").slice(0, 180)) + '</p><button class="btn" type="button" onclick="location.href=\'' + safe(prettyPath(x)) + '\'">▶ شاهد الآن</button>';
   }
   paint(); clearInterval(bannerT); bannerT = setInterval(paint, 7000);
 }

@@ -27,18 +27,20 @@ function description(row) {
   return (d ? `${lead} ${d}` : `${lead} معلومات العمل وقصته وروابط المشاهدة عبر سيما سيما.`).slice(0, 160);
 }
 async function getMovie(id) {
-  const queries = ["Id", "id"];
-  for (const key of queries) {
+  let sawOk = false;
+  for (const key of ["Id", "id"]) {
     const url = `${SUPABASE_URL}/rest/v1/movies?select=*&${key}=eq.${encodeURIComponent(id)}&limit=1`;
     const r = await fetch(url, { headers: headers() });
     if (!r.ok) continue;
+    sawOk = true;
     const data = await r.json();
     if (Array.isArray(data) && data[0]) return data[0];
   }
-  return null;
+  return sawOk ? null : undefined;
 }
 async function getAllRows() {
   const attempts = [
+    { sel: "Id,title,category,created_at", order: "Id.desc" },
     { sel: "Id,title,category", order: "Id.desc" },
     { sel: "id,title,category", order: "id.desc" },
     { sel: "*", order: "Id.desc" },
@@ -65,6 +67,13 @@ async function getAllRows() {
   }
   throw new Error("Supabase sitemap request failed");
 }
+function ssrBlock(row) {
+  const title = esc(row.title || "");
+  const desc = esc(String(row.description || "").trim() || description(row));
+  const img = String(row.poster_url || "").trim();
+  const meta = [row.category, row.year, row.duration, row.rating ? "تقييم " + row.rating : ""].filter(Boolean).map(esc).join(" • ");
+  return `<section id="ssr-seo" style="max-width:1100px;margin:16px auto;padding:16px;background:#0f1622;border:1px solid #202c3e;border-radius:16px;display:flex;gap:16px;align-items:flex-start"><div style="flex:1;min-width:0"><h1 style="margin:0 0 8px;font-size:24px">${title}</h1><p style="margin:0 0 8px;color:#a3a8b3">${meta}</p><p style="margin:0;line-height:1.9">${desc}</p></div>${img ? `<img src="${esc(img)}" alt="${title}" width="120" height="180" style="border-radius:12px;object-fit:cover;flex:0 0 auto">` : ""}</section>`;
+}
 function injectSeo(html, row, url) {
   const title = `${row.title || "عمل"} - مشاهدة وتحميل | سيما سيما`;
   const desc = description(row);
@@ -82,7 +91,7 @@ function injectSeo(html, row, url) {
   if (row.category) data.genre = row.category;
   const json = JSON.stringify(data).replace(/</g, "\\u003c");
   const meta = `\n<title>${esc(title)}</title>\n<meta name="description" content="${esc(desc)}">\n<link rel="canonical" href="${esc(url)}">\n<meta property="og:type" content="website">\n<meta property="og:site_name" content="سيما سيما">\n<meta property="og:title" content="${esc(title)}">\n<meta property="og:description" content="${esc(desc)}">\n<meta property="og:url" content="${esc(url)}">${image ? `\n<meta property="og:image" content="${esc(image)}">` : ""}\n<script type="application/ld+json">${json}</script>`;
-  return html.replace(/<title>[\s\S]*?<\/title>/i, "").replace(/<meta name="description"[^>]*>/i, "").replace(/<link rel="canonical"[^>]*>/i, "").replace(/<meta property="og:(type|site_name|title|description|url|image)"[^>]*>/gi, "").replace("</head>", meta + "\n</head>");
+  return html.replace(/<title>[\s\S]*?<\/title>/i, "").replace(/<meta name="description"[^>]*>/i, "").replace(/<link rel="canonical"[^>]*>/i, "").replace(/<meta property="og:(type|site_name|title|description|url|image)"[^>]*>/gi, "").replace("</head>", meta + "\n<style>body:has(#details[style*=\"display: block\"]) #ssr-seo{display:none!important}</style>\n</head>").replace('<div id="details"', ssrBlock(row) + '<div id="details"');
 }
 async function loadHtml(env, url, request, paths) {
   for (const p of paths) {
@@ -93,13 +102,28 @@ async function loadHtml(env, url, request, paths) {
   }
   return null;
 }
+function lastmod(row) {
+  const v = row.updated_at || row.created_at;
+  if (!v) return "";
+  const d = new Date(v);
+  return isNaN(d) ? "" : `<lastmod>${d.toISOString().slice(0, 10)}</lastmod>`;
+}
 function staticSitemap(rows) {
-  const urls = ["/", "/privacy", "/terms", "/contact", "/dmca"];
+  const entries = ["/", "/privacy", "/terms", "/contact", "/dmca"].map(p => ({ p, lm: "" }));
   for (const row of rows) {
-    if (row && (row.Id ?? row.id) != null && row.title) urls.push(itemPath(row));
+    if (row && (row.Id ?? row.id) != null && row.title) entries.push({ p: itemPath(row), lm: lastmod(row) });
   }
-  const unique = [...new Set(urls)];
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` + unique.map(p => `  <url><loc>${xmlEsc(SITE + p)}</loc></url>`).join("\n") + "\n</urlset>";
+  const seen = new Set();
+  const list = entries.filter(e => !seen.has(e.p) && seen.add(e.p));
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` + list.map(e => `  <url><loc>${xmlEsc(SITE + e.p)}</loc>${e.lm}</url>`).join("\n") + "\n</urlset>";
+}
+function redirect301(path) { return Response.redirect(SITE + path, 301); }
+async function notFound(env, url, request) {
+  const r = await env.ASSETS.fetch(new Request(new URL("/__not-found__", url), request));
+  const h = new Headers(r.headers);
+  h.set("x-robots-tag", "noindex");
+  h.set("cache-control", "public, max-age=60");
+  return new Response(r.body, { status: 404, headers: h });
 }
 
 export default {
@@ -117,10 +141,20 @@ export default {
         const oldRow = await getMovie(url.searchParams.get("movie"));
         if (oldRow && oldRow.title) return Response.redirect(SITE + itemPath(oldRow), 301);
       }
-      const match = url.pathname.match(/^\/(movie|series)\/[^/]+~([^/]+)$/i);
-      if (match) {
-        const id = decodeURIComponent(match[2]);
+      const p = url.pathname;
+      if (/^\/(movie|series)\//i.test(p)) {
+        const m = p.match(/^\/(movie|series)\/[^/]+~([^/]+)\/?$/i);
+        if (!m) return notFound(env, url, request);
+        let id;
+        try { id = decodeURIComponent(m[2]); } catch (e) { return notFound(env, url, request); }
         const row = await getMovie(id);
+        if (row === null) return notFound(env, url, request);
+        if (row && row.title) {
+          const canon = itemPath(row);
+          let same = false;
+          try { same = !p.endsWith("/") && decodeURIComponent(p) === decodeURIComponent(canon); } catch (e) {}
+          if (!same) return redirect301(canon);
+        }
         // الرابط الجميل يعرض صفحة الفيلم الحقيقية (movie.html) بنفس الـ SEO
         const page = await loadHtml(env, url, request, ["/movie.html", "/movie"]);
         const asset = page || await loadHtml(env, url, request, ["/index.html", "/"]);
@@ -129,27 +163,20 @@ export default {
         let html = injectSeo(await asset.text(), row, SITE + itemPath(row));
         if (page) {
           const fix = '<script>history.replaceState(null,"","/movie.html?movie="+' + JSON.stringify(encodeURIComponent(String(row.Id ?? row.id))) + ')</script>';
-          html = html.replace(/<head[^>]*>/i, m => m + fix);
+          html = html.replace(/<head[^>]*>/i, mm => mm + fix);
         }
         return new Response(html, {
           status: 200,
           headers: { "content-type": "text/html; charset=UTF-8", "cache-control": "public, max-age=300" }
         });
       }
-      if (url.pathname === "/movie" || url.pathname === "/movie.html") {
+      // الروابط القديمة /movie.html?movie=ID تتحول نهائيًا (301) للرابط الأساسي
+      if (p === "/movie" || p === "/movie.html") {
         const id = url.searchParams.get("movie");
         if (id) {
           const row = await getMovie(id);
-          if (row) {
-            const asset = await loadHtml(env, url, request, ["/movie.html", "/movie"]);
-            if (asset) {
-              const html = await asset.text();
-              return new Response(injectSeo(html, row, SITE + itemPath(row)), {
-                status: 200,
-                headers: { "content-type": "text/html; charset=UTF-8", "cache-control": "public, max-age=300" }
-              });
-            }
-          }
+          if (row === null) return notFound(env, url, request);
+          if (row && row.title) return redirect301(itemPath(row));
         }
       }
       return env.ASSETS.fetch(request);
