@@ -162,7 +162,7 @@ export default {
         if (!row) return asset;
         let html = injectSeo(await asset.text(), row, SITE + itemPath(row));
         if (page) {
-          const fix = '<script>history.replaceState(null,"","/movie.html?movie="+' + JSON.stringify(encodeURIComponent(String(row.Id ?? row.id))) + ')</script>';
+          const fix = '<script>window.__MOVIE_ID__=' + JSON.stringify(String(row.Id ?? row.id)) + ';</script>';
           html = html.replace(/<head[^>]*>/i, mm => mm + fix);
         }
         return new Response(html, {

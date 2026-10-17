@@ -98,7 +98,7 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 .hero.banner{min-height:340px;display:flex;flex-direction:column;justify-content:flex-end}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
-<script>if(/[?&]movie=/.test(location.search))document.documentElement.classList.add("route-movie")</script>
+<script>if(window.__MOVIE_ID__||/[?&]movie=/.test(location.search))document.documentElement.classList.add("route-movie")</script>
 
 <style>
 .page-movie #homePage,.page-movie #favoritesSection,.page-movie #historySection,.page-watch #homePage,.page-watch #favoritesSection,.page-watch #historySection{display:none!important}
@@ -463,7 +463,7 @@ function renderRelated(x) {
 }
 function skeletons(n){return Array(n).fill('<div class="skel" aria-hidden="true"><div class="sp"></div><div class="sl"></div><div class="sl s"></div></div>').join("");}
 async function loadMovies() {
-  const requestedId=new URLSearchParams(location.search).get("movie");
+  const requestedId=window.__MOVIE_ID__||new URLSearchParams(location.search).get("movie");
   try{const cached=JSON.parse(sessionStorage.getItem("cima_nav_movie")||"null");if(cached&&(!requestedId||String(cached.id)===String(requestedId))){allItems=[cached];show(cached,false);}}catch(e){}
   const hasCachedMovie=!!window.currentMovie;
   CATEGORIES.forEach(c => {
@@ -782,7 +782,7 @@ function selectSeason(index){
 }
 
 function backToPrevious() {
-  if ((location.search.startsWith("?movie=") || location.hash.startsWith("#movie=")) && history.state && history.state.cimaRoute) {
+  if ((location.search.startsWith("?movie=") || window.__MOVIE_ID__ || location.hash.startsWith("#movie=")) && history.state && history.state.cimaRoute) {
     history.back();
     return;
   }
@@ -1134,7 +1134,7 @@ show = function(x, pushRoute){
 
 const _oldRestoreRoute = restoreRoute;
 restoreRoute = function(){
-  const id=new URLSearchParams(location.search).get("movie");
+  const id=window.__MOVIE_ID__||new URLSearchParams(location.search).get("movie");
   if(id){ const it=allItems.find(x=>String(x.id)===String(id)); if(it){ show(it,false); return; } }
   location.href="/";
 };
