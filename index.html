@@ -109,6 +109,40 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 .toast{max-width:90vw;text-align:center}
 @media(max-width:600px){.hero{padding:20px;min-height:180px}.hero.banner{min-height:260px}}
 @media(prefers-reduced-motion:reduce){.card,.card:hover{transition:none;transform:none}}
+
+/* ===== تحسينات الموبايل: هيدر ذكي + تصفية قابلة للطي + شريط سفلي ===== */
+.filter-toggle,.bottom-nav{display:none}
+@media(max-width:600px){
+  header{transition:transform .25s ease}
+  header.hide{transform:translateY(-100%)}
+  section{scroll-margin-top:14px}
+  .filter-toggle{display:inline-flex;align-items:center;gap:8px;margin:14px 0 0;padding:9px 16px;border-radius:12px;background:#171d27;border:1px solid #2a3342;color:#dfe3eb;font:700 13px inherit;font-family:inherit;cursor:pointer}
+  .filter-toggle svg{width:16px;height:16px;color:#ffb000}
+  .filter-toggle.on{border-color:#ffb000;color:#ffb000}
+  .filters{display:none;margin:10px 0 14px}
+  .filters.open{display:flex}
+  body{padding-bottom:calc(74px + env(safe-area-inset-bottom,0px))}
+  .toast{bottom:calc(88px + env(safe-area-inset-bottom,0px))}
+  .bottom-nav{display:flex;position:fixed;right:0;left:0;bottom:0;z-index:30;justify-content:space-around;align-items:stretch;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));background:rgba(9,12,18,.97);border-top:1px solid #202938;backdrop-filter:blur(16px)}
+  .bottom-nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;background:none;border:0;color:#8d96a6;font:700 11px inherit;font-family:inherit;cursor:pointer;border-radius:12px}
+  .bottom-nav button svg{width:22px;height:22px}
+  .bottom-nav button.active{color:#ffb000}
+}
+
+/* ===== لمسات البطاقات: شارة العلامة + القلب + عرض الكل ===== */
+.poster-watermark{left:8px;bottom:8px;display:inline-flex;align-items:center;gap:5px;padding:3px 10px 3px 8px;border-radius:999px;background:linear-gradient(135deg,rgba(8,11,18,.78),rgba(8,11,18,.5));border:1px solid rgba(255,176,0,.55);color:#ffb000;font-size:9.5px;font-weight:900;letter-spacing:.3px;line-height:1.5;backdrop-filter:blur(6px);box-shadow:0 2px 10px rgba(0,0,0,.4)}
+.poster-watermark::before{content:"";flex:0 0 auto;border-top:4px solid transparent;border-bottom:4px solid transparent;border-left:6px solid #ffb000;margin-inline-end:1px}
+.detail-poster .poster-watermark{font-size:12px;padding:5px 13px 5px 10px;left:12px;bottom:12px}
+.detail-poster .poster-watermark::before{border-top-width:5px;border-bottom-width:5px;border-left-width:8px}
+.fav-btn{width:28px;height:28px;font-size:14px;background:rgba(10,12,17,.6);border:1px solid #ffffff18;backdrop-filter:blur(5px);transition:transform .15s}
+.fav-btn:active{transform:scale(.9)}
+.head .all{padding:7px 14px;border:1px solid #ffb00066;border-radius:999px;background:#ffb00014;font-size:13px;font-weight:800}
+.head .all:hover{background:#ffb00026;text-decoration:none}
+
+/* ===== علامة المشغل: ثابتة واحترافية في كل الفيديوهات ===== */
+.video-watermark{position:absolute;z-index:20;top:12px;right:12px;left:auto;bottom:auto;transform:none;display:inline-flex;align-items:center;gap:6px;padding:5px 12px 5px 9px;border-radius:999px;background:linear-gradient(135deg,rgba(8,11,18,.55),rgba(8,11,18,.3));border:1px solid rgba(255,176,0,.5);color:#ffb000;font-size:clamp(10px,2.6vw,13px);font-weight:900;letter-spacing:.3px;line-height:1.3;opacity:.82;pointer-events:none;user-select:none;backdrop-filter:blur(3px);text-shadow:0 1px 2px rgba(0,0,0,.6);box-shadow:0 2px 12px rgba(0,0,0,.35)}
+.video-watermark::before{content:"";flex:0 0 auto;border-top:4.5px solid transparent;border-bottom:4.5px solid transparent;border-left:7px solid #ffb000}
+.player-stage:fullscreen .video-watermark{top:20px;right:22px;font-size:16px;padding:7px 16px 7px 12px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
 <script>if(/[?&]movie=/.test(location.search))document.documentElement.classList.add("route-movie")</script>
@@ -149,6 +183,7 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
   </section>
 
   <div class="chips" id="chips"><button type="button" class="chip active" data-v="" onclick="setCat('')">الكل</button><button type="button" class="chip" data-v="أفلام عربي" onclick="setCat('أفلام عربي')">أفلام عربي</button><button type="button" class="chip" data-v="أفلام أجنبي" onclick="setCat('أفلام أجنبي')">أفلام أجنبي</button><button type="button" class="chip" data-v="مسلسلات عربي" onclick="setCat('مسلسلات عربي')">مسلسلات عربي</button><button type="button" class="chip" data-v="مسلسلات أجنبي" onclick="setCat('مسلسلات أجنبي')">مسلسلات أجنبي</button></div>
+  <button type="button" id="filterToggle" class="filter-toggle" onclick="toggleFilters()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span>تصفية</span></button>
   <div class="filters" id="filters">
     <select id="fCat" aria-label="القسم" onchange="applyFilters()"><option value="">كل الأقسام</option><option>أفلام عربي</option><option>أفلام أجنبي</option><option>مسلسلات عربي</option><option>مسلسلات أجنبي</option></select>
     <select id="fYear" aria-label="السنة" onchange="applyFilters()"><option value="">كل السنوات</option></select>
@@ -1016,11 +1051,10 @@ function playUrl(url) {
       inner.innerHTML = '<iframe src="' + safe(safeEmbedUrl) + '" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
     }
 
-    const wm = window.currentMovie && window.currentMovie.overlay;
     const mark = document.createElement("div");
-    mark.className = "video-watermark wm-" + ((wm && wm.pos) || "br");
+    mark.className = "video-watermark";
     mark.textContent = "سيما سيما";
-    if (!wm || wm.enabled !== false) inner.appendChild(mark);
+    inner.appendChild(mark);
     const fsBtn=document.createElement("button"); fsBtn.type="button"; fsBtn.className="fullscreen-btn"; fsBtn.textContent="⛶"; fsBtn.onclick=function(e){e.stopPropagation();if(document.fullscreenElement){document.exitFullscreen&&document.exitFullscreen();}else if(inner.requestFullscreen){inner.requestFullscreen();}else if(inner.webkitRequestFullscreen){inner.webkitRequestFullscreen();}}; if (inner.requestFullscreen || inner.webkitRequestFullscreen) inner.appendChild(fsBtn);
   } catch (e) {
     console.error("[Cima+Cima Player]", e);
@@ -1114,5 +1148,37 @@ loadMovies();
 </script>
 <script>(function(s){s.dataset.zone='12033558',s.src='https://n6wxm.com/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
 <script>(function(s){s.dataset.zone='12033606',s.src='https://al5sm.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
+<div class="bottom-nav" id="bottomNav" role="navigation" aria-label="التنقل">
+  <button type="button" data-t="home" class="active" onclick="bnGo('home',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg><span>الرئيسية</span></button>
+  <button type="button" data-t="movies" onclick="bnGo('movies',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M4 15h16M9 4v16M15 4v16"/></svg><span>الأفلام</span></button>
+  <button type="button" data-t="series" onclick="bnGo('series',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 3l4 4 4-4"/></svg><span>المسلسلات</span></button>
+  <button type="button" data-t="fav" onclick="bnGo('fav',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-9-9c-1.3-3.2.7-6.5 4-6.5 2 0 3.5 1 5 3 1.5-2 3-3 5-3 3.3 0 5.3 3.3 4 6.5-2 4.6-9 9-9 9z"/></svg><span>المفضلة</span></button>
+  <button type="button" data-t="search" onclick="bnGo('search',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span>بحث</span></button>
+</div>
+<script>
+/* تحسينات الموبايل */
+function toggleFilters(){var f=document.getElementById("filters");f.classList.toggle("open");}
+function bnGo(t,btn){
+  document.querySelectorAll("#bottomNav button").forEach(function(b){b.classList.toggle("active",b===btn);});
+  var h=document.querySelector("header"); if(h) h.classList.remove("hide");
+  if(t==="home"){ if(typeof home==="function") home(); window.scrollTo({top:0,behavior:"smooth"}); }
+  else if(t==="movies"||t==="series"){ var el=document.getElementById(t==="movies"?"ar-movies":"ar-series"); if(el) el.scrollIntoView({behavior:"smooth"}); }
+  else if(t==="fav"){ if(typeof showFavorites==="function") showFavorites(); }
+  else if(t==="search"){ window.scrollTo({top:0,behavior:"smooth"}); var q=document.getElementById("q"); if(q) setTimeout(function(){q.focus();},350); }
+}
+(function(){
+  var last=window.scrollY||0, h=document.querySelector("header");
+  window.addEventListener("scroll",function(){
+    var y=window.scrollY||0;
+    if(!h||document.activeElement===document.getElementById("q")||document.getElementById("menuPanel").classList.contains("open")){last=y;return;}
+    if(y>90&&y>last+6) h.classList.add("hide"); else if(y<last-6||y<=90) h.classList.remove("hide");
+    last=y;
+  },{passive:true});
+  /* علّم زر التصفية لو في فلتر مفعّل */
+  function mark(){var on=["fCat","fYear","fRate"].some(function(id){var e=document.getElementById(id);return e&&e.value;})||(document.getElementById("fSort")||{}).value&&document.getElementById("fSort").value!=="new";
+    var b=document.getElementById("filterToggle"); if(b) b.classList.toggle("on",!!on);}
+  document.getElementById("filters").addEventListener("change",mark);
+})();
+</script>
 </body>
 </html>
