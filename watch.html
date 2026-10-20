@@ -305,6 +305,27 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 .epn-chev{color:#ffb000;font-size:24px;line-height:1}
 .epn-cur{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:8px;height:54px;padding:0 8px;border-radius:14px;background:linear-gradient(135deg,#ffb000,#ffca52);color:#111;font-weight:900;font-size:16px;white-space:nowrap;overflow:hidden}
 @media(hover:hover){.epn-side:not(:disabled):hover{border-color:#ffb000}}
+
+/* ===== كروت الحلقات (شكل الشبكة بالصور) ===== */
+.page-watch{--ep-accent:#ffb000;--ep-badge:#ffb000}
+.page-watch #episodesBox #seasonEpisodesList,
+.page-watch #episodesBox #epList:not(:has(#seasonTabs)){display:grid!important;grid-template-columns:repeat(auto-fill,minmax(92px,1fr))!important;gap:8px!important;overflow:visible!important;padding:4px 2px 6px!important}
+@media(min-width:700px){.page-watch #episodesBox #seasonEpisodesList,.page-watch #episodesBox #epList:not(:has(#seasonTabs)){grid-template-columns:repeat(auto-fill,minmax(170px,1fr))!important}}
+.page-watch #episodesBox .ep-btn.ep-card{display:block;position:relative;width:100%;aspect-ratio:16/10;height:auto!important;min-width:0!important;padding:0!important;border-radius:14px!important;overflow:hidden;background:#1a2230!important;border:2px solid transparent!important;color:#fff!important;font-size:11px!important;font-weight:800;transform:none;opacity:1!important}
+.page-watch #episodesBox .ep-btn.ep-card img{position:absolute;inset:0;width:100%!important;height:100%!important;object-fit:cover;object-position:center 25%;border-radius:0!important;display:block}
+.page-watch #episodesBox .ep-btn.ep-card::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05) 45%,rgba(0,0,0,.72));z-index:1}
+.page-watch #episodesBox .ep-card .ep-badge{position:absolute;top:6px;right:6px;z-index:2;max-width:calc(100% - 12px);background:var(--ep-badge);color:#111;padding:3px 8px;border-radius:7px;font-size:11px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.page-watch #episodesBox .ep-card .ep-year{position:absolute;bottom:6px;right:9px;z-index:2;font-size:13px;font-weight:900;text-shadow:0 1px 4px #000}
+.page-watch #episodesBox .ep-btn.ep-card.done::after{content:"✓";position:absolute;bottom:6px;left:7px;top:auto;width:18px;height:18px;border-radius:50%;background:#1f8a4c;color:#fff;font-size:11px;display:grid;place-items:center;z-index:2}
+.page-watch #episodesBox .ep-btn.ep-card.active{border-color:var(--ep-accent)!important;background:#1a2230!important;color:#fff!important;box-shadow:0 0 0 2px #ffb00055,0 6px 18px #ffb00033}
+.page-watch #episodesBox .ep-btn.ep-card.active::before{content:"";background:linear-gradient(180deg,rgba(0,0,0,.05) 45%,rgba(0,0,0,.72))}
+.page-watch #episodesBox .ep-btn.ep-card.active.done::after{background:var(--ep-accent);color:#111}
+@media(hover:hover){.page-watch #episodesBox .ep-btn.ep-card:hover{border-color:var(--ep-accent)!important;transform:translateY(-2px)}}
+.page-watch #seasonTabs .ep-btn.active{background:#ffb000!important;border-color:#ffb000!important;color:#111!important;box-shadow:none}
+.season-head{display:flex;align-items:center;gap:10px;margin:2px 2px 12px}
+.season-head .sh-name{font-size:18px;font-weight:900;color:#fff}
+.season-head .sh-year{padding:3px 12px;border-radius:999px;border:1px solid #344055;color:#a9b3c2;font-size:13px;font-weight:700}
+.season-head .sh-count{margin-inline-start:auto;color:#8d96a6;font-size:13px}
 </style>
 </head>
 <body class="page-watch">
@@ -888,7 +909,7 @@ function show(x, pushRoute = true) {
       const seasonTabs = x.seasons.map(function(s, si) {
         return '<button type="button" class="ep-btn" data-season-tab="' + si + '" onclick="selectSeason(' + si + ')">' + safe(s.name || ("الموسم " + (si + 1))) + '</button>';
       }).join("");
-      epList.innerHTML = '<div style="grid-column:1/-1;width:100%"><div id="seasonTabs" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">' + seasonTabs + '</div><div id="seasonEpisodesList" class="season-eps"></div></div>';
+      epList.innerHTML = '<div style="grid-column:1/-1;width:100%"><div id="seasonTabs" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">' + seasonTabs + '</div><div id="seasonHead" class="season-head"></div><div id="seasonEpisodesList" class="season-eps"></div></div>';
       epBox.style.display = "none";
       watchBtn.textContent = "▶ مشاهدة";
       renderSeasonEpisodes();
@@ -896,7 +917,7 @@ function show(x, pushRoute = true) {
       const st = epState(x.id);
       watchBtn.textContent = st.last != null ? "▶ كمّل من الحلقة " + (st.last + 1) : "▶ ابدأ المشاهدة";
       epList.innerHTML = x.episodes.map(function(ep, i) {
-        return '<button type="button" class="ep-btn' + (epState(x.id).done.includes(i) ? " done" : "") + '" onclick="playEpisode(' + i + ', this)">' + safe(ep.title || ("الحلقة " + (i + 1))) + "</button>";
+        return epCard(ep, i, epState(x.id).done.includes(i), x);
       }).join("");
     }
   } else {
@@ -909,6 +930,16 @@ function show(x, pushRoute = true) {
   scrollTo(0, 0);
 }
 
+function epCard(ep, idx, done, m) {
+  m = m || window.currentMovie || {};
+  var img = safeHttpUrl(ep.img || m.img || "");
+  var title = safe(ep.title || ("الحلقة " + (idx + 1)));
+  return '<button type="button" class="ep-btn ep-card' + (done ? " done" : "") + '" onclick="playEpisode(' + idx + ', this)">'
+    + (img ? '<img src="' + safe(img) + '" alt="" loading="lazy" decoding="async">' : '')
+    + '<span class="ep-badge">' + title + '</span>'
+    + (m.year ? '<span class="ep-year">' + safe(m.year) + '</span>' : '')
+    + '</button>';
+}
 function seasonEpisodes() {
   const m = window.currentMovie;
   return m && m.seasonsEnabled && m.seasons[currentSeasonIndex] ? (m.seasons[currentSeasonIndex].episodes || []) : [];
@@ -920,7 +951,10 @@ function renderSeasonEpisodes() {
   if(!m||!box)return;
   if(!window._seasonPicked){ box.innerHTML=""; return; }
   const st=seasonEpState(m.id,currentSeasonIndex);
-  box.innerHTML=eps.map(function(ep,idx){return '<button type="button" class="ep-btn'+(st.done.includes(idx)?" done":"")+'" onclick="playEpisode('+idx+',this)">'+safe(ep.title||("الحلقة "+(idx+1)))+'</button>';}).join("");
+  box.innerHTML=eps.map(function(ep,idx){return epCard(ep,idx,st.done.includes(idx),m);}).join("");
+  var sn=m.seasons[currentSeasonIndex]||{}, head=document.getElementById("seasonHead");
+  if(head) head.innerHTML='<span class="sh-name">'+safe(sn.name||("الموسم "+(currentSeasonIndex+1)))+'</span>'+(m.year?'<span class="sh-year">'+safe(m.year)+'</span>':'')+'<span class="sh-count">'+eps.length+' حلقة</span>';
+  document.querySelectorAll("#seasonTabs .ep-btn").forEach(function(b){ b.classList.toggle("active", Number(b.getAttribute("data-season-tab"))===currentSeasonIndex); });
 }
 function selectSeason(index){
   currentSeasonIndex=index; window._seasonPicked=true;
