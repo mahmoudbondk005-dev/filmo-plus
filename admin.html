@@ -1089,5 +1089,87 @@ function escapeAttr(s) {
 
 (async function(){ const session=await getSession(); if(session&&session.access_token){currentAccessToken=session.access_token;sessionStorage.setItem(SESSION_KEY,currentAccessToken);showAdmin();} })();
 </script>
+<script>
+/* Clipboard helper: copy any link, open admin, and it is added to the watch + download fields (separated by a space) */
+(function(){
+  var KEY_AUTO="cc_clip_auto",KEY_LAST="cc_clip_last",busy=false,msgT=null;
+  function $(id){return document.getElementById(id);}
+  function say(t){var m=$("clipMsg");if(!m)return;m.textContent=t;clearTimeout(msgT);msgT=setTimeout(function(){m.textContent="";},4000);}
+  function ccLinks(text){
+    var s=String(text||""),out=[],re=/<iframe[^>]*?\ssrc\s*=\s*["']?([^"'\s>]+)/gi,m;
+    while((m=re.exec(s))){out.push(m[1]);}
+    if(!out.length)out=s.split(/[\s,]+/);
+    return out.map(function(x){return normUrl(x);}).filter(function(x){return /^https?:\/\//i.test(x)&&x.indexOf(location.host)<0;});
+  }
+  function lastOf(row,sel){var l=row.querySelectorAll(sel);return l[l.length-1];}
+  function targets(cat){
+    if(!isSeries(cat)){
+      if(!document.querySelector("#watchList [data-watch-url]"))addWatchRow();
+      if(!document.querySelector("#downloadsList [data-dl-url]"))addDownloadRow();
+      var wu=document.querySelectorAll("#watchList [data-watch-url]"),du=document.querySelectorAll("#downloadsList [data-dl-url]");
+      return {watch:wu[wu.length-1],dl:du[du.length-1]};
+    }
+    var row,seasons=$("seasons_enabled").checked&&$("seasonsBox").style.display!=="none";
+    if(seasons){
+      var boxes=document.querySelectorAll('[id^="seasonEps-"]');
+      if(!boxes.length){addSeasonRow();boxes=document.querySelectorAll('[id^="seasonEps-"]');}
+      var box=boxes[boxes.length-1];
+      if(!box.querySelector(".ep-row"))addSeasonEpisodeRow(box.id.replace("seasonEps-",""));
+      var rs=box.querySelectorAll(".ep-row");row=rs[rs.length-1];
+      return {watch:row.querySelector("[data-sep-url]"),dl:lastOf(row,"[data-sep-dl]")};
+    }
+    if(!document.querySelector("#episodesList .ep-row"))addEpisodeRow();
+    var r2=document.querySelectorAll("#episodesList .ep-row");row=r2[r2.length-1];
+    return {watch:row.querySelector("[data-ep-url]"),dl:lastOf(row,"[data-ep-dl]")};
+  }
+  function append(el,link){
+    if(!el)return false;
+    var cur=el.value.trim();
+    if(cur.split(/\s+/).indexOf(link)>=0)return false;
+    el.value=cur?cur+" "+link:link;
+    el.dispatchEvent(new Event("input",{bubbles:true}));
+    return true;
+  }
+  function process(text){
+    var links=ccLinks(text);
+    if(!links.length)return "none";
+    var t=$("title");
+    if(!t||!t.getClientRects().length)return "hidden";
+    var tg=targets($("category").value),added=0;
+    links.forEach(function(l){
+      if(append(tg.watch,fixD(l)))added++;
+      if(append(tg.dl,l))added++;
+    });
+    return added?("added:"+links.length):"dup";
+  }
+  async function readClip(manual){
+    if(busy)return;busy=true;
+    try{
+      var text=await navigator.clipboard.readText();
+      if(!manual&&text===localStorage.getItem(KEY_LAST))return;
+      var r=process(text);
+      if(r!=="hidden")localStorage.setItem(KEY_LAST,text);
+      if(r.indexOf("added")===0)say("اتضاف "+r.split(":")[1]+" رابط");
+      else if(manual){say(r==="dup"?"الرابط موجود بالفعل":r==="none"?"مفيش رابط في المنسوخ":"افتح فيلم أو مسلسل الأول");}
+    }catch(e){
+      if(manual)say("اسمح للموقع بقراءة المنسوخ، أو الصق يدويًا");
+    }finally{busy=false;}
+  }
+  function auto(){if($("clipAuto")&&$("clipAuto").checked&&!document.hidden)setTimeout(function(){readClip(false);},500);}
+  function build(){
+    var bar=document.createElement("div");bar.id="clipBar";
+    bar.style.cssText="position:fixed;left:10px;bottom:10px;z-index:9999;display:flex;align-items:center;gap:8px;background:#171d27;border:1px solid #2a3649;border-radius:14px;padding:8px 10px;font-size:12px;color:#e6ebf3;max-width:calc(100vw - 20px)";
+    bar.innerHTML='<button type="button" id="clipBtn" style="background:#ffb000;color:#111;border:0;border-radius:10px;padding:8px 10px;font-weight:800;font-family:inherit;cursor:pointer;width:auto;margin:0">\u{1F4CB} إضافة الرابط المنسوخ</button><label style="display:flex;align-items:center;gap:4px;margin:0;cursor:pointer;width:auto"><input type="checkbox" id="clipAuto" style="width:auto;margin:0"> تلقائي</label><span id="clipMsg" style="color:#ffb000"></span>';
+    document.body.appendChild(bar);
+    var cb=$("clipAuto");cb.checked=localStorage.getItem(KEY_AUTO)!=="0";
+    cb.addEventListener("change",function(){localStorage.setItem(KEY_AUTO,cb.checked?"1":"0");if(cb.checked)readClip(true);});
+    $("clipBtn").addEventListener("click",function(){readClip(true);});
+    window.addEventListener("focus",auto);
+    document.addEventListener("visibilitychange",auto);
+    setTimeout(auto,1200);
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",build);else build();
+})();
+</script>
 </body>
 </html>
