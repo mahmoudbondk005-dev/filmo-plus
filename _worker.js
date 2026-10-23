@@ -158,6 +158,9 @@ function injectEpisodeSeo(html, row, url, info) {
   const title = `${row.title || "مسلسل"} ${epName}${info.seasonName ? " - " + info.seasonName : ""} | مشاهدة - سيما سيما`;
   const desc = (`مشاهدة ${row.title || "المسلسل"} ${epName}${info.seasonName ? " من " + info.seasonName : ""} عبر سيما سيما. ` + String(row.description || "").trim()).replace(/\s+/g, " ").slice(0, 160);
   let out = injectSeo(html, row, url);
+  // Episode pages use watch.html, whose generic robots directive is noindex.
+  // Override it only for valid episode routes so Google can index episode pages.
+  out = out.replace(/<meta\s+name=["']robots["'][^>]*>/i, '<meta name="robots" content="index,follow">');
   out = out.replace(/<title>[\s\S]*?<\/title>/i, `<title>${esc(title)}</title>`)
     .replace(/<meta name="description"[^>]*>/i, `<meta name="description" content="${esc(desc)}">`)
     .replace(/<meta property="og:title"[^>]*>/i, `<meta property="og:title" content="${esc(title)}">`)
