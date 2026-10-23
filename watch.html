@@ -1246,11 +1246,32 @@ function markEp(id, i) {
   s.last = i; if (!s.done.includes(i)) s.done.push(i); all[id] = s;
   try { localStorage.setItem(EP_KEY, JSON.stringify(all)); } catch (e) {}
 }
-function playEpisode(index) {
+function episodeRoutePath(m, index) {
+  var base = prettyPath(m);
+  var epPart = "/episode/" + (Number(index) + 1);
+  if (m && m.seasonsEnabled && m.seasons.length) epPart = "/season/" + (Number(currentSeasonIndex) + 1) + epPart;
+  return base + epPart;
+}
+function updateEpisodeAddress(m, index) {
+  if (!m || m.id == null) return;
+  var path = episodeRoutePath(m, index);
+  if (location.pathname !== path) history.pushState({ cimaEpisode: true, id: String(m.id), season: m.seasonsEnabled ? currentSeasonIndex + 1 : 0, episode: index + 1 }, "", path);
+  var ep = (m.seasonsEnabled && m.seasons.length) ? ((seasonEpisodes() || [])[index] || {}) : ((m.episodes || [])[index] || {});
+  var epTitle = ep.title || ("الحلقة " + (index + 1));
+  document.title = m.name + " " + epTitle + " | مشاهدة - سيما سيما";
+  var desc = document.querySelector('meta[name="description"]');
+  if (desc) desc.content = ("مشاهدة " + m.name + " " + epTitle + " عبر سيما سيما. " + (m.desc || "")).slice(0, 155);
+  var canonical = document.querySelector('link[rel="canonical"]');
+  if (canonical) canonical.href = "https://cimacima.online" + path;
+  var ogTitle = document.querySelector('meta[property="og:title"]'); if (ogTitle) ogTitle.content = document.title;
+  var ogUrl = document.querySelector('meta[property="og:url"]'); if (ogUrl) ogUrl.content = "https://cimacima.online" + path;
+}
+function playEpisode(index, clickedButton, fromRoute) {
   const m = window.currentMovie;
   const usingSeasons = m && m.seasonsEnabled && m.seasons.length;
   const eps = usingSeasons ? seasonEpisodes() : (m && m.episodes);
   if (!eps || !eps[index]) { toast("الحلقة غير متاحة."); return; }
+  if (!fromRoute) updateEpisodeAddress(m, index);
   window._epIdx = index;
   if (usingSeasons) markSeasonEp(m.id,currentSeasonIndex,index); else markEp(m.id,index);
   document.querySelectorAll((usingSeasons ? "#seasonEpisodesList" : "#epList") + " .ep-btn").forEach((b, i) => { b.classList.remove("active"); if (i === index) b.classList.add("active", "done"); });
@@ -1357,19 +1378,43 @@ show = function(x, pushRoute){
     const wbtn=document.getElementById("watchBtn"); if(wbtn) wbtn.style.display="none";
     const fbtn=document.getElementById("favDetailBtn"); if(fbtn) fbtn.style.display="none";
     setTimeout(function(){
-      watch();
-      renderWatchDownloads();
-      if(Array.isArray(x.watchServers) && x.watchServers.length){
-        setTimeout(function(){ playWatchServer(0); }, 80);
+      var route = window.__requestedEpisodeRoute || readEpisodeRoute();
+      window.__requestedEpisodeRoute = null;
+      if (route && String(route.id) === String(x.id)) {
+        if (x.seasonsEnabled && x.seasons.length) {
+          currentSeasonIndex = Math.max(0, Math.min((route.season || 1) - 1, x.seasons.length - 1));
+          window._seasonPicked = true;
+          renderSeasonEpisodes();
+        }
+        renderWatchDownloads();
+        playEpisode(Math.max(0, (route.episode || 1) - 1), null, true);
+      } else {
+        watch();
+        renderWatchDownloads();
+        if(Array.isArray(x.watchServers) && x.watchServers.length){
+          setTimeout(function(){ playWatchServer(0); }, 80);
+        }
       }
     }, 0);
   }
 };
 
+function readEpisodeRoute() {
+  var m = location.pathname.match(/^\/series\/[^/]+~([^/]+)(?:\/season\/(\d+))?\/episode\/(\d+)\/?$/i);
+  if (!m) return null;
+  try { return { id: decodeURIComponent(m[1]), season: Number(m[2] || 0), episode: Number(m[3]) }; } catch(e) { return null; }
+}
 const _oldRestoreRoute = restoreRoute;
 restoreRoute = function(){
+  const episodeRoute = readEpisodeRoute();
+  if (episodeRoute) {
+    const it=allItems.find(x=>String(x.id)===String(episodeRoute.id));
+    if(it){ window.__requestedEpisodeRoute=episodeRoute; show(it,false); return; }
+  }
   const id=new URLSearchParams(location.search).get("movie");
   if(id){ const it=allItems.find(x=>String(x.id)===String(id)); if(it){ show(it,false); return; } }
+  const pretty = location.pathname.match(/^\/(?:movie|series)\/[^/]+~([^/]+)\/?$/i);
+  if(pretty){ const it=allItems.find(x=>String(x.id)===decodeURIComponent(pretty[1])); if(it){ show(it,false); return; } }
   location.href="/";
 };
 

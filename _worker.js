@@ -40,9 +40,9 @@ async function getMovie(id) {
 }
 async function getAllRows() {
   const attempts = [
-    { sel: "Id,title,category,created_at", order: "Id.desc" },
-    { sel: "Id,title,category", order: "Id.desc" },
-    { sel: "id,title,category", order: "id.desc" },
+    { sel: "Id,title,category,created_at,updated_at,episodes", order: "Id.desc" },
+    { sel: "Id,title,category,episodes", order: "Id.desc" },
+    { sel: "id,title,category,episodes", order: "id.desc" },
     { sel: "*", order: "Id.desc" },
     { sel: "*", order: "id.desc" },
     { sel: "*", order: "" }
@@ -111,12 +111,63 @@ function lastmod(row) {
 function staticSitemap(rows) {
   const entries = ["/", "/privacy", "/terms", "/contact", "/dmca"].map(p => ({ p, lm: "" }));
   for (const row of rows) {
-    if (row && (row.Id ?? row.id) != null && row.title) entries.push({ p: itemPath(row), lm: lastmod(row) });
+    if (row && (row.Id ?? row.id) != null && row.title) {
+      entries.push({ p: itemPath(row), lm: lastmod(row) });
+      if (isSeries(row.category)) {
+        const data = parseEpisodesForWorker(row.episodes);
+        const seasonData = data.find(x => x && x.__cimaSeasons === true && x.enabled !== false);
+        if (seasonData && Array.isArray(seasonData.seasons)) {
+          seasonData.seasons.forEach((season, si) => (Array.isArray(season.episodes) ? season.episodes : []).forEach((ep, ei) => {
+            entries.push({ p: itemPath(row) + `/season/${si + 1}/episode/${ei + 1}`, lm: lastmod(row) });
+          }));
+        } else {
+          data.filter(x => x && !x.__cimaOverlay && !x.__cimaSeasons).forEach((ep, ei) => {
+            entries.push({ p: itemPath(row) + `/episode/${ei + 1}`, lm: lastmod(row) });
+          });
+        }
+      }
+    }
   }
   const seen = new Set();
   const list = entries.filter(e => !seen.has(e.p) && seen.add(e.p));
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` + list.map(e => `  <url><loc>${xmlEsc(SITE + e.p)}</loc>${e.lm}</url>`).join("\n") + "\n</urlset>";
 }
+
+function parseEpisodesForWorker(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") { try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : []; } catch (e) {} }
+  return [];
+}
+function workerEpisode(row, seasonNumber, episodeNumber) {
+  const data = parseEpisodesForWorker(row.episodes);
+  const seasonData = data.find(x => x && x.__cimaSeasons === true && x.enabled !== false);
+  let list = data.filter(x => x && !x.__cimaSeasons && !x.__cimaOverlay);
+  let seasonName = "";
+  if (seasonData && Array.isArray(seasonData.seasons) && seasonNumber > 0) {
+    const season = seasonData.seasons[seasonNumber - 1];
+    if (!season || !Array.isArray(season.episodes)) return null;
+    list = season.episodes;
+    seasonName = season.name || ("الموسم " + seasonNumber);
+  }
+  const ep = list[episodeNumber - 1];
+  if (!ep) return null;
+  return { ep, seasonName, title: String(ep.title || ("الحلقة " + episodeNumber)), seasonNumber, episodeNumber };
+}
+function injectEpisodeSeo(html, row, url, info) {
+  const epName = info.title;
+  const title = `${row.title || "مسلسل"} ${epName}${info.seasonName ? " - " + info.seasonName : ""} | مشاهدة - سيما سيما`;
+  const desc = (`مشاهدة ${row.title || "المسلسل"} ${epName}${info.seasonName ? " من " + info.seasonName : ""} عبر سيما سيما. ` + String(row.description || "").trim()).replace(/\s+/g, " ").slice(0, 160);
+  let out = injectSeo(html, row, url);
+  out = out.replace(/<title>[\s\S]*?<\/title>/i, `<title>${esc(title)}</title>`)
+    .replace(/<meta name="description"[^>]*>/i, `<meta name="description" content="${esc(desc)}">`)
+    .replace(/<meta property="og:title"[^>]*>/i, `<meta property="og:title" content="${esc(title)}">`)
+    .replace(/<meta property="og:description"[^>]*>/i, `<meta property="og:description" content="${esc(desc)}">`);
+  out = out.replace(/<section id="ssr-seo"[\s\S]*?<\/section>/i, `<section id="ssr-seo" style="max-width:1100px;margin:16px auto;padding:16px;background:#0f1622;border:1px solid #202c3e;border-radius:16px"><h1 style="margin:0 0 8px;font-size:24px">${esc(row.title || "المسلسل")} ${esc(epName)}</h1><p style="margin:0 0 8px;color:#a3a8b3">${esc(info.seasonName || "حلقة من المسلسل")}</p><p style="margin:0;line-height:1.9">${esc(desc)}</p></section>`);
+  const schema = { "@context": "https://schema.org", "@type": "TVEpisode", "name": `${row.title || "المسلسل"} ${epName}`, "description": desc, "url": url, "partOfSeries": { "@type": "TVSeries", "name": row.title || "" } };
+  out = out.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/i, `<script type="application/ld+json">${JSON.stringify(schema).replace(/</g, "\\u003c")}</script>`);
+  return out;
+}
+
 function redirect301(path) { return Response.redirect(SITE + path, 301); }
 async function notFound(env, url, request) {
   const r = await env.ASSETS.fetch(new Request(new URL("/__not-found__", url), request));
@@ -142,6 +193,25 @@ export default {
         if (oldRow && oldRow.title) return Response.redirect(SITE + itemPath(oldRow), 301);
       }
       const p = url.pathname;
+      // روابط الحلقات: تحديث العنوان/الفهرسة دون الحاجة إلى إعادة تحميل الصفحة عند التنقل داخل المشغل
+      const episodeMatch = p.match(/^\/series\/[^/]+~([^/]+)\/(?:season\/(\d+)\/)?episode\/(\d+)\/?$/i);
+      if (episodeMatch) {
+        let id;
+        try { id = decodeURIComponent(episodeMatch[1]); } catch (e) { return notFound(env, url, request); }
+        const row = await getMovie(id);
+        if (row === null) return notFound(env, url, request);
+        if (!row || !row.title || !isSeries(row.category)) return notFound(env, url, request);
+        const seasonNumber = Number(episodeMatch[2] || 0);
+        const episodeNumber = Number(episodeMatch[3]);
+        const info = workerEpisode(row, seasonNumber, episodeNumber);
+        if (!info) return notFound(env, url, request);
+        const canonical = itemPath(row) + (seasonNumber ? `/season/${seasonNumber}` : "") + `/episode/${episodeNumber}`;
+        if (p.replace(/\/$/, "") !== canonical) return redirect301(canonical);
+        const page = await loadHtml(env, url, request, ["/watch.html", "/watch", "/index.html"]);
+        if (!page) return env.ASSETS.fetch(request);
+        const html = injectEpisodeSeo(await page.text(), row, SITE + canonical, info);
+        return new Response(html, { status: 200, headers: { "content-type": "text/html; charset=UTF-8", "cache-control": "public, max-age=300" } });
+      }
       if (/^\/(movie|series)\//i.test(p)) {
         const m = p.match(/^\/(movie|series)\/[^/]+~([^/]+)\/?$/i);
         if (!m) return notFound(env, url, request);
