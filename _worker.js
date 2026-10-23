@@ -82,7 +82,7 @@ function episodeUrlList(row) {
 function episodeNavHtml(row, currentPath) {
   const list = episodeUrlList(row).slice(0, 300);
   if (!list.length) return "";
-  return `<nav aria-label="الحلقات" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px 14px">` + list.map(e => `<a href="${esc(e.p)}" style="color:#ffb000;text-decoration:none"${e.p === currentPath ? ' aria-current="page"' : ""}>${esc(e.label)}</a>`).join("") + `</nav>`;
+  return `<nav aria-label="الحلقات" style="position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">` + list.map(e => `<a href="${esc(e.p)}" style="color:#ffb000;text-decoration:none"${e.p === currentPath ? ' aria-current="page"' : ""}>${esc(e.label)}</a>`).join("") + `</nav>`;
 }
 function ssrBlock(row) {
   const title = esc(row.title || "");

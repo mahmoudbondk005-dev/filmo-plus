@@ -513,7 +513,7 @@ function slugifyArabic(value) {
 function itemPath(x) {
   return "/movie.html?movie=" + encodeURIComponent(String(x.id));
 }
-function cacheMovieForNavigation(x) { try { sessionStorage.setItem("cima_nav_movie", JSON.stringify(x)); } catch(e) {} }
+function cacheMovieForNavigation(x) { try { if (x != null && typeof x !== "object") { x = (typeof allItems !== "undefined" ? allItems : []).find(function (i) { return String(i.id) === String(x); }); } if (x) sessionStorage.setItem("cima_nav_movie", JSON.stringify(x)); } catch(e) {} }
 function card(x) {
   const poster = safe(x.img || PLACEHOLDER);
   const favClass = isFav(x.id) ? " on" : "";
