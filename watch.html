@@ -1417,6 +1417,8 @@ restoreRoute = function(){
   if(pretty){ const it=allItems.find(x=>String(x.id)===decodeURIComponent(pretty[1])); if(it){ show(it,false); return; } }
   location.href="/";
 };
+window.removeEventListener("popstate", _oldRestoreRoute);
+window.addEventListener("popstate", restoreRoute);
 
 loadMovies();
 </script>

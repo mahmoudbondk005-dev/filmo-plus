@@ -1133,7 +1133,7 @@ loadMovies();
     if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey) return;
     var t = e.target.closest && e.target.closest(".card-link, #hero .btn");
     if (!t) return;
-    var m = ((t.getAttribute("href") || "") + (t.getAttribute("onclick") || "")).match(/movie=([^'"&\s]+)/);
+    var m = ((t.getAttribute("href") || "") + " " + (t.getAttribute("onclick") || "")).match(/(?:movie=|~)([^'"&\s\/?#]+)/);
     if (!m) return;
     var id = m[1];
     try {
