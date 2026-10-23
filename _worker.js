@@ -41,6 +41,7 @@ async function getMovie(id) {
 async function getAllRows() {
   const attempts = [
     { sel: "Id,title,category,created_at,updated_at,episodes", order: "Id.desc" },
+    { sel: "Id,title,category,created_at,episodes", order: "Id.desc" },
     { sel: "Id,title,category,episodes", order: "Id.desc" },
     { sel: "id,title,category,episodes", order: "id.desc" },
     { sel: "*", order: "Id.desc" },
@@ -67,12 +68,28 @@ async function getAllRows() {
   }
   throw new Error("Supabase sitemap request failed");
 }
+function episodeUrlList(row) {
+  const data = parseEpisodesForWorker(row.episodes);
+  const out = [];
+  const sd = data.find(x => x && x.__cimaSeasons === true && x.enabled !== false);
+  if (sd && Array.isArray(sd.seasons) && sd.seasons.length) {
+    sd.seasons.forEach((s, si) => (Array.isArray(s.episodes) ? s.episodes : []).forEach((ep, ei) => out.push({ p: itemPath(row) + `/season/${si + 1}/episode/${ei + 1}`, label: `${s.name || ("الموسم " + (si + 1))} - ${(ep && ep.title) || ("الحلقة " + (ei + 1))}` })));
+  } else {
+    data.filter(x => x && !x.__cimaOverlay && !x.__cimaSeasons).forEach((ep, ei) => out.push({ p: itemPath(row) + `/episode/${ei + 1}`, label: String(ep.title || ("الحلقة " + (ei + 1))) }));
+  }
+  return out;
+}
+function episodeNavHtml(row, currentPath) {
+  const list = episodeUrlList(row).slice(0, 300);
+  if (!list.length) return "";
+  return `<nav aria-label="الحلقات" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px 14px">` + list.map(e => `<a href="${esc(e.p)}" style="color:#ffb000;text-decoration:none"${e.p === currentPath ? ' aria-current="page"' : ""}>${esc(e.label)}</a>`).join("") + `</nav>`;
+}
 function ssrBlock(row) {
   const title = esc(row.title || "");
   const desc = esc(String(row.description || "").trim() || description(row));
   const img = String(row.poster_url || "").trim();
   const meta = [row.category, row.year, row.duration, row.rating ? "تقييم " + row.rating : ""].filter(Boolean).map(esc).join(" • ");
-  return `<section id="ssr-seo" style="max-width:1100px;margin:16px auto;padding:16px;background:#0f1622;border:1px solid #202c3e;border-radius:16px;display:flex;gap:16px;align-items:flex-start"><div style="flex:1;min-width:0"><h1 style="margin:0 0 8px;font-size:24px">${title}</h1><p style="margin:0 0 8px;color:#a3a8b3">${meta}</p><p style="margin:0;line-height:1.9">${desc}</p></div>${img ? `<img src="${esc(img)}" alt="${title}" width="120" height="180" style="border-radius:12px;object-fit:cover;flex:0 0 auto">` : ""}</section>`;
+  return `<section id="ssr-seo" style="max-width:1100px;margin:16px auto;padding:16px;background:#0f1622;border:1px solid #202c3e;border-radius:16px;display:flex;gap:16px;align-items:flex-start"><div style="flex:1;min-width:0"><h1 style="margin:0 0 8px;font-size:24px">${title}</h1><p style="margin:0 0 8px;color:#a3a8b3">${meta}</p><p style="margin:0;line-height:1.9">${desc}</p>${isSeries(row.category) ? episodeNavHtml(row, "") : ""}</div>${img ? `<img src="${esc(img)}" alt="${title}" width="120" height="180" style="border-radius:12px;object-fit:cover;flex:0 0 auto">` : ""}</section>`;
 }
 function injectSeo(html, row, url) {
   const title = `${row.title || "عمل"} - مشاهدة وتحميل | سيما سيما`;
@@ -138,6 +155,10 @@ function parseEpisodesForWorker(value) {
   if (typeof value === "string") { try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : []; } catch (e) {} }
   return [];
 }
+function workerHasSeasons(row) {
+  const sd = parseEpisodesForWorker(row.episodes).find(x => x && x.__cimaSeasons === true && x.enabled !== false);
+  return !!(sd && Array.isArray(sd.seasons) && sd.seasons.length);
+}
 function workerEpisode(row, seasonNumber, episodeNumber) {
   const data = parseEpisodesForWorker(row.episodes);
   const seasonData = data.find(x => x && x.__cimaSeasons === true && x.enabled !== false);
@@ -165,7 +186,7 @@ function injectEpisodeSeo(html, row, url, info) {
     .replace(/<meta name="description"[^>]*>/i, `<meta name="description" content="${esc(desc)}">`)
     .replace(/<meta property="og:title"[^>]*>/i, `<meta property="og:title" content="${esc(title)}">`)
     .replace(/<meta property="og:description"[^>]*>/i, `<meta property="og:description" content="${esc(desc)}">`);
-  out = out.replace(/<section id="ssr-seo"[\s\S]*?<\/section>/i, `<section id="ssr-seo" style="max-width:1100px;margin:16px auto;padding:16px;background:#0f1622;border:1px solid #202c3e;border-radius:16px"><h1 style="margin:0 0 8px;font-size:24px">${esc(row.title || "المسلسل")} ${esc(epName)}</h1><p style="margin:0 0 8px;color:#a3a8b3">${esc(info.seasonName || "حلقة من المسلسل")}</p><p style="margin:0;line-height:1.9">${esc(desc)}</p></section>`);
+  out = out.replace(/<section id="ssr-seo"[\s\S]*?<\/section>/i, `<section id="ssr-seo" style="max-width:1100px;margin:16px auto;padding:16px;background:#0f1622;border:1px solid #202c3e;border-radius:16px"><h1 style="margin:0 0 8px;font-size:24px">${esc(row.title || "المسلسل")} ${esc(epName)}</h1><p style="margin:0 0 8px;color:#a3a8b3">${esc(info.seasonName || "حلقة من المسلسل")}</p><p style="margin:0;line-height:1.9">${esc(desc)}</p><p style="margin:8px 0 0"><a href="${esc(itemPath(row))}" style="color:#ffb000;text-decoration:none">${esc(row.title || "المسلسل")} - كل الحلقات</a></p>${episodeNavHtml(row, url.slice(SITE.length))}</section>`);
   const schema = { "@context": "https://schema.org", "@type": "TVEpisode", "name": `${row.title || "المسلسل"} ${epName}`, "description": desc, "url": url, "partOfSeries": { "@type": "TVSeries", "name": row.title || "" } };
   out = out.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/i, `<script type="application/ld+json">${JSON.stringify(schema).replace(/</g, "\\u003c")}</script>`);
   return out;
@@ -206,6 +227,10 @@ export default {
         if (!row || !row.title || !isSeries(row.category)) return notFound(env, url, request);
         const seasonNumber = Number(episodeMatch[2] || 0);
         const episodeNumber = Number(episodeMatch[3]);
+        if (seasonNumber && !workerHasSeasons(row)) {
+          if (workerEpisode(row, 0, episodeNumber)) return redirect301(itemPath(row) + `/episode/${episodeNumber}`);
+          return notFound(env, url, request);
+        }
         const info = workerEpisode(row, seasonNumber, episodeNumber);
         if (!info) return notFound(env, url, request);
         const canonical = itemPath(row) + (seasonNumber ? `/season/${seasonNumber}` : "") + `/episode/${episodeNumber}`;

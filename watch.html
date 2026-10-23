@@ -337,6 +337,8 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 .poster-watermark::before{content:"";flex:0 0 auto;border-top:4px solid transparent;border-bottom:4px solid transparent;border-left:6px solid #ffb000;margin-inline-end:1px}
 .detail-poster .poster-watermark{font-size:12px;padding:5px 13px 5px 10px;left:12px;bottom:12px}
 .detail-poster .poster-watermark::before{border-top-width:5px;border-bottom-width:5px;border-left-width:8px}
+
+.page-watch #episodesBox a.ep-btn.ep-card{text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
 </style>
 </head>
 <body class="page-watch">
@@ -945,11 +947,19 @@ function epCard(ep, idx, done, m) {
   m = m || window.currentMovie || {};
   var img = safeHttpUrl(ep.img || m.img || "");
   var title = safe(ep.title || ("الحلقة " + (idx + 1)));
-  return '<button type="button" class="ep-btn ep-card' + (done ? " done" : "") + '" onclick="playEpisode(' + idx + ', this)">'
+  var href = "#";
+  try { if (isSeries(m.type)) href = safe(episodeRoutePath(m, idx)); } catch (e) {}
+  return '<a class="ep-btn ep-card' + (done ? " done" : "") + '" href="' + href + '" onclick="return epClick(event, ' + idx + ')">'
     + (img ? '<img src="' + safe(img) + '" alt="" loading="lazy" decoding="async">' : '')
     + '<span class="ep-badge">' + title + '</span>'
     + (m.year ? '<span class="ep-year">' + safe(m.year) + '</span>' : '')
-    + '</button>';
+    + '</a>';
+}
+function epClick(e, idx) {
+  if (e && (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey)) return true;
+  if (e && e.preventDefault) e.preventDefault();
+  playEpisode(idx, e && e.currentTarget);
+  return false;
 }
 function seasonEpisodes() {
   const m = window.currentMovie;
@@ -1252,10 +1262,10 @@ function episodeRoutePath(m, index) {
   if (m && m.seasonsEnabled && m.seasons.length) epPart = "/season/" + (Number(currentSeasonIndex) + 1) + epPart;
   return base + epPart;
 }
-function updateEpisodeAddress(m, index) {
+function updateEpisodeAddress(m, index, noPush) {
   if (!m || m.id == null) return;
   var path = episodeRoutePath(m, index);
-  if (location.pathname !== path) history.pushState({ cimaEpisode: true, id: String(m.id), season: m.seasonsEnabled ? currentSeasonIndex + 1 : 0, episode: index + 1 }, "", path);
+  if (!noPush && location.pathname !== path) history.pushState({ cimaEpisode: true, id: String(m.id), season: m.seasonsEnabled ? currentSeasonIndex + 1 : 0, episode: index + 1 }, "", path);
   var ep = (m.seasonsEnabled && m.seasons.length) ? ((seasonEpisodes() || [])[index] || {}) : ((m.episodes || [])[index] || {});
   var epTitle = ep.title || ("الحلقة " + (index + 1));
   document.title = m.name + " " + epTitle + " | مشاهدة - سيما سيما";
@@ -1271,7 +1281,8 @@ function playEpisode(index, clickedButton, fromRoute) {
   const usingSeasons = m && m.seasonsEnabled && m.seasons.length;
   const eps = usingSeasons ? seasonEpisodes() : (m && m.episodes);
   if (!eps || !eps[index]) { toast("الحلقة غير متاحة."); return; }
-  if (!fromRoute) updateEpisodeAddress(m, index);
+  updateEpisodeAddress(m, index, !!fromRoute);
+  countEpisodeView(m, index, !!fromRoute);
   window._epIdx = index;
   if (usingSeasons) markSeasonEp(m.id,currentSeasonIndex,index); else markEp(m.id,index);
   document.querySelectorAll((usingSeasons ? "#seasonEpisodesList" : "#epList") + " .ep-btn").forEach((b, i) => { b.classList.remove("active"); if (i === index) b.classList.add("active", "done"); });
@@ -1315,6 +1326,16 @@ function watch() {
   const servers = Array.isArray(m.watchServers) ? m.watchServers : [];
   if (servers.length) { renderServerBox("🎞️ سيرفرات المشاهدة", servers, "watch"); document.getElementById("serverBox").scrollIntoView({behavior:"smooth",block:"nearest"}); return; }
   playUrl(m.movie_url);
+}
+function countEpisodeView(m, index, fromRoute) {
+  try {
+    if (!m || m.id == null) return;
+    var key = m.id + ":" + (m.seasonsEnabled ? currentSeasonIndex : 0) + ":" + index;
+    var same = window._lastEpKey === key;
+    window._lastEpKey = key;
+    if (same || fromRoute) return; // نفس الحلقة ورا بعض، أو أول تحميل (اتحسب في countView)
+    fetch(SUPABASE_URL + "/rest/v1/rpc/increment_views", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, apiHeaders()), body: JSON.stringify({ movie_id: m.id }) }).catch(function () {});
+  } catch (e) {}
 }
 function countView(x) {
   try {
