@@ -97,7 +97,24 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 .head .muted{margin-inline-start:auto}.all{color:#ffb000;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}.all:hover{text-decoration:underline}.filtered .all{display:none}
 .hero.banner{min-height:340px;display:flex;flex-direction:column;justify-content:flex-end}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
+<script>
+/* hls.js يتحمّل عند الحاجة فقط (أول تشغيل لرابط m3u8)، لأن أغلب السيرفرات iframe ولا تحتاجه */
+(function(){
+  var SRC="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js", p=null;
+  window.loadHlsLib=function(){
+    if(window.Hls) return Promise.resolve();
+    if(p) return p;
+    p=new Promise(function(res,rej){
+      var s=document.createElement("script");
+      s.src=SRC; s.async=true;
+      s.onload=function(){res();};
+      s.onerror=function(){p=null;rej(new Error("hls.js failed to load"));};
+      document.head.appendChild(s);
+    });
+    return p;
+  };
+})();
+</script>
 <script>if(window.__MOVIE_ID__||/[?&]movie=/.test(location.search))document.documentElement.classList.add("route-movie")</script>
 
 <style>
@@ -958,85 +975,89 @@ function playUrl(url) {
       inner.appendChild(video);
 
       // Chrome/Android/Firefox: use hls.js.
-      if (window.Hls && Hls.isSupported()) {
-        const hls = new Hls({
-          enableWorker: true,
-          lowLatencyMode: false,
-          backBufferLength: 30,
-          maxBufferLength: 30,
-          maxMaxBufferLength: 60,
-          manifestLoadingMaxRetry: 2,
-          levelLoadingMaxRetry: 2,
-          fragLoadingMaxRetry: 3,
-          manifestLoadingRetryDelay: 1000,
-          levelLoadingRetryDelay: 1000,
-          fragLoadingRetryDelay: 1000
-        });
-
-        window._cimaHls = hls;
-
-        // Attach first, then load the source. This is the recommended hls.js order.
-        hls.attachMedia(video);
-
-        hls.on(Hls.Events.MEDIA_ATTACHED, function () {
-          hls.loadSource(playableUrl);
-        });
-
-        hls.on(Hls.Events.MANIFEST_PARSED, function () {
-          video.play().catch(function () {
-            // Mobile browsers may block autoplay with sound; controls remain available.
+      const startHls = function () {
+        if (!video.isConnected) return; // تم تغيير السيرفر قبل انتهاء تحميل المكتبة
+        if (window.Hls && Hls.isSupported()) {
+          const hls = new Hls({
+            enableWorker: true,
+            lowLatencyMode: false,
+            backBufferLength: 30,
+            maxBufferLength: 30,
+            maxMaxBufferLength: 60,
+            manifestLoadingMaxRetry: 2,
+            levelLoadingMaxRetry: 2,
+            fragLoadingMaxRetry: 3,
+            manifestLoadingRetryDelay: 1000,
+            levelLoadingRetryDelay: 1000,
+            fragLoadingRetryDelay: 1000
           });
-        });
-
-        hls.on(Hls.Events.ERROR, function (event, data) {
-          console.error("[Cima+Cima HLS]", data);
-
-          if (!data.fatal) return;
-
-          // Try the built-in hls.js recovery mechanisms before giving up.
-          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            console.warn("[Cima+Cima HLS] Recovering network error...");
-            try {
-              hls.startLoad();
-              return;
-            } catch (e) {}
-          }
-
-          if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-            console.warn("[Cima+Cima HLS] Recovering media error...");
-            try {
-              hls.recoverMediaError();
-              return;
-            } catch (e) {}
-          }
-
+  
+          window._cimaHls = hls;
+  
+          // Attach first, then load the source. This is the recommended hls.js order.
+          hls.attachMedia(video);
+  
+          hls.on(Hls.Events.MEDIA_ATTACHED, function () {
+            hls.loadSource(playableUrl);
+          });
+  
+          hls.on(Hls.Events.MANIFEST_PARSED, function () {
+            video.play().catch(function () {
+              // Mobile browsers may block autoplay with sound; controls remain available.
+            });
+          });
+  
+          hls.on(Hls.Events.ERROR, function (event, data) {
+            console.error("[Cima+Cima HLS]", data);
+  
+            if (!data.fatal) return;
+  
+            // Try the built-in hls.js recovery mechanisms before giving up.
+            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+              console.warn("[Cima+Cima HLS] Recovering network error...");
+              try {
+                hls.startLoad();
+                return;
+              } catch (e) {}
+            }
+  
+            if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+              console.warn("[Cima+Cima HLS] Recovering media error...");
+              try {
+                hls.recoverMediaError();
+                return;
+              } catch (e) {}
+            }
+  
+            inner.innerHTML =
+              '<div class="player-error">' + hlsErrorText(data) +
+              '<br><small>افتح Console لمعرفة تفاصيل الخطأ.</small></div>';
+            try { hls.destroy(); } catch (e) {}
+            window._cimaHls = null;
+          });
+  
+        // Safari/iOS and browsers with native HLS.
+        } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+          video.src = playableUrl;
+  
+          video.addEventListener("loadedmetadata", function () {
+            video.play().catch(function () {});
+          });
+  
+          video.addEventListener("error", function () {
+            const e = video.error;
+            console.error("[Cima+Cima Native HLS]", e);
+            inner.innerHTML =
+              '<div class="player-error">تعذر تشغيل بث HLS من المتصفح.' +
+              '<br><small>قد تكون المشكلة CORS أو صلاحية الرابط.</small></div>';
+          });
+  
+        } else {
           inner.innerHTML =
-            '<div class="player-error">' + hlsErrorText(data) +
-            '<br><small>افتح Console لمعرفة تفاصيل الخطأ.</small></div>';
-          try { hls.destroy(); } catch (e) {}
-          window._cimaHls = null;
-        });
-
-      // Safari/iOS and browsers with native HLS.
-      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = playableUrl;
-
-        video.addEventListener("loadedmetadata", function () {
-          video.play().catch(function () {});
-        });
-
-        video.addEventListener("error", function () {
-          const e = video.error;
-          console.error("[Cima+Cima Native HLS]", e);
-          inner.innerHTML =
-            '<div class="player-error">تعذر تشغيل بث HLS من المتصفح.' +
-            '<br><small>قد تكون المشكلة CORS أو صلاحية الرابط.</small></div>';
-        });
-
-      } else {
-        inner.innerHTML =
-          '<div class="player-error">المتصفح لا يدعم تشغيل روابط m3u8.</div>';
-      }
+            '<div class="player-error">المتصفح لا يدعم تشغيل روابط m3u8.</div>';
+        }
+      };
+      if (window.Hls) startHls(); else loadHlsLib().then(startHls, startHls);
 
     } else if (isDirectVideo(playableUrl)) {
       const video = document.createElement("video");
