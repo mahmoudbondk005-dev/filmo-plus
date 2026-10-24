@@ -113,7 +113,7 @@ function injectSeo(html, row, url) {
   if (row.category) data.genre = row.category;
   const json = JSON.stringify(data).replace(/</g, "\\u003c");
   const meta = `\n<title>${esc(title)}</title>\n<meta name="description" content="${esc(desc)}">\n<link rel="canonical" href="${esc(url)}">\n<meta property="og:type" content="website">\n<meta property="og:site_name" content="سيما سيما">\n<meta property="og:title" content="${esc(title)}">\n<meta property="og:description" content="${esc(desc)}">\n<meta property="og:url" content="${esc(url)}">${image ? `\n<meta property="og:image" content="${esc(image)}">` : ""}\n<script type="application/ld+json">${json}</script>`;
-  return html.replace(/<title>[\s\S]*?<\/title>/i, "").replace(/<meta name="description"[^>]*>/i, "").replace(/<link rel="canonical"[^>]*>/i, "").replace(/<meta property="og:(type|site_name|title|description|url|image)"[^>]*>/gi, "").replace("</head>", meta + "\n<style>body:has(#details[style*=\"display: block\"]) #ssr-seo{display:none!important}</style>\n</head>").replace('<div id="details"', ssrBlock(row) + '<div id="details"');
+  return html.replace(/<title>[\s\S]*?<\/title>/i, "").replace(/<meta name="description"[^>]*>/i, "").replace(/<link rel="canonical"[^>]*>/i, "").replace(/<meta property="og:(type|site_name|title|description|url|image)"[^>]*>/gi, "").replace("</head>", meta + "\n<style>body:has(#details[style*=\"display: block\"]) #ssr-seo{display:none!important}body:has(#ssr-seo) #details:not([style*=\"display: block\"]){display:none!important}</style>\n</head>").replace('<div id="details"', ssrBlock(row) + '<div id="details"');
 }
 async function loadHtml(env, url, request, paths) {
   for (const p of paths) {

@@ -143,6 +143,9 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 .video-watermark{position:absolute;z-index:20;top:12px;right:12px;left:auto;bottom:auto;transform:none;display:inline-flex;align-items:center;gap:6px;padding:5px 12px 5px 9px;border-radius:999px;background:linear-gradient(135deg,rgba(8,11,18,.55),rgba(8,11,18,.3));border:1px solid rgba(255,176,0,.5);color:#ffb000;font-size:clamp(10px,2.6vw,13px);font-weight:900;letter-spacing:.3px;line-height:1.3;opacity:.82;pointer-events:none;user-select:none;backdrop-filter:blur(3px);text-shadow:0 1px 2px rgba(0,0,0,.6);box-shadow:0 2px 12px rgba(0,0,0,.35)}
 .video-watermark::before{content:"";flex:0 0 auto;border-top:4.5px solid transparent;border-bottom:4.5px solid transparent;border-left:7px solid #ffb000}
 .player-stage:fullscreen .video-watermark{top:20px;right:22px;font-size:16px;padding:7px 16px 7px 12px}
+/* حجز مساحة البوستر لمنع قفز الصفحة (CLS): بوسترات TMDB نسبتها 2:3 */
+.detail-poster{aspect-ratio:2/3;background:#0f1622;border-radius:12px;overflow:hidden}
+.detail-poster>#dimg{height:100%!important;margin:0!important;object-fit:cover}
 </style>
 <script>
 /* hls.js يتحمّل عند الحاجة فقط (أول تشغيل لرابط m3u8)، لأن أغلب السيرفرات iframe ولا تحتاجه */
@@ -1167,9 +1170,8 @@ loadMovies();
   }, true);
 })();
 </script>
-<script>(function(s){s.dataset.zone='12033558',s.src='https://n6wxm.com/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
 <script>(function(s){s.dataset.zone='12033606',s.src='https://al5sm.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
-<script>(function(s){s.dataset.zone='12106157',s.src='https://al5sm.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
+<script>(function(s){s.dataset.zone='12116529',s.src='https://quge5.com/88/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
 <div class="bottom-nav" id="bottomNav" role="navigation" aria-label="التنقل">
   <button type="button" data-t="home" class="active" onclick="bnGo('home',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg><span>الرئيسية</span></button>
   <button type="button" data-t="movies" onclick="bnGo('movies',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M4 15h16M9 4v16M15 4v16"/></svg><span>الأفلام</span></button>
