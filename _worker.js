@@ -176,8 +176,10 @@ function workerEpisode(row, seasonNumber, episodeNumber) {
 }
 function injectEpisodeSeo(html, row, url, info) {
   const epName = info.title;
-  const title = `${row.title || "مسلسل"} ${epName}${info.seasonName ? " - " + info.seasonName : ""} | مشاهدة - سيما سيما`;
-  const desc = (`مشاهدة ${row.title || "المسلسل"} ${epName}${info.seasonName ? " من " + info.seasonName : ""} عبر سيما سيما. ` + String(row.description || "").trim()).replace(/\s+/g, " ").slice(0, 160);
+  const seasonsCount = (() => { const sd = parseEpisodesForWorker(row.episodes).find(x => x && x.__cimaSeasons === true && x.enabled !== false); return sd && Array.isArray(sd.seasons) ? sd.seasons.length : 0; })();
+  const heading = `${/^مسلسل\s/.test(String(row.title || "")) ? "مشاهدة" : "مشاهدة مسلسل"} ${row.title || ""}${seasonsCount > 1 && info.seasonName ? " " + info.seasonName : ""} ${epName}`.replace(/\s+/g, " ").trim();
+  const title = `${heading} | سيما سيما`;
+  const desc = (`${heading} اون لاين على سيما سيما. ` + String(row.description || "").trim()).replace(/\s+/g, " ").slice(0, 160);
   let out = injectSeo(html, row, url);
   // Episode pages use watch.html, whose generic robots directive is noindex.
   // Override it only for valid episode routes so Google can index episode pages.
@@ -186,8 +188,9 @@ function injectEpisodeSeo(html, row, url, info) {
     .replace(/<meta name="description"[^>]*>/i, `<meta name="description" content="${esc(desc)}">`)
     .replace(/<meta property="og:title"[^>]*>/i, `<meta property="og:title" content="${esc(title)}">`)
     .replace(/<meta property="og:description"[^>]*>/i, `<meta property="og:description" content="${esc(desc)}">`);
-  out = out.replace(/<section id="ssr-seo"[\s\S]*?<\/section>/i, `<section id="ssr-seo" style="max-width:1100px;margin:16px auto;padding:16px;background:#0f1622;border:1px solid #202c3e;border-radius:16px"><h1 style="margin:0 0 8px;font-size:24px">${esc(row.title || "المسلسل")} ${esc(epName)}</h1><p style="margin:0 0 8px;color:#a3a8b3">${esc(info.seasonName || "حلقة من المسلسل")}</p><p style="margin:0;line-height:1.9">${esc(desc)}</p><p style="margin:8px 0 0"><a href="${esc(itemPath(row))}" style="color:#ffb000;text-decoration:none">${esc(row.title || "المسلسل")} - كل الحلقات</a></p>${episodeNavHtml(row, url.slice(SITE.length))}</section>`);
-  const schema = { "@context": "https://schema.org", "@type": "TVEpisode", "name": `${row.title || "المسلسل"} ${epName}`, "description": desc, "url": url, "partOfSeries": { "@type": "TVSeries", "name": row.title || "" } };
+  out = out.replace(/<section id="ssr-seo"[\s\S]*?<\/section>/i, `<section id="ssr-seo" style="max-width:1100px;margin:16px auto;padding:16px;background:#0f1622;border:1px solid #202c3e;border-radius:16px"><h1 style="margin:0 0 8px;font-size:24px">${esc(heading)}</h1><p style="margin:0 0 8px;color:#a3a8b3">${esc(info.seasonName || "حلقة من المسلسل")}</p><p style="margin:0;line-height:1.9">${esc(desc)}</p><p style="margin:8px 0 0"><a href="${esc(itemPath(row))}" style="color:#ffb000;text-decoration:none">${esc(row.title || "المسلسل")} - كل الحلقات</a></p>${episodeNavHtml(row, url.slice(SITE.length))}</section>`);
+  const schema = { "@context": "https://schema.org", "@type": "TVEpisode", "name": heading, "episodeNumber": info.episodeNumber, "description": desc, "url": url, "partOfSeries": { "@type": "TVSeries", "name": row.title || "" } };
+  if (info.seasonNumber > 0) schema.partOfSeason = { "@type": "TVSeason", "seasonNumber": info.seasonNumber, "name": info.seasonName };
   out = out.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/i, `<script type="application/ld+json">${JSON.stringify(schema).replace(/</g, "\\u003c")}</script>`);
   return out;
 }

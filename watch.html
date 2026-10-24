@@ -1282,9 +1282,14 @@ function updateEpisodeAddress(m, index, noPush) {
   if (!noPush && location.pathname !== path) history.pushState({ cimaEpisode: true, id: String(m.id), season: m.seasonsEnabled ? currentSeasonIndex + 1 : 0, episode: index + 1 }, "", path);
   var ep = (m.seasonsEnabled && m.seasons.length) ? ((seasonEpisodes() || [])[index] || {}) : ((m.episodes || [])[index] || {});
   var epTitle = ep.title || ("الحلقة " + (index + 1));
-  document.title = m.name + " " + epTitle + " | مشاهدة - سيما سيما";
-  var desc = document.querySelector('meta[name="description"]');
-  if (desc) desc.content = ("مشاهدة " + m.name + " " + epTitle + " عبر سيما سيما. " + (m.desc || "")).slice(0, 155);
+  var seasonLabel = "";
+  if (m.seasonsEnabled && m.seasons.length > 1) { var sn = m.seasons[currentSeasonIndex] || {}; seasonLabel = " " + (sn.name || ("الموسم " + (currentSeasonIndex + 1))); }
+  var heading = ((/^مسلسل\s/.test(String(m.name || "")) ? "مشاهدة " : "مشاهدة مسلسل ") + m.name + seasonLabel + " " + epTitle).replace(/\s+/g, " ").trim();
+  document.title = heading + " | سيما سيما";
+  var dt = document.getElementById("dtitle"); if (dt) dt.textContent = heading;
+  var descText = (heading + " اون لاين على سيما سيما. " + (m.desc || "")).replace(/\s+/g, " ").slice(0, 160);
+  var desc = document.querySelector('meta[name="description"]'); if (desc) desc.content = descText;
+  var ogDesc = document.querySelector('meta[property="og:description"]'); if (ogDesc) ogDesc.content = descText;
   var canonical = document.querySelector('link[rel="canonical"]');
   if (canonical) canonical.href = "https://cimacima.online" + path;
   var ogTitle = document.querySelector('meta[property="og:title"]'); if (ogTitle) ogTitle.content = document.title;
