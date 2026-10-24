@@ -1,6 +1,10 @@
 const SUPABASE_URL = "https://axvibvssjizkrfdqlyow.supabase.co";
 const SUPABASE_KEY = "sb_publishable_72qMAroeSPFAMXfL2AoVQA_5RnDslsh";
 const SITE = "https://cimacima.online";
+// false = صفحات الحلقات noindex,follow وغير موجودة في الـ sitemap (تفهرس صفحة المسلسل فقط). اجعلها true لفهرسة الحلقات.
+const INDEX_EPISODES = false;
+const SITEMAP_CHUNK = 10000;   // عدد الروابط في كل ملف sitemap (الحد الأقصى المسموح 50000)
+const HOME_LATEST = 48;        // عدد الأعمال المعروضة كروابط في الصفحة الرئيسية للزواحف
 
 function headers() {
   return { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY };
@@ -39,11 +43,12 @@ async function getMovie(id) {
   return sawOk ? null : undefined;
 }
 async function getAllRows() {
+  const ep = INDEX_EPISODES ? ",episodes" : "";
   const attempts = [
-    { sel: "Id,title,category,created_at,updated_at,episodes", order: "Id.desc" },
-    { sel: "Id,title,category,created_at,episodes", order: "Id.desc" },
-    { sel: "Id,title,category,episodes", order: "Id.desc" },
-    { sel: "id,title,category,episodes", order: "id.desc" },
+    { sel: "Id,title,category,created_at,updated_at" + ep, order: "Id.desc" },
+    { sel: "Id,title,category,created_at" + ep, order: "Id.desc" },
+    { sel: "Id,title,category" + ep, order: "Id.desc" },
+    { sel: "id,title,category" + ep, order: "id.desc" },
     { sel: "*", order: "Id.desc" },
     { sel: "*", order: "id.desc" },
     { sel: "*", order: "" }
@@ -80,9 +85,9 @@ function episodeUrlList(row) {
   return out;
 }
 function episodeNavHtml(row, currentPath) {
-  const list = episodeUrlList(row).slice(0, 300);
+  const list = episodeUrlList(row).slice(0, 60);
   if (!list.length) return "";
-  return `<nav aria-label="الحلقات" style="position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">` + list.map(e => `<a href="${esc(e.p)}" style="color:#ffb000;text-decoration:none"${e.p === currentPath ? ' aria-current="page"' : ""}>${esc(e.label)}</a>`).join("") + `</nav>`;
+  return `<nav aria-label="الحلقات" style="margin-top:14px;display:flex;flex-wrap:wrap;gap:8px">` + list.map(e => `<a href="${esc(e.p)}" style="color:#ffb000;text-decoration:none;border:1px solid #202c3e;border-radius:10px;padding:6px 12px;font-size:14px"${e.p === currentPath ? ' aria-current="page"' : ""}>${esc(e.label)}</a>`).join("") + `</nav>`;
 }
 function ssrBlock(row) {
   const title = esc(row.title || "");
@@ -125,31 +130,82 @@ function lastmod(row) {
   const d = new Date(v);
   return isNaN(d) ? "" : `<lastmod>${d.toISOString().slice(0, 10)}</lastmod>`;
 }
-function staticSitemap(rows) {
+function buildEntries(rows) {
   const entries = ["/", "/privacy", "/terms", "/contact", "/dmca"].map(p => ({ p, lm: "" }));
   for (const row of rows) {
     if (row && (row.Id ?? row.id) != null && row.title) {
       entries.push({ p: itemPath(row), lm: lastmod(row) });
-      if (isSeries(row.category)) {
-        const data = parseEpisodesForWorker(row.episodes);
-        const seasonData = data.find(x => x && x.__cimaSeasons === true && x.enabled !== false);
-        if (seasonData && Array.isArray(seasonData.seasons)) {
-          seasonData.seasons.forEach((season, si) => (Array.isArray(season.episodes) ? season.episodes : []).forEach((ep, ei) => {
-            entries.push({ p: itemPath(row) + `/season/${si + 1}/episode/${ei + 1}`, lm: lastmod(row) });
-          }));
-        } else {
-          data.filter(x => x && !x.__cimaOverlay && !x.__cimaSeasons).forEach((ep, ei) => {
-            entries.push({ p: itemPath(row) + `/episode/${ei + 1}`, lm: lastmod(row) });
-          });
-        }
+      if (INDEX_EPISODES && isSeries(row.category)) {
+        for (const e of episodeUrlList(row)) entries.push({ p: e.p, lm: lastmod(row) });
       }
     }
   }
   const seen = new Set();
-  const list = entries.filter(e => !seen.has(e.p) && seen.add(e.p));
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` + list.map(e => `  <url><loc>${xmlEsc(SITE + e.p)}</loc>${e.lm}</url>`).join("\n") + "\n</urlset>";
+  return entries.filter(e => !seen.has(e.p) && seen.add(e.p));
+}
+function sitemapUrlset(list) {
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` + list.map(e => `  <url><loc>${xmlEsc(SITE + e.p)}</loc>${e.lm || ""}</url>`).join("\n") + "\n</urlset>";
+}
+function sitemapIndex(n) {
+  const now = new Date().toISOString().slice(0, 10);
+  let out = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+  for (let k = 1; k <= n; k++) out += `  <sitemap><loc>${SITE}/sitemap-${k}.xml</loc><lastmod>${now}</lastmod></sitemap>\n`;
+  return out + "</sitemapindex>";
+}
+// نخزّن قائمة الروابط في Cache API 10 دقائق حتى لا نسحب الجدول كله من Supabase مع كل طلب
+async function getEntriesCached(ctx) {
+  const cache = caches.default;
+  const key = new Request(SITE + "/__cache/sitemap-entries");
+  const hit = await cache.match(key);
+  if (hit) { try { return await hit.json(); } catch (e) {} }
+  const list = buildEntries(await getAllRows());
+  const res = new Response(JSON.stringify(list), { headers: { "content-type": "application/json", "cache-control": "public, max-age=600" } });
+  if (ctx && ctx.waitUntil) ctx.waitUntil(cache.put(key, res)); else await cache.put(key, res);
+  return list;
+}
+const XML_HEADERS = { "content-type": "application/xml; charset=UTF-8", "cache-control": "public, max-age=600" };
+async function handleSitemap(url, ctx) {
+  let list;
+  try { list = await getEntriesCached(ctx); }
+  catch (e) { return new Response("Sitemap temporarily unavailable", { status: 503, headers: { "content-type": "text/plain; charset=UTF-8", "retry-after": "300" } }); }
+  const total = Math.max(1, Math.ceil(list.length / SITEMAP_CHUNK));
+  if (url.pathname === "/sitemap.xml") return new Response(sitemapIndex(total), { headers: XML_HEADERS });
+  const m = url.pathname.match(/^\/sitemap-(\d+)\.xml$/);
+  const n = m ? Number(m[1]) : 0;
+  if (!n || n > total) return new Response("Not found", { status: 404, headers: { "x-robots-tag": "noindex" } });
+  return new Response(sitemapUrlset(list.slice((n - 1) * SITEMAP_CHUNK, n * SITEMAP_CHUNK)), { headers: XML_HEADERS });
 }
 
+// ===== الصفحة الرئيسية: روابط حقيقية لأحدث الأعمال داخل الـ HTML (يستفيد منها الزاحف قبل تشغيل JS) =====
+async function getLatest(limit) {
+  const attempts = [
+    { sel: "Id,title,category,year", order: "Id.desc" },
+    { sel: "id,title,category,year", order: "id.desc" },
+    { sel: "Id,title,category", order: "Id.desc" },
+    { sel: "id,title,category", order: "id.desc" },
+    { sel: "*", order: "" }
+  ];
+  for (const at of attempts) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/movies?select=${at.sel}${at.order ? "&order=" + at.order : ""}&limit=${limit}`, { headers: headers() });
+    if (!r.ok) continue;
+    const data = await r.json();
+    if (Array.isArray(data)) return data.filter(x => x && x.title && (x.Id ?? x.id) != null);
+  }
+  throw new Error("latest failed");
+}
+function homeListHtml(rows) {
+  if (!rows.length) return "";
+  const links = rows.map(r => `<a href="${esc(itemPath(r))}" style="color:#ffb000;text-decoration:none;border:1px solid #202c3e;border-radius:10px;padding:6px 12px;font-size:14px">${esc(r.title)}${r.year ? " (" + esc(r.year) + ")" : ""}</a>`).join("");
+  return `<section id="ssr-home" style="margin:28px 0"><h2 style="font-size:20px;margin:0 0 12px">أحدث الأفلام والمسلسلات المضافة</h2><nav aria-label="أحدث الأعمال" style="display:flex;flex-wrap:wrap;gap:8px">${links}</nav></section>`;
+}
+
+// ===== حالة عدم توفر قاعدة البيانات: 503 مؤقتة بدل صفحة 200 بلا SEO، فلا تُفهرس نسخة عامة بالغلط =====
+async function unavailable(env, url, request, paths) {
+  const page = await loadHtml(env, url, request, paths);
+  const h = { "content-type": "text/html; charset=UTF-8", "retry-after": "300", "cache-control": "no-store" };
+  if (!page) return new Response("Service temporarily unavailable", { status: 503, headers: { "content-type": "text/plain; charset=UTF-8", "retry-after": "300", "cache-control": "no-store" } });
+  return new Response(page.body, { status: 503, headers: h });
+}
 function parseEpisodesForWorker(value) {
   if (Array.isArray(value)) return value;
   if (typeof value === "string") { try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : []; } catch (e) {} }
@@ -209,9 +265,8 @@ function injectEpisodeSeo(html, row, url, info) {
   const title = `${heading} | سيما سيما`;
   const desc = (`${heading} اون لاين على سيما سيما. ` + String(row.description || "").trim()).replace(/\s+/g, " ").slice(0, 160);
   let out = injectSeo(html, row, url);
-  // Episode pages use watch.html, whose generic robots directive is noindex.
-  // Override it only for valid episode routes so Google can index episode pages.
-  out = out.replace(/<meta\s+name=["']robots["'][^>]*>/i, '<meta name="robots" content="index,follow">');
+  // watch.html الأصلية noindex. لصفحات الحلقات الصحيحة نحدد الفهرسة حسب INDEX_EPISODES.
+  out = out.replace(/<meta\s+name=["']robots["'][^>]*>/i, `<meta name="robots" content="${INDEX_EPISODES ? "index,follow" : "noindex,follow"}">`);
   out = out.replace(/<title>[\s\S]*?<\/title>/i, `<title>${esc(title)}</title>`)
     .replace(/<meta name="description"[^>]*>/i, `<meta name="description" content="${esc(desc)}">`)
     .replace(/<meta property="og:title"[^>]*>/i, `<meta property="og:title" content="${esc(title)}">`)
@@ -232,16 +287,20 @@ async function notFound(env, url, request) {
   h.set("cache-control", "public, max-age=60");
   return new Response(r.body, { status: 404, headers: h });
 }
+// نخزّن الصفحات المُولّدة 5 دقائق على حافة كلاودفلير: أسرع للزائر والزاحف ويخفف الضغط على Supabase
+function cacheAndReturn(ctx, request, res) {
+  if (request.method === "GET" && ctx && ctx.waitUntil) ctx.waitUntil(caches.default.put(request, res.clone()));
+  return res;
+}
+const HTML_OK = { "content-type": "text/html; charset=UTF-8", "cache-control": "public, max-age=300" };
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const isGet = request.method === "GET";
     try {
-      if (url.pathname === "/sitemap.xml") {
-        let rows;
-        try { rows = await getAllRows(); }
-        catch (e) { return new Response("Sitemap temporarily unavailable", { status: 503, headers: { "content-type": "text/plain; charset=UTF-8", "retry-after": "300" } }); }
-        return new Response(staticSitemap(rows), { headers: { "content-type": "application/xml; charset=UTF-8", "cache-control": "public, max-age=300" } });
+      if (url.pathname === "/sitemap.xml" || /^\/sitemap-\d+\.xml$/.test(url.pathname)) {
+        return await handleSitemap(url, ctx);
       }
       // الروابط القديمة /?movie=ID تتحول بشكل دائم (301) للرابط الأساسي
       if (url.pathname === "/" && url.searchParams.get("movie")) {
@@ -249,14 +308,38 @@ export default {
         if (oldRow && oldRow.title) return Response.redirect(SITE + itemPath(oldRow), 301);
       }
       const p = url.pathname;
-      // روابط الحلقات: تحديث العنوان/الفهرسة دون الحاجة إلى إعادة تحميل الصفحة عند التنقل داخل المشغل
+
+      // الصفحة الرئيسية: نضيف قائمة روابط حقيقية لأحدث الأعمال داخل الـ HTML
+      if (isGet && p === "/" && !url.search) {
+        const hit = await caches.default.match(request);
+        if (hit) return hit;
+        const asset = await env.ASSETS.fetch(request);
+        if (!asset || asset.status !== 200) return asset;
+        try {
+          const rows = await getLatest(HOME_LATEST);
+          const list = homeListHtml(rows);
+          if (!list) return asset;
+          const html = (await asset.clone().text()).replace("</main>", () => list + "</main>");
+          return cacheAndReturn(ctx, request, new Response(html, { status: 200, headers: HTML_OK }));
+        } catch (e) { return asset; }
+      }
+
+      const cacheable = isGet && /^\/(movie|series)\//i.test(p);
+      if (cacheable) {
+        const hit = await caches.default.match(request);
+        if (hit) return hit;
+      }
+
+      // روابط الحلقات
       const episodeMatch = p.match(/^\/series\/[^/]+~([^/]+)\/(?:season\/(\d+)\/)?episode\/(\d+)\/?$/i);
       if (episodeMatch) {
         let id;
         try { id = decodeURIComponent(episodeMatch[1]); } catch (e) { return notFound(env, url, request); }
         const row = await getMovie(id);
         if (row === null) return notFound(env, url, request);
-        if (!row || !row.title || !isSeries(row.category)) return notFound(env, url, request);
+        // قاعدة البيانات غير متاحة مؤقتًا: 503 بدل 404 حتى لا تُحذف الصفحة من الفهرس
+        if (row === undefined) return unavailable(env, url, request, ["/watch.html", "/watch", "/index.html"]);
+        if (!row.title || !isSeries(row.category)) return notFound(env, url, request);
         const seasonNumber = Number(episodeMatch[2] || 0);
         const episodeNumber = Number(episodeMatch[3]);
         if (seasonNumber && !workerHasSeasons(row)) {
@@ -270,7 +353,7 @@ export default {
         const page = await loadHtml(env, url, request, ["/watch.html", "/watch", "/index.html"]);
         if (!page) return env.ASSETS.fetch(request);
         const html = injectEpisodeSeo(await page.text(), row, SITE + canonical, info);
-        return new Response(html, { status: 200, headers: { "content-type": "text/html; charset=UTF-8", "cache-control": "public, max-age=300" } });
+        return cacheAndReturn(ctx, request, new Response(html, { status: 200, headers: HTML_OK }));
       }
       if (/^\/(movie|series)\//i.test(p)) {
         const m = p.match(/^\/(movie|series)\/[^/]+~([^/]+)\/?$/i);
@@ -279,7 +362,9 @@ export default {
         try { id = decodeURIComponent(m[2]); } catch (e) { return notFound(env, url, request); }
         const row = await getMovie(id);
         if (row === null) return notFound(env, url, request);
-        if (row && row.title) {
+        // قاعدة البيانات غير متاحة مؤقتًا: 503 (الزاحف يعيد المحاولة) بدل صفحة 200 عامة بلا SEO
+        if (row === undefined) return unavailable(env, url, request, ["/movie.html", "/movie", "/index.html"]);
+        if (row.title) {
           const canon = itemPath(row);
           let same = false;
           try { same = !p.endsWith("/") && decodeURIComponent(p) === decodeURIComponent(canon); } catch (e) {}
@@ -289,16 +374,12 @@ export default {
         const page = await loadHtml(env, url, request, ["/movie.html", "/movie"]);
         const asset = page || await loadHtml(env, url, request, ["/index.html", "/"]);
         if (!asset) return env.ASSETS.fetch(request);
-        if (!row) return asset;
         let html = injectSeo(await asset.text(), row, SITE + itemPath(row));
         if (page) {
           const fix = '<script>window.__MOVIE_ID__=' + JSON.stringify(String(row.Id ?? row.id)) + ';</script>';
           html = html.replace(/<head[^>]*>/i, mm => mm + fix);
         }
-        return new Response(html, {
-          status: 200,
-          headers: { "content-type": "text/html; charset=UTF-8", "cache-control": "public, max-age=300" }
-        });
+        return cacheAndReturn(ctx, request, new Response(html, { status: 200, headers: HTML_OK }));
       }
       // الروابط القديمة /movie.html?movie=ID تتحول نهائيًا (301) للرابط الأساسي
       if (p === "/movie" || p === "/movie.html") {
@@ -311,6 +392,9 @@ export default {
       }
       return env.ASSETS.fetch(request);
     } catch (e) {
+      if (/^\/(movie|series)\//i.test(url.pathname)) {
+        try { return await unavailable(env, url, request, ["/movie.html", "/index.html"]); } catch (e2) {}
+      }
       return env.ASSETS.fetch(request);
     }
   }
