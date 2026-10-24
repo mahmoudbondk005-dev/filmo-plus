@@ -172,7 +172,35 @@ function workerEpisode(row, seasonNumber, episodeNumber) {
   }
   const ep = list[episodeNumber - 1];
   if (!ep) return null;
-  return { ep, seasonName, title: String(ep.title || ("الحلقة " + episodeNumber)), seasonNumber, episodeNumber };
+  const nameAt = n => { const e = list[n - 1]; return e ? String(e.title || ("الحلقة " + n)) : ""; };
+  return { ep, seasonName, title: String(ep.title || ("الحلقة " + episodeNumber)), seasonNumber, episodeNumber, total: list.length, prevTitle: nameAt(episodeNumber - 1), nextTitle: nameAt(episodeNumber + 1) };
+}
+function episodeInfoHtml(row, info, seasonsCount) {
+  const multi = seasonsCount > 1;
+  const sName = multi ? (info.seasonName || "") : "";
+  const label = t => ((sName ? sName + " " : "") + t).trim();
+  const title = String(row.title || "");
+  const nameWithKind = title.indexOf("مسلسل ") === 0 ? title : "مسلسل " + title;
+  const cat = String(row.category || "");
+  const lead = `شاهد ${nameWithKind} — ${label(info.title)} اون لاين على سيما سيما.${cat ? " التصنيف: " + cat + "." : ""} القصة الكاملة وباقي الحلقات في صفحة المسلسل.`;
+  const chips = [];
+  if (row.year) chips.push(String(row.year));
+  if (row.rating && String(row.rating) !== "—") chips.push("⭐ " + row.rating);
+  if (cat) chips.push(cat);
+  if (row.duration) chips.push(String(row.duration));
+  if (sName) chips.push(sName);
+  chips.push(`الحلقة ${info.episodeNumber} من ${info.total}`);
+  const base = itemPath(row) + (info.seasonNumber > 0 ? `/season/${info.seasonNumber}` : "");
+  const links = [];
+  if (info.episodeNumber > 1 && info.prevTitle) links.push(`<a href="${esc(base + "/episode/" + (info.episodeNumber - 1))}" onclick="return epClick(event, ${info.episodeNumber - 2})">الحلقة السابقة: ${esc(label(info.prevTitle))}</a>`);
+  if (info.episodeNumber < info.total && info.nextTitle) links.push(`<a href="${esc(base + "/episode/" + (info.episodeNumber + 1))}" onclick="return epClick(event, ${info.episodeNumber})">الحلقة التالية: ${esc(label(info.nextTitle))}</a>`);
+  const d = String(row.description || "").replace(/\s+/g, " ").trim();
+  const short = d.length > 300 ? d.slice(0, 300).replace(/\s+\S*$/, "") + "…" : d;
+  return `<section id="epInfo" class="ep-info"><p class="ei-lead">${esc(lead)}</p>` +
+    `<div class="ei-chips">${chips.map(c => `<span>${esc(c)}</span>`).join("")}</div>` +
+    (links.length ? `<div class="ei-links">${links.join("")}</div>` : "") +
+    (short ? `<h2 class="ei-h">نبذة سريعة</h2><p class="ei-desc">${esc(short)}</p>` : "") +
+    `<a class="ei-more" href="${esc(itemPath(row))}">← اقرأ القصة والتفاصيل كاملة</a></section>`;
 }
 function injectEpisodeSeo(html, row, url, info) {
   const epName = info.title;
@@ -189,6 +217,7 @@ function injectEpisodeSeo(html, row, url, info) {
     .replace(/<meta property="og:title"[^>]*>/i, `<meta property="og:title" content="${esc(title)}">`)
     .replace(/<meta property="og:description"[^>]*>/i, `<meta property="og:description" content="${esc(desc)}">`);
   out = out.replace(/<section id="ssr-seo"[\s\S]*?<\/section>/i, `<section id="ssr-seo" style="max-width:1100px;margin:16px auto;padding:16px;background:#0f1622;border:1px solid #202c3e;border-radius:16px"><h1 style="margin:0 0 8px;font-size:24px">${esc(heading)}</h1><p style="margin:0 0 8px;color:#a3a8b3">${esc(info.seasonName || "حلقة من المسلسل")}</p><p style="margin:0;line-height:1.9">${esc(desc)}</p><p style="margin:8px 0 0"><a href="${esc(itemPath(row))}" style="color:#ffb000;text-decoration:none">${esc(row.title || "المسلسل")} - كل الحلقات</a></p>${episodeNavHtml(row, url.slice(SITE.length))}</section>`);
+  out = out.replace('<section id="epInfo" class="ep-info"></section>', () => episodeInfoHtml(row, info, seasonsCount));
   const schema = { "@context": "https://schema.org", "@type": "TVEpisode", "name": heading, "episodeNumber": info.episodeNumber, "description": desc, "url": url, "partOfSeries": { "@type": "TVSeries", "name": row.title || "" } };
   if (info.seasonNumber > 0) schema.partOfSeason = { "@type": "TVSeason", "seasonNumber": info.seasonNumber, "name": info.seasonName };
   out = out.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/i, `<script type="application/ld+json">${JSON.stringify(schema).replace(/</g, "\\u003c")}</script>`);

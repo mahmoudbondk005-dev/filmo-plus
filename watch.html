@@ -349,6 +349,20 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 .page-watch .watch-back .wb-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(hover:hover){.page-watch .watch-back:hover .wb-arrow{border-color:#ffb000;color:#ffb000}}
 .page-watch #serverBox:empty,.page-watch #serverBox.is-empty{display:none!important}
+
+/* ===== قسم تفاصيل الحلقة في آخر الصفحة ===== */
+.ep-info:empty{display:none}
+.page-watch #details > #epInfo{order:9!important}
+.ep-info{margin-top:22px;padding:18px;border-radius:20px;background:linear-gradient(180deg,#14111a,#0d1220);border:1px solid #2a2433}
+.ep-info .ei-lead{margin:0 0 14px;color:#a3a8b3;font-size:16px;line-height:2}
+.ep-info .ei-chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.ep-info .ei-chips span{padding:7px 14px;border-radius:10px;background:#1b1f2b;color:#c9d1dd;font-size:14px;font-weight:700}
+.ep-info .ei-links{display:flex;flex-direction:column;gap:8px;margin:0 0 14px;font-size:15px}
+.ep-info .ei-links a{color:#ffb000;text-decoration:underline;text-underline-offset:4px}
+.ep-info .ei-h{margin:16px 0 8px;padding-top:16px;border-top:1px solid #232b3a;font-size:22px;font-weight:900;color:#f1f4f9}
+.ep-info .ei-desc{margin:0 0 14px;color:#8d96a6;font-size:15px;line-height:2}
+.ep-info .ei-more{display:inline-block;color:#e6ebf3;text-decoration:none;font-weight:700;font-size:15px}
+.ep-info .ei-more:hover{color:#ffb000}
 </style>
 </head>
 <body class="page-watch">
@@ -440,6 +454,7 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
   <div id="epNav" class="ep-nav" style="display:none"></div>
   <button id="nextEp" class="btn" type="button" style="display:none;margin:12px auto 0" onclick="nextEpisode()">الحلقة التالية<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
   <section id="related" style="display:none"><div class="head"><h2>أعمال مشابهة</h2></div><div id="grid-related" class="grid rowmode"></div></section>
+  <section id="epInfo" class="ep-info"></section>
 </div>
 
 
@@ -1286,6 +1301,36 @@ function episodeRoutePath(m, index) {
   if (m && m.seasonsEnabled && m.seasons.length) epPart = "/season/" + (Number(currentSeasonIndex) + 1) + epPart;
   return base + epPart;
 }
+function renderEpInfo(m, index) {
+  var box = document.getElementById("epInfo"); if (!box || !m) return;
+  var series = isSeries(m.type), hasEp = series && index != null;
+  var multi = !!(m.seasonsEnabled && m.seasons.length > 1);
+  var sName = (hasEp && multi) ? ((m.seasons[currentSeasonIndex] || {}).name || ("الموسم " + (currentSeasonIndex + 1))) : "";
+  var eps = hasEp ? ((m.seasonsEnabled && m.seasons.length) ? (seasonEpisodes() || []) : (m.episodes || [])) : [];
+  var epName = function (i) { var e = eps[i] || {}; return String(e.title || ("الحلقة " + (i + 1))); };
+  var label = function (i) { return ((sName ? sName + " " : "") + epName(i)).trim(); };
+  var kind = series ? "مسلسل" : "فيلم";
+  var title = String(m.name || "");
+  var nameWithKind = (title.indexOf(kind + " ") === 0) ? title : (kind + " " + title);
+  var lead = "شاهد " + nameWithKind + (hasEp ? " — " + label(index) : "") + " اون لاين على سيما سيما." + (m.type ? " التصنيف: " + m.type + "." : "") + (series ? " القصة الكاملة وباقي الحلقات في صفحة المسلسل." : " القصة الكاملة في صفحة التفاصيل.");
+  var chips = [];
+  if (m.year) chips.push(m.year);
+  if (m.rating && String(m.rating) !== "—") chips.push("⭐ " + m.rating);
+  if (m.type) chips.push(m.type);
+  if (m.duration) chips.push(m.duration);
+  if (hasEp) { if (sName) chips.push(sName); chips.push("الحلقة " + (index + 1) + " من " + eps.length); }
+  var links = [];
+  if (hasEp && index > 0) links.push('<a href="' + safe(episodeRoutePath(m, index - 1)) + '" onclick="return epClick(event, ' + (index - 1) + ')">الحلقة السابقة: ' + safe(label(index - 1)) + '</a>');
+  if (hasEp && index < eps.length - 1) links.push('<a href="' + safe(episodeRoutePath(m, index + 1)) + '" onclick="return epClick(event, ' + (index + 1) + ')">الحلقة التالية: ' + safe(label(index + 1)) + '</a>');
+  var d = String(m.desc || "").replace(/\s+/g, " ").trim();
+  var short = d.length > 300 ? d.slice(0, 300).replace(/\s+\S*$/, "") + "…" : d;
+  var href = "#"; try { href = prettyPath(m); } catch (e) {}
+  box.innerHTML = '<p class="ei-lead">' + safe(lead) + '</p>'
+    + (chips.length ? '<div class="ei-chips">' + chips.map(function (c) { return "<span>" + safe(c) + "</span>"; }).join("") + "</div>" : "")
+    + (links.length ? '<div class="ei-links">' + links.join("") + "</div>" : "")
+    + (short ? '<h2 class="ei-h">نبذة سريعة</h2><p class="ei-desc">' + safe(short) + "</p>" : "")
+    + '<a class="ei-more" href="' + safe(href) + '">← اقرأ القصة والتفاصيل كاملة</a>';
+}
 function updateEpisodeAddress(m, index, noPush) {
   if (!m || m.id == null) return;
   var path = episodeRoutePath(m, index);
@@ -1300,6 +1345,7 @@ function updateEpisodeAddress(m, index, noPush) {
   var descText = (heading + " اون لاين على سيما سيما. " + (m.desc || "")).replace(/\s+/g, " ").slice(0, 160);
   var desc = document.querySelector('meta[name="description"]'); if (desc) desc.content = descText;
   var ogDesc = document.querySelector('meta[property="og:description"]'); if (ogDesc) ogDesc.content = descText;
+  try { renderEpInfo(m, index); } catch (e) {}
   var canonical = document.querySelector('link[rel="canonical"]');
   if (canonical) canonical.href = "https://cimacima.online" + path;
   var ogTitle = document.querySelector('meta[property="og:title"]'); if (ogTitle) ogTitle.content = document.title;
@@ -1429,6 +1475,7 @@ show = function(x, pushRoute){
     const dt0 = document.getElementById("dtitle"); if (dt0) dt0.textContent = baseHeading;
     const wbn = document.getElementById("wbName"); if (wbn) wbn.textContent = x.name;
     const wba = document.getElementById("watchBack"); if (wba) wba.href = prettyPath(x);
+    try { renderEpInfo(x, null); } catch (e) {}
     const wbtn=document.getElementById("watchBtn"); if(wbtn) wbtn.style.display="none";
     const fbtn=document.getElementById("favDetailBtn"); if(fbtn) fbtn.style.display="none";
     setTimeout(function(){
