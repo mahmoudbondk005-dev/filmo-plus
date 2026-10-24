@@ -339,6 +339,16 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 .detail-poster .poster-watermark::before{border-top-width:5px;border-bottom-width:5px;border-left-width:8px}
 
 .page-watch #episodesBox a.ep-btn.ep-card{text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+
+/* ===== صفحة المشاهدة: رجوع + عنوان + سيرفرات + مشغل (بدون بوستر/تقييم) ===== */
+.page-watch .detail-poster,.page-watch #dmeta,.page-watch .detail .poster-rating{display:none!important}
+.page-watch .detail{display:block!important;background:none!important;border:0!important;box-shadow:none!important;padding:0!important;margin:6px 0 0!important}
+.page-watch .detail h1{font-size:24px!important;line-height:1.6;margin:8px 0 4px!important;text-align:right!important;font-weight:900}
+.page-watch #details>.watch-back{display:flex;align-items:center;gap:12px;width:100%;padding:0!important;margin:4px 0 2px;background:none!important;border:0!important;color:#a3a8b3;font-size:16px;font-weight:700;text-decoration:none}
+.page-watch .watch-back .wb-arrow{flex:0 0 auto;width:44px;height:44px;border-radius:50%;background:#171d27;border:1px solid #253145;display:grid;place-items:center;color:#e6ebf3;font-size:20px;line-height:1}
+.page-watch .watch-back .wb-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(hover:hover){.page-watch .watch-back:hover .wb-arrow{border-color:#ffb000;color:#ffb000}}
+.page-watch #serverBox:empty,.page-watch #serverBox.is-empty{display:none!important}
 </style>
 </head>
 <body class="page-watch">
@@ -405,7 +415,7 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 </main>
 
 <div id="details" class="wrap">
-  <span class="back" onclick="backToPrevious()">← العودة</span>
+  <a id="watchBack" class="back watch-back" href="/"><span class="wb-arrow" aria-hidden="true">→</span><span class="wb-name" id="wbName"></span></a>
   <div class="detail">
     <div class="detail-poster" style="position:relative"><img id="dimg" alt="" style="display:block;width:100%;height:auto"><span class="poster-rating" id="dRating">⭐ —</span><span class="poster-watermark">سيما سيما</span></div>
     <div>
@@ -1414,7 +1424,11 @@ show = function(x, pushRoute){
   const w=document.getElementById("watchBtn");
   if(w && PAGE_MODE === "movie") { w.onclick=openWatchPage; w.textContent="▶ مشاهدة الآن"; }
   if(PAGE_MODE === "watch") {
-    document.title=x.name+" | مشاهدة | سيما سيما";
+    const baseHeading = ((isSeries(x.type) ? (/^مسلسل\s/.test(String(x.name || "")) ? "مشاهدة " : "مشاهدة مسلسل ") : (/^فيلم\s/.test(String(x.name || "")) ? "مشاهدة " : "مشاهدة فيلم ")) + x.name).trim();
+    document.title = baseHeading + " | سيما سيما";
+    const dt0 = document.getElementById("dtitle"); if (dt0) dt0.textContent = baseHeading;
+    const wbn = document.getElementById("wbName"); if (wbn) wbn.textContent = x.name;
+    const wba = document.getElementById("watchBack"); if (wba) wba.href = prettyPath(x);
     const wbtn=document.getElementById("watchBtn"); if(wbtn) wbtn.style.display="none";
     const fbtn=document.getElementById("favDetailBtn"); if(fbtn) fbtn.style.display="none";
     setTimeout(function(){
