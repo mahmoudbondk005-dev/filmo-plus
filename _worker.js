@@ -2,7 +2,7 @@ const SUPABASE_URL = "https://axvibvssjizkrfdqlyow.supabase.co";
 const SUPABASE_KEY = "sb_publishable_72qMAroeSPFAMXfL2AoVQA_5RnDslsh";
 const SITE = "https://cimacima.online";
 // false = صفحات الحلقات noindex,follow وغير موجودة في الـ sitemap (تفهرس صفحة المسلسل فقط). اجعلها true لفهرسة الحلقات.
-const INDEX_EPISODES = false;
+const INDEX_EPISODES = true;
 const SITEMAP_CHUNK = 10000;   // عدد الروابط في كل ملف sitemap (الحد الأقصى المسموح 50000)
 const HOME_LATEST = 48;        // عدد الأعمال المعروضة كروابط في الصفحة الرئيسية للزواحف
 
