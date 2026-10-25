@@ -841,7 +841,6 @@ function watch(){
   playUrl(x.movie_url);
 }
 function openServerAd(nextAction){
-  try { window.open("https://uplcm.com/4/11977439", "_blank", "noopener,noreferrer"); } catch(e) {}
   if (typeof nextAction === "function") nextAction();
 }
 
@@ -1547,22 +1546,7 @@ window.addEventListener("popstate", restoreRoute);
 
 loadMovies();
 </script>
-<script>
-/* Ads: ad on "next episode" (max once / 4 min), shared cooldown with server ads */
-(function(){
-  var AD="https://uplcm.com/4/11977439",K="cc_ad_last";
-  function can(g){try{return Date.now()-Number(sessionStorage.getItem(K)||0)>g;}catch(e){return true;}}
-  function mark(){try{sessionStorage.setItem(K,String(Date.now()));}catch(e){}}
-  var os=window.openServerAd;
-  if(typeof os==="function"){window.openServerAd=function(f){mark();return os(f);};}
-  var ne=window.nextEpisode;
-  if(typeof ne==="function"){window.nextEpisode=function(){
-    if(can(240000)){mark();try{window.open(AD,"_blank","noopener,noreferrer");}catch(e){}}
-    return ne.apply(this,arguments);
-  };}
-})();
-</script>
-<script>(function(s){s.dataset.zone='12033606',s.src='https://al5sm.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
-<script src="https://quge5.com/88/tag.min.js" data-zone="301693" async data-cfasync="false"></script>
+<script>(function(s){s.dataset.zone='12106157',s.src='https://al5sm.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
+<script data-cfasync="false" src="https://aarems.org/1/467f339b650d2b064c556ba8aeba54fe"></script>
 </body>
 </html>
