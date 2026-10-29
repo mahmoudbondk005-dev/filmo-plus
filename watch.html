@@ -1420,8 +1420,22 @@ function nextEpisode() { playEpisode((window._epIdx || 0) + 1); }
 function watch() {
   const m = window.currentMovie;
   if (!m) return;
-  if (m && isSeries(m.type) && m.seasonsEnabled && m.seasons.length) { const eb=document.getElementById("episodesBox"); eb.style.display="block"; eb.scrollIntoView({behavior:"smooth",block:"nearest"}); return; }
-  if (m && isSeries(m.type) && m.episodes.length) { const st = epState(m.id); playEpisode(st.last != null ? st.last : 0); return; }
+  if (m && isSeries(m.type) && m.seasonsEnabled && m.seasons.length) {
+    const eb=document.getElementById("episodesBox"); eb.style.display="block";
+    window._seasonPicked = true; renderSeasonEpisodes();
+    if (seasonEpisodes().length) {
+      // نفتح الحلقة الأولى تلقائيًا مع روابط تحميلها، ونغيّر العنوان بدون إضافة سجل رجوع (حتى لا يتعطل زر الرجوع)
+      playEpisode(0, null, true);
+      try { history.replaceState(history.state, "", episodeRoutePath(m, 0)); } catch (e) {}
+    } else { eb.scrollIntoView({behavior:"smooth",block:"nearest"}); }
+    return;
+  }
+  if (m && isSeries(m.type) && m.episodes.length) {
+    const st = epState(m.id); const idx = st.last != null && m.episodes[st.last] ? st.last : 0;
+    playEpisode(idx, null, true);
+    try { history.replaceState(history.state, "", episodeRoutePath(m, idx)); } catch (e) {}
+    return;
+  }
   const servers = Array.isArray(m.watchServers) ? m.watchServers : [];
   if (servers.length) { renderServerBox("🎞️ سيرفرات المشاهدة", servers, "watch"); document.getElementById("serverBox").scrollIntoView({behavior:"smooth",block:"nearest"}); return; }
   playUrl(m.movie_url);
@@ -1514,10 +1528,17 @@ show = function(x, pushRoute){
         renderWatchDownloads();
         playEpisode(Math.max(0, (route.episode || 1) - 1), null, true);
       } else {
-        watch();
-        renderWatchDownloads();
-        if(Array.isArray(x.watchServers) && x.watchServers.length){
-          setTimeout(function(){ playWatchServer(0); }, 80);
+        const autoEp = isSeries(x.type) && ((x.seasonsEnabled && x.seasons.length) || (x.episodes && x.episodes.length));
+        if (autoEp) {
+          // مسلسل: نعرض الروابط العامة أولًا، ثم watch() يفتح الحلقة ويعرض روابط تحميلها (بدون ما تُمسح)
+          renderWatchDownloads();
+          watch();
+        } else {
+          watch();
+          renderWatchDownloads();
+          if(Array.isArray(x.watchServers) && x.watchServers.length){
+            setTimeout(function(){ playWatchServer(0); }, 80);
+          }
         }
       }
     }, 0);
