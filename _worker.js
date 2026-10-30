@@ -19,11 +19,12 @@ function slugify(v) {
     .replace(/^-+|-+$/g, "") || "item";
 }
 function isSeries(cat) {
-  // لا تربط نوع العمل بقائمة مغلقة؛ اقبل كل تصنيفات المسلسلات العربية
-  // (مثل التركية والكورية والآسيوية) وأسماء التصنيفات الإنجليزية الشائعة.
-  const c = String(cat || "").trim().toLowerCase().replace(/[\u064B-\u065F\u0670]/g, "").replace(/\s+/g, " ");
+  // دعم التصنيفات الفرعية مثل التركية والكورية والآسيوية دون اعتبارها أفلامًا.
+  const c = String(cat || "").trim().toLowerCase()
+    .replace(/[\u064B-\u065F\u0670]/g, "")
+    .replace(/\s+/g, " ");
   return /^(مسلسل|مسلسلات)(?:\s|$)/.test(c) ||
-    /^(series|tv series|tv show|web series|مسلسل تلفزيوني)$/.test(c);
+    /^(series|tv series|tv show|web series|television series)$/.test(c);
 }
 function itemPath(row) {
   const kind = isSeries(row.category) ? "series" : "movie";
@@ -237,6 +238,15 @@ function workerEpisode(row, seasonNumber, episodeNumber) {
   const nameAt = n => { const e = list[n - 1]; return e ? String(e.title || ("الحلقة " + n)) : ""; };
   return { ep, seasonName, title: String(ep.title || ("الحلقة " + episodeNumber)), seasonNumber, episodeNumber, total: list.length, prevTitle: nameAt(episodeNumber - 1), nextTitle: nameAt(episodeNumber + 1) };
 }
+function episodeDescription(row, info) {
+  const ep = info && info.ep ? info.ep : {};
+  const specific = [ep.description, ep.summary, ep.overview, ep.synopsis, ep.plot]
+    .find(v => typeof v === "string" && v.trim().length > 30);
+  if (specific) return String(specific).replace(/\s+/g, " ").trim();
+  // لا ننسب أحداثًا غير موجودة للحلقة؛ نستخدم بياناتها المؤكدة فقط.
+  const season = info.seasonName ? ` ضمن ${info.seasonName}` : "";
+  return `هذه صفحة ${info.title} من مسلسل ${row.title || ""}${season}. رقم الحلقة ${info.episodeNumber} من إجمالي ${info.total} حلقة. يمكنك الانتقال إلى الحلقة السابقة أو التالية والعودة إلى صفحة المسلسل للاطلاع على القصة والتفاصيل الكاملة.`.replace(/\s+/g, " ").trim();
+}
 function episodeInfoHtml(row, info, seasonsCount) {
   const multi = seasonsCount > 1;
   const sName = multi ? (info.seasonName || "") : "";
@@ -256,7 +266,7 @@ function episodeInfoHtml(row, info, seasonsCount) {
   const links = [];
   if (info.episodeNumber > 1 && info.prevTitle) links.push(`<a href="${esc(base + "/episode/" + (info.episodeNumber - 1))}" onclick="return epClick(event, ${info.episodeNumber - 2})">الحلقة السابقة: ${esc(label(info.prevTitle))}</a>`);
   if (info.episodeNumber < info.total && info.nextTitle) links.push(`<a href="${esc(base + "/episode/" + (info.episodeNumber + 1))}" onclick="return epClick(event, ${info.episodeNumber})">الحلقة التالية: ${esc(label(info.nextTitle))}</a>`);
-  const d = String(row.description || "").replace(/\s+/g, " ").trim();
+  const d = episodeDescription(row, info);
   const short = d.length > 300 ? d.slice(0, 300).replace(/\s+\S*$/, "") + "…" : d;
   return `<section id="epInfo" class="ep-info"><p class="ei-lead">${esc(lead)}</p>` +
     `<div class="ei-chips">${chips.map(c => `<span>${esc(c)}</span>`).join("")}</div>` +
@@ -269,7 +279,7 @@ function injectEpisodeSeo(html, row, url, info) {
   const seasonsCount = (() => { const sd = parseEpisodesForWorker(row.episodes).find(x => x && x.__cimaSeasons === true && x.enabled !== false); return sd && Array.isArray(sd.seasons) ? sd.seasons.length : 0; })();
   const heading = `${/^مسلسل\s/.test(String(row.title || "")) ? "مشاهدة" : "مشاهدة مسلسل"} ${row.title || ""}${seasonsCount > 1 && info.seasonName ? " " + info.seasonName : ""} ${epName}`.replace(/\s+/g, " ").trim();
   const title = `${heading} | سيما سيما`;
-  const desc = (`${heading} اون لاين على سيما سيما. ` + String(row.description || "").trim()).replace(/\s+/g, " ").slice(0, 160);
+  const desc = (`${heading}. ` + episodeDescription(row, info)).replace(/\s+/g, " ").slice(0, 160);
   let out = injectSeo(html, row, url);
   // watch.html الأصلية noindex. لصفحات الحلقات الصحيحة نحدد الفهرسة حسب INDEX_EPISODES.
   out = out.replace(/<meta\s+name=["']robots["'][^>]*>/i, `<meta name="robots" content="${INDEX_EPISODES ? "index,follow" : "noindex,follow"}">`);
@@ -279,7 +289,14 @@ function injectEpisodeSeo(html, row, url, info) {
     .replace(/<meta property="og:description"[^>]*>/i, `<meta property="og:description" content="${esc(desc)}">`);
   out = out.replace(/<section id="ssr-seo"[\s\S]*?<\/section>/i, `<section id="ssr-seo" style="max-width:1100px;margin:16px auto;padding:16px;background:#0f1622;border:1px solid #202c3e;border-radius:16px"><h1 style="margin:0 0 8px;font-size:24px">${esc(heading)}</h1><p style="margin:0 0 8px;color:#a3a8b3">${esc(info.seasonName || "حلقة من المسلسل")}</p><p style="margin:0;line-height:1.9">${esc(desc)}</p><p style="margin:8px 0 0"><a href="${esc(itemPath(row))}" style="color:#ffb000;text-decoration:none">${esc(row.title || "المسلسل")} - كل الحلقات</a></p>${episodeNavHtml(row, url.slice(SITE.length))}</section>`);
   out = out.replace('<section id="epInfo" class="ep-info"></section>', () => episodeInfoHtml(row, info, seasonsCount));
-  const schema = { "@context": "https://schema.org", "@type": "TVEpisode", "name": heading, "episodeNumber": info.episodeNumber, "description": desc, "url": url, "partOfSeries": { "@type": "TVSeries", "name": row.title || "" } };
+  const schema = {
+    "@context": "https://schema.org", "@type": "TVEpisode",
+    "name": heading, "episodeNumber": info.episodeNumber,
+    "description": desc, "url": url,
+    "partOfSeries": { "@type": "TVSeries", "name": row.title || "", "url": SITE + itemPath(row) }
+  };
+  const episodeImage = String(info.ep && (info.ep.poster_url || info.ep.image || info.ep.thumbnail) || row.poster_url || "").trim();
+  if (episodeImage) schema.image = episodeImage;
   if (info.seasonNumber > 0) schema.partOfSeason = { "@type": "TVSeason", "seasonNumber": info.seasonNumber, "name": info.seasonName };
   out = out.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/i, `<script type="application/ld+json">${JSON.stringify(schema).replace(/</g, "\\u003c")}</script>`);
   return out;
