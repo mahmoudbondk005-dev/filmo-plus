@@ -18,7 +18,13 @@ function slugify(v) {
     .replace(/[^\u0600-\u06FFa-z0-9]+/gi, "-")
     .replace(/^-+|-+$/g, "") || "item";
 }
-function isSeries(cat) { const c = String(cat || "").trim(); return c === "مسلسلات عربي" || c === "مسلسلات أجنبي" || c === "مسلسل"; }
+function isSeries(cat) {
+  // لا تربط نوع العمل بقائمة مغلقة؛ اقبل كل تصنيفات المسلسلات العربية
+  // (مثل التركية والكورية والآسيوية) وأسماء التصنيفات الإنجليزية الشائعة.
+  const c = String(cat || "").trim().toLowerCase().replace(/[\u064B-\u065F\u0670]/g, "").replace(/\s+/g, " ");
+  return /^(مسلسل|مسلسلات)(?:\s|$)/.test(c) ||
+    /^(series|tv series|tv show|web series|مسلسل تلفزيوني)$/.test(c);
+}
 function itemPath(row) {
   const kind = isSeries(row.category) ? "series" : "movie";
   return `/${kind}/${encodeURIComponent(slugify(row.title))}~${encodeURIComponent(String(row.Id ?? row.id))}`;
