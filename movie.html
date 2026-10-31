@@ -1199,6 +1199,26 @@ restoreRoute = function(){
 
 loadMovies();
 </script>
-<script>(function(s){s.dataset.zone='12033606',s.src='https://al5sm.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
+<script>(function(){var d=0;function go(){if(d)return;d=1;var s=document.createElement("script");s.dataset.zone="12033606";s.src="https://al5sm.com/tag.min.js";(document.body||document.documentElement).appendChild(s);}["pointerdown","keydown","scroll","touchstart"].forEach(function(e){addEventListener(e,go,{once:true,passive:true});});addEventListener("load",function(){setTimeout(go,4000);});})()</script>
+<script>
+(function(){
+  function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+  var A='style="color:#a3a8b3;text-decoration:none"';
+  function build(m,ep){
+    var host=document.getElementById("details");if(!host||!m)return;
+    var nav=document.getElementById("bcNav");
+    if(!nav){nav=document.createElement("nav");nav.id="bcNav";nav.setAttribute("aria-label","مسار التنقل");nav.style.cssText="font-size:12px;color:#a3a8b3;margin:8px 0;display:flex;flex-wrap:wrap;gap:6px;order:0";
+      var back=host.querySelector(".back");
+      if(back&&back.nextSibling)host.insertBefore(nav,back.nextSibling);else host.insertBefore(nav,host.firstChild);}
+    var name=m.name||m.title||"",p=typeof prettyPath==="function"?prettyPath(m):"/";
+    var h='<a href="/" '+A+'>الرئيسية</a><span>›</span>';
+    h+=ep?'<a href="'+esc(p)+'" '+A+'>'+esc(name)+'</a><span>›</span><span style="color:#e6ebf3">'+esc(ep)+'</span>':'<span style="color:#e6ebf3">'+esc(name)+'</span>';
+    nav.innerHTML=h;
+  }
+  var tries=0,t=setInterval(function(){tries++;if(window.currentMovie&&document.getElementById("details")){build(window.currentMovie,window.__bcEp||null);clearInterval(t);}else if(tries>40)clearInterval(t);},400);
+  var u=window.updateEpNav;
+  if(typeof u==="function"){window.updateEpNav=function(i,eps){u.apply(this,arguments);try{if(eps&&eps[i]){window.__bcEp=eps[i].title||("الحلقة "+(i+1));if(window.currentMovie)build(window.currentMovie,window.__bcEp);}}catch(e){}};}
+})();
+</script>
 </body>
 </html>

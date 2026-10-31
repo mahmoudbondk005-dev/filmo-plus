@@ -96,14 +96,42 @@ function episodeNavHtml(row, currentPath) {
   if (!list.length) return "";
   return `<nav aria-label="الحلقات" style="margin-top:14px;display:flex;flex-wrap:wrap;gap:8px">` + list.map(e => `<a href="${esc(e.p)}" style="color:#ffb000;text-decoration:none;border:1px solid #202c3e;border-radius:10px;padding:6px 12px;font-size:14px"${e.p === currentPath ? ' aria-current="page"' : ""}>${esc(e.label)}</a>`).join("") + `</nav>`;
 }
-function ssrBlock(row) {
+async function getRelated(row) {
+  try {
+    const cat = String(row.category || "").trim();
+    const id = row.Id ?? row.id;
+    if (!cat) return [];
+    for (const key of ["Id", "id"]) {
+      const url = `${SUPABASE_URL}/rest/v1/movies?select=${key},title,category&category=eq.${encodeURIComponent(cat)}&${key}=neq.${encodeURIComponent(id)}&order=${key}.desc&limit=6`;
+      const r = await fetch(url, { headers: headers() });
+      if (!r.ok) continue;
+      const data = await r.json();
+      if (Array.isArray(data)) return data.filter(x => x && x.title);
+    }
+  } catch (e) {}
+  return [];
+}
+function relatedHtml(items) {
+  if (!items || !items.length) return "";
+  return `<nav aria-label="أعمال مشابهة" style="margin-top:14px"><div style="font-weight:700;margin-bottom:6px">أعمال مشابهة</div><div style="display:flex;flex-wrap:wrap;gap:8px">` + items.map(r => `<a href="${esc(itemPath(r))}" style="color:#ffb000;text-decoration:none;border:1px solid #202c3e;border-radius:10px;padding:6px 12px;font-size:14px">${esc(r.title)}</a>`).join("") + `</div></nav>`;
+}
+function breadcrumbHtml(crumbs) {
+  return `<nav aria-label="مسار التنقل" style="font-size:13px;color:#a3a8b3;margin-bottom:10px">` + crumbs.map((c, i) => i < crumbs.length - 1 ? `<a href="${esc(c.url.replace(SITE, "") || "/")}" style="color:#a3a8b3;text-decoration:none">${esc(c.name)}</a>` : `<span>${esc(c.name)}</span>`).join(" › ") + `</nav>`;
+}
+function breadcrumbJson(crumbs) {
+  return JSON.stringify({ "@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": crumbs.map((c, i) => ({ "@type": "ListItem", "position": i + 1, "name": c.name, "item": c.url })) }).replace(/</g, "\\u003c");
+}
+function ssrBlock(row, extra) {
+  extra = extra || {};
   const title = esc(row.title || "");
   const desc = esc(String(row.description || "").trim() || description(row));
   const img = String(row.poster_url || "").trim();
   const meta = [row.category, row.year, row.duration, row.rating ? "تقييم " + row.rating : ""].filter(Boolean).map(esc).join(" • ");
-  return `<section id="ssr-seo" style="max-width:1100px;margin:16px auto;padding:16px;background:#0f1622;border:1px solid #202c3e;border-radius:16px;display:flex;gap:16px;align-items:flex-start"><div style="flex:1;min-width:0"><h1 style="margin:0 0 8px;font-size:24px">${title}</h1><p style="margin:0 0 8px;color:#a3a8b3">${meta}</p><p style="margin:0;line-height:1.9">${desc}</p>${isSeries(row.category) ? episodeNavHtml(row, "") : ""}</div>${img ? `<img src="${esc(img)}" alt="${title}" width="120" height="180" style="border-radius:12px;object-fit:cover;flex:0 0 auto">` : ""}</section>`;
+  return `<section id="ssr-seo" style="max-width:1100px;margin:16px auto;padding:16px;background:#0f1622;border:1px solid #202c3e;border-radius:16px;display:flex;gap:16px;align-items:flex-start"><div style="flex:1;min-width:0">${extra.crumbs ? breadcrumbHtml(extra.crumbs) : ""}<h1 style="margin:0 0 8px;font-size:24px">${title}</h1><p style="margin:0 0 8px;color:#a3a8b3">${meta}</p><p style="margin:0;line-height:1.9">${desc}</p>${isSeries(row.category) ? episodeNavHtml(row, "") : ""}${relatedHtml(extra.related)}</div>${img ? `<img src="${esc(img)}" alt="${title}" width="120" height="180" style="border-radius:12px;object-fit:cover;flex:0 0 auto">` : ""}</section>`;
 }
-function injectSeo(html, row, url) {
+function injectSeo(html, row, url, extra) {
+  extra = extra || {};
+  const crumbs = extra.crumbs || [{ name: "الرئيسية", url: SITE + "/" }, { name: row.title || "", url: SITE + itemPath(row) }];
   const title = `${row.title || "عمل"} - مشاهدة وتحميل | سيما سيما`;
   const desc = description(row);
   const image = String(row.poster_url || "").trim();
@@ -119,8 +147,8 @@ function injectSeo(html, row, url) {
   if (row.year) data.dateCreated = `${row.year}-01-01`;
   if (row.category) data.genre = row.category;
   const json = JSON.stringify(data).replace(/</g, "\\u003c");
-  const meta = `\n<title>${esc(title)}</title>\n<meta name="description" content="${esc(desc)}">\n<link rel="canonical" href="${esc(url)}">\n<meta property="og:type" content="website">\n<meta property="og:site_name" content="سيما سيما">\n<meta property="og:title" content="${esc(title)}">\n<meta property="og:description" content="${esc(desc)}">\n<meta property="og:url" content="${esc(url)}">${image ? `\n<meta property="og:image" content="${esc(image)}">` : ""}\n<script type="application/ld+json">${json}</script>`;
-  return html.replace(/<title>[\s\S]*?<\/title>/i, "").replace(/<meta name="description"[^>]*>/i, "").replace(/<link rel="canonical"[^>]*>/i, "").replace(/<meta property="og:(type|site_name|title|description|url|image)"[^>]*>/gi, "").replace("</head>", meta + "\n<style>body:has(#details[style*=\"display: block\"]) #ssr-seo{display:none!important}body:has(#ssr-seo) #details:not([style*=\"display: block\"]){display:none!important}</style>\n</head>").replace('<div id="details"', ssrBlock(row) + '<div id="details"');
+  const meta = `\n<title>${esc(title)}</title>\n<meta name="description" content="${esc(desc)}">\n<link rel="canonical" href="${esc(url)}">\n<meta property="og:type" content="website">\n<meta property="og:site_name" content="سيما سيما">\n<meta property="og:title" content="${esc(title)}">\n<meta property="og:description" content="${esc(desc)}">\n<meta property="og:url" content="${esc(url)}">${image ? `\n<meta property="og:image" content="${esc(image)}">` : ""}\n<script type="application/ld+json">${json}</script>\n<script type="application/ld+json">${breadcrumbJson(crumbs)}</script>`;
+  return html.replace(/<title>[\s\S]*?<\/title>/i, "").replace(/<meta name="description"[^>]*>/i, "").replace(/<link rel="canonical"[^>]*>/i, "").replace(/<meta property="og:(type|site_name|title|description|url|image)"[^>]*>/gi, "").replace("</head>", meta + "\n<style>body:has(#details[style*=\"display: block\"]) #ssr-seo{display:none!important}body:has(#ssr-seo) #details:not([style*=\"display: block\"]){display:none!important}</style>\n</head>").replace('<div id="details"', () => ssrBlock(row, { related: extra.related, crumbs }) + '<div id="details"');
 }
 async function loadHtml(env, url, request, paths) {
   for (const p of paths) {
@@ -274,20 +302,22 @@ function episodeInfoHtml(row, info, seasonsCount) {
     (short ? `<h2 class="ei-h">نبذة سريعة</h2><p class="ei-desc">${esc(short)}</p>` : "") +
     `<a class="ei-more" href="${esc(itemPath(row))}">← اقرأ القصة والتفاصيل كاملة</a></section>`;
 }
-function injectEpisodeSeo(html, row, url, info) {
+function injectEpisodeSeo(html, row, url, info, extra) {
+  extra = extra || {};
   const epName = info.title;
   const seasonsCount = (() => { const sd = parseEpisodesForWorker(row.episodes).find(x => x && x.__cimaSeasons === true && x.enabled !== false); return sd && Array.isArray(sd.seasons) ? sd.seasons.length : 0; })();
   const heading = `${/^مسلسل\s/.test(String(row.title || "")) ? "مشاهدة" : "مشاهدة مسلسل"} ${row.title || ""}${seasonsCount > 1 && info.seasonName ? " " + info.seasonName : ""} ${epName}`.replace(/\s+/g, " ").trim();
   const title = `${heading} | سيما سيما`;
   const desc = (`${heading}. ` + episodeDescription(row, info)).replace(/\s+/g, " ").slice(0, 160);
-  let out = injectSeo(html, row, url);
+  const crumbs = [{ name: "الرئيسية", url: SITE + "/" }, { name: row.title || "", url: SITE + itemPath(row) }, { name: (seasonsCount > 1 && info.seasonName ? info.seasonName + " " : "") + epName, url }];
+  let out = injectSeo(html, row, url, { related: extra.related, crumbs });
   // watch.html الأصلية noindex. لصفحات الحلقات الصحيحة نحدد الفهرسة حسب INDEX_EPISODES.
   out = out.replace(/<meta\s+name=["']robots["'][^>]*>/i, `<meta name="robots" content="${INDEX_EPISODES ? "index,follow" : "noindex,follow"}">`);
   out = out.replace(/<title>[\s\S]*?<\/title>/i, `<title>${esc(title)}</title>`)
     .replace(/<meta name="description"[^>]*>/i, `<meta name="description" content="${esc(desc)}">`)
     .replace(/<meta property="og:title"[^>]*>/i, `<meta property="og:title" content="${esc(title)}">`)
     .replace(/<meta property="og:description"[^>]*>/i, `<meta property="og:description" content="${esc(desc)}">`);
-  out = out.replace(/<section id="ssr-seo"[\s\S]*?<\/section>/i, `<section id="ssr-seo" style="max-width:1100px;margin:16px auto;padding:16px;background:#0f1622;border:1px solid #202c3e;border-radius:16px"><h1 style="margin:0 0 8px;font-size:24px">${esc(heading)}</h1><p style="margin:0 0 8px;color:#a3a8b3">${esc(info.seasonName || "حلقة من المسلسل")}</p><p style="margin:0;line-height:1.9">${esc(desc)}</p><p style="margin:8px 0 0"><a href="${esc(itemPath(row))}" style="color:#ffb000;text-decoration:none">${esc(row.title || "المسلسل")} - كل الحلقات</a></p>${episodeNavHtml(row, url.slice(SITE.length))}</section>`);
+  out = out.replace(/<section id="ssr-seo"[\s\S]*?<\/section>/i, `<section id="ssr-seo" style="max-width:1100px;margin:16px auto;padding:16px;background:#0f1622;border:1px solid #202c3e;border-radius:16px">${breadcrumbHtml(crumbs)}<h1 style="margin:0 0 8px;font-size:24px">${esc(heading)}</h1><p style="margin:0 0 8px;color:#a3a8b3">${esc(info.seasonName || "حلقة من المسلسل")}</p><p style="margin:0;line-height:1.9">${esc(desc)}</p><p style="margin:8px 0 0"><a href="${esc(itemPath(row))}" style="color:#ffb000;text-decoration:none">${esc(row.title || "المسلسل")} - كل الحلقات</a></p>${episodeNavHtml(row, url.slice(SITE.length))}${relatedHtml(extra.related)}</section>`);
   out = out.replace('<section id="epInfo" class="ep-info"></section>', () => episodeInfoHtml(row, info, seasonsCount));
   const schema = {
     "@context": "https://schema.org", "@type": "TVEpisode",
@@ -375,7 +405,8 @@ export default {
         if (p.replace(/\/$/, "") !== canonical) return redirect301(canonical);
         const page = await loadHtml(env, url, request, ["/watch.html", "/watch", "/index.html"]);
         if (!page) return env.ASSETS.fetch(request);
-        const html = injectEpisodeSeo(await page.text(), row, SITE + canonical, info);
+        const related = await getRelated(row);
+        const html = injectEpisodeSeo(await page.text(), row, SITE + canonical, info, { related });
         return cacheAndReturn(ctx, request, new Response(html, { status: 200, headers: HTML_OK }));
       }
       if (/^\/(movie|series)\//i.test(p)) {
@@ -397,7 +428,8 @@ export default {
         const page = await loadHtml(env, url, request, ["/movie.html", "/movie"]);
         const asset = page || await loadHtml(env, url, request, ["/index.html", "/"]);
         if (!asset) return env.ASSETS.fetch(request);
-        let html = injectSeo(await asset.text(), row, SITE + itemPath(row));
+        const related = await getRelated(row);
+        let html = injectSeo(await asset.text(), row, SITE + itemPath(row), { related });
         if (page) {
           const fix = '<script>window.__MOVIE_ID__=' + JSON.stringify(String(row.Id ?? row.id)) + ';</script>';
           html = html.replace(/<head[^>]*>/i, mm => mm + fix);
