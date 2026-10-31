@@ -389,6 +389,9 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 .ep-info .ei-links a{color:#ffb000;text-decoration:underline;text-underline-offset:4px}
 .ep-info .ei-h{margin:16px 0 8px;padding-top:16px;border-top:1px solid #232b3a;font-size:22px;font-weight:900;color:#f1f4f9}
 .ep-info .ei-desc{margin:0 0 14px;color:#8d96a6;font-size:15px;line-height:2}
+.ep-info .ei-faq h3{margin:0 0 4px;font-size:16px;font-weight:700;color:#e6ebf3}
+.ep-info .ei-faq p{margin:0 0 12px;color:#8d96a6;font-size:15px;line-height:1.9}
+.dl-hint{margin:0;padding:0 14px 10px;color:#a3a8b3;font-size:13px;line-height:1.7}
 .ep-info .ei-more{display:inline-block;color:#e6ebf3;text-decoration:none;font-weight:700;font-size:15px}
 .ep-info .ei-more:hover{color:#ffb000}
 </style>
@@ -1365,10 +1368,19 @@ function renderEpInfo(m, index) {
   var d = String(m.desc || "").replace(/\s+/g, " ").trim();
   var short = d.length > 300 ? d.slice(0, 300).replace(/\s+\S*$/, "") + "…" : d;
   var href = "#"; try { href = prettyPath(m); } catch (e) {}
+  var faq = "";
+  if (hasEp) {
+    var epDl = (eps[index] || {}).downloads, hasDl = false;
+    try { hasDl = parseDownloads(epDl).length > 0; } catch (e) {}
+    var qa = [["كم عدد حلقات " + nameWithKind + "؟", "يتوفر حاليًا على الموقع " + eps.length + " حلقة" + (sName ? " في " + sName : "") + "."]];
+    if (hasDl) qa.push(["كيف أحمّل " + label(index) + "؟", "اضغط على أحد روابط التحميل الظاهرة في هذه الصفحة، ثم اختر الجودة المناسبة من صفحة التحميل."]);
+    faq = '<h2 class="ei-h">أسئلة شائعة</h2><div class="ei-faq">' + qa.map(function (q) { return "<div><h3>" + safe(q[0]) + "</h3><p>" + safe(q[1]) + "</p></div>"; }).join("") + "</div>";
+  }
   box.innerHTML = '<p class="ei-lead">' + safe(lead) + '</p>'
     + (chips.length ? '<div class="ei-chips">' + chips.map(function (c) { return "<span>" + safe(c) + "</span>"; }).join("") + "</div>" : "")
     + (links.length ? '<div class="ei-links">' + links.join("") + "</div>" : "")
     + (short ? '<h2 class="ei-h">نبذة سريعة</h2><p class="ei-desc">' + safe(short) + "</p>" : "")
+    + faq
     + '<a class="ei-more" href="' + safe(href) + '">← اقرأ القصة والتفاصيل كاملة</a>';
 }
 function updateEpisodeAddress(m, index, noPush) {
@@ -1379,7 +1391,7 @@ function updateEpisodeAddress(m, index, noPush) {
   var epTitle = ep.title || ("الحلقة " + (index + 1));
   var seasonLabel = "";
   if (m.seasonsEnabled && m.seasons.length > 1) { var sn = m.seasons[currentSeasonIndex] || {}; seasonLabel = " " + (sn.name || ("الموسم " + (currentSeasonIndex + 1))); }
-  var heading = ((/^مسلسل\s/.test(String(m.name || "")) ? "مشاهدة " : "مشاهدة مسلسل ") + m.name + seasonLabel + " " + epTitle).replace(/\s+/g, " ").trim();
+  var heading = ((/^مسلسل\s/.test(String(m.name || "")) ? "مشاهدة وتحميل " : "مشاهدة وتحميل مسلسل ") + m.name + seasonLabel + " " + epTitle).replace(/\s+/g, " ").trim();
   document.title = heading + " | سيما سيما";
   var dt = document.getElementById("dtitle"); if (dt) dt.textContent = heading;
   var descText = (heading + " اون لاين على سيما سيما. " + (m.desc || "")).replace(/\s+/g, " ").slice(0, 160);
@@ -1513,7 +1525,7 @@ function renderWatchDownloads(over,ttl){
     return '<a class="dl-item" href="'+safe(safeHttpUrl(d.url))+'" target="_blank" rel="noopener noreferrer"><span>'+safe(name)+'</span>'+icon+'</a>';
   }).join("");
   const title=ttl||(isSeries(x.type)?"روابط تحميل الحلقات":"روابط تحميل الفيلم");
-  box.innerHTML='<details class="dl-box"'+(list.length<=4?' open':'')+'><summary><span class="dl-ico">'+icon+'</span><span class="dl-title"><b>'+title+'</b><small>'+list.length+' رابط</small></span><span class="dl-chev">'+chev+'</span></summary><div class="dl-grid">'+items+'</div></details>';
+  box.innerHTML='<details class="dl-box"'+(list.length<=4?' open':'')+'><summary><span class="dl-ico">'+icon+'</span><span class="dl-title"><b>'+title+'</b><small>'+list.length+' رابط</small></span><span class="dl-chev">'+chev+'</span></summary><p class="dl-hint">اختر رابطًا، وتظهر الجودات المتاحة داخل صفحة التحميل.</p><div class="dl-grid">'+items+'</div></details>';
   box.style.display="block";
 }
 

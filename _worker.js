@@ -148,7 +148,7 @@ function injectSeo(html, row, url, extra) {
   if (row.category) data.genre = row.category;
   const json = JSON.stringify(data).replace(/</g, "\\u003c");
   const meta = `\n<title>${esc(title)}</title>\n<meta name="description" content="${esc(desc)}">\n<link rel="canonical" href="${esc(url)}">\n<meta property="og:type" content="website">\n<meta property="og:site_name" content="سيما سيما">\n<meta property="og:title" content="${esc(title)}">\n<meta property="og:description" content="${esc(desc)}">\n<meta property="og:url" content="${esc(url)}">${image ? `\n<meta property="og:image" content="${esc(image)}">` : ""}\n<script type="application/ld+json">${json}</script>\n<script type="application/ld+json">${breadcrumbJson(crumbs)}</script>`;
-  return html.replace(/<title>[\s\S]*?<\/title>/i, "").replace(/<meta name="description"[^>]*>/i, "").replace(/<link rel="canonical"[^>]*>/i, "").replace(/<meta property="og:(type|site_name|title|description|url|image)"[^>]*>/gi, "").replace("</head>", meta + "\n<style>body:has(#details[style*=\"display: block\"]) #ssr-seo{display:none!important}body:has(#ssr-seo) #details:not([style*=\"display: block\"]){display:none!important}</style>\n</head>").replace('<div id="details"', () => ssrBlock(row, { related: extra.related, crumbs }) + '<div id="details"');
+  return html.replace(/<title>[\s\S]*?<\/title>/i, "").replace(/<meta name="description"[^>]*>/i, "").replace(/<link rel="canonical"[^>]*>/i, "").replace(/<meta property="og:(type|site_name|title|description|url|image)"[^>]*>/gi, "").replace("</head>", meta + "\n<style>body:has(#details[style*=\"display: block\"]) #ssr-seo{display:none!important}body:has(#ssr-seo) #details:not([style*=\"display: block\"]){display:none!important}body:has(#ssr-seo) footer{visibility:hidden}body:has(#details[style*=\"display: block\"]) footer{visibility:visible}</style><noscript><style>footer{visibility:visible!important}</style></noscript>\n</head>").replace('<div id="details"', () => ssrBlock(row, { related: extra.related, crumbs }) + '<div id="details"');
 }
 async function loadHtml(env, url, request, paths) {
   for (const p of paths) {
@@ -275,6 +275,16 @@ function episodeDescription(row, info) {
   const season = info.seasonName ? ` ضمن ${info.seasonName}` : "";
   return `هذه صفحة ${info.title} من مسلسل ${row.title || ""}${season}. رقم الحلقة ${info.episodeNumber} من إجمالي ${info.total} حلقة. يمكنك الانتقال إلى الحلقة السابقة أو التالية والعودة إلى صفحة المسلسل للاطلاع على القصة والتفاصيل الكاملة.`.replace(/\s+/g, " ").trim();
 }
+function episodeHasDownloads(info) {
+  let d = info && info.ep ? info.ep.downloads : null;
+  if (typeof d === "string") { try { d = JSON.parse(d); } catch (e) { d = null; } }
+  return Array.isArray(d) && d.some(x => x && x.url);
+}
+function episodeFaqHtml(nameWithKind, info, sName, label) {
+  const items = [[`كم عدد حلقات ${nameWithKind}؟`, `يتوفر حاليًا على الموقع ${info.total} حلقة${sName ? " في " + sName : ""}.`]];
+  if (episodeHasDownloads(info)) items.push([`كيف أحمّل ${label(info.title)}؟`, "اضغط على أحد روابط التحميل الظاهرة في هذه الصفحة، ثم اختر الجودة المناسبة من صفحة التحميل."]);
+  return `<h2 class="ei-h">أسئلة شائعة</h2><div class="ei-faq">${items.map(q => `<div><h3>${esc(q[0])}</h3><p>${esc(q[1])}</p></div>`).join("")}</div>`;
+}
 function episodeInfoHtml(row, info, seasonsCount) {
   const multi = seasonsCount > 1;
   const sName = multi ? (info.seasonName || "") : "";
@@ -300,13 +310,14 @@ function episodeInfoHtml(row, info, seasonsCount) {
     `<div class="ei-chips">${chips.map(c => `<span>${esc(c)}</span>`).join("")}</div>` +
     (links.length ? `<div class="ei-links">${links.join("")}</div>` : "") +
     (short ? `<h2 class="ei-h">نبذة سريعة</h2><p class="ei-desc">${esc(short)}</p>` : "") +
+    episodeFaqHtml(nameWithKind, info, sName, label) +
     `<a class="ei-more" href="${esc(itemPath(row))}">← اقرأ القصة والتفاصيل كاملة</a></section>`;
 }
 function injectEpisodeSeo(html, row, url, info, extra) {
   extra = extra || {};
   const epName = info.title;
   const seasonsCount = (() => { const sd = parseEpisodesForWorker(row.episodes).find(x => x && x.__cimaSeasons === true && x.enabled !== false); return sd && Array.isArray(sd.seasons) ? sd.seasons.length : 0; })();
-  const heading = `${/^مسلسل\s/.test(String(row.title || "")) ? "مشاهدة" : "مشاهدة مسلسل"} ${row.title || ""}${seasonsCount > 1 && info.seasonName ? " " + info.seasonName : ""} ${epName}`.replace(/\s+/g, " ").trim();
+  const heading = `${/^مسلسل\s/.test(String(row.title || "")) ? "مشاهدة وتحميل" : "مشاهدة وتحميل مسلسل"} ${row.title || ""}${seasonsCount > 1 && info.seasonName ? " " + info.seasonName : ""} ${epName}`.replace(/\s+/g, " ").trim();
   const title = `${heading} | سيما سيما`;
   const desc = (`${heading}. ` + episodeDescription(row, info)).replace(/\s+/g, " ").slice(0, 160);
   const crumbs = [{ name: "الرئيسية", url: SITE + "/" }, { name: row.title || "", url: SITE + itemPath(row) }, { name: (seasonsCount > 1 && info.seasonName ? info.seasonName + " " : "") + epName, url }];
