@@ -552,6 +552,12 @@ function normalizeCategory(cat) {
   if (c === "فيلم" || c === "دراما") return "أفلام عربي";
   if (c === "مسلسل") return "مسلسلات عربي";
   if (CATEGORIES.some(x => x.key === c)) return c;
+  // تصنيفات فرعية تبدأ بكلمة مسلسل/مسلسلات (تركية، كورية...) تُعامل كمسلسلات مثل الـ worker
+  const n = c.toLowerCase().replace(/[\u064B-\u065F\u0670]/g, "").replace(/\s+/g, " ");
+  if (/^(مسلسل|مسلسلات)(?:\s|$)/.test(n) || /^(series|tv series|tv show|web series|television series)$/.test(n)) {
+    return /(ترك|كور|هند|صين|يابان|آسيو|اسيو|اجنب|أجنب|أنمي|انمي|turk|korea|asia|foreign)/.test(n) || /^(series|tv series|tv show|web series|television series)$/.test(n)
+      ? "مسلسلات أجنبي" : "مسلسلات عربي";
+  }
   return "أفلام عربي";
 }
 
