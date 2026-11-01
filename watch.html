@@ -383,6 +383,9 @@ footer{border-top:1px solid #202532;margin-top:55px;padding:30px 18px;text-align
 .page-watch #details > #epInfo{order:9!important}
 .ep-info{margin-top:22px;padding:18px;border-radius:20px;background:linear-gradient(180deg,#14111a,#0d1220);border:1px solid #2a2433}
 .ep-info .ei-lead{margin:0 0 14px;color:#a3a8b3;font-size:16px;line-height:2}
+.ep-info .ei-top{display:flex;gap:14px;align-items:flex-start;margin:0 0 6px}
+.ep-info .ei-topt{flex:1;min-width:0}
+.ep-info .ei-poster{width:84px;height:126px;flex:none;border-radius:10px;object-fit:cover;background:#18233a;border:1px solid #2a3342}
 .ep-info .ei-chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
 .ep-info .ei-chips span{padding:7px 14px;border-radius:10px;background:#1b1f2b;color:#c9d1dd;font-size:14px;font-weight:700}
 .ep-info .ei-links{display:flex;flex-direction:column;gap:8px;margin:0 0 14px;font-size:15px}
@@ -566,10 +569,10 @@ function normalizeCategory(cat) {
 
 function parseEpisodes(val) {
   if (!val) return [];
-  if (Array.isArray(val)) return val.filter(x => x && !x.__cimaOverlay && !x.__cimaSeasons);
+  if (Array.isArray(val)) return val.filter(x => x && !x.__cimaOverlay && !x.__cimaSeasons && !x.__cimaMeta);
   try {
     const p = JSON.parse(val);
-    return Array.isArray(p) ? p.filter(x => x && !x.__cimaOverlay && !x.__cimaSeasons) : [];
+    return Array.isArray(p) ? p.filter(x => x && !x.__cimaOverlay && !x.__cimaSeasons && !x.__cimaMeta) : [];
   } catch { return []; }
 }
 
@@ -606,6 +609,16 @@ function parseDownloads(val) {
   } catch { return []; }
 }
 
+function parseTMDBMeta(val) {
+  let arr = Array.isArray(val) ? val : [];
+  if (!arr.length && typeof val === "string") { try { arr = JSON.parse(val) || []; } catch { arr = []; } }
+  const item = Array.isArray(arr) ? arr.find(x => x && x.__cimaMeta) : null;
+  const meta = item && item.__cimaMeta ? item.__cimaMeta : {};
+  let cast = Array.isArray(meta.cast) ? meta.cast : [];
+  if (typeof meta.cast === "string") cast = meta.cast.split("،").map(name => ({name:name.trim(),photo:""})).filter(x => x.name);
+  return {cast:cast.filter(x=>x&&(x.name||x.photo)).slice(0,10)};
+}
+
 function normalize(row) {
   return {
     id: row.Id ?? row.id,
@@ -623,7 +636,8 @@ function normalize(row) {
     seasonsEnabled: parseSeasons(row.episodes).length > 0,
     downloads: parseDownloads(row.download_links),
     watchServers: parseWatchServers(row.movie_url),
-    overlay: parseOverlay(row.episodes)
+    overlay: parseOverlay(row.episodes),
+    tmdbMeta: parseTMDBMeta(row.episodes)
   };
 }
 
@@ -1344,6 +1358,11 @@ function episodeRoutePath(m, index) {
   if (m && m.seasonsEnabled && m.seasons.length) epPart = "/season/" + (Number(currentSeasonIndex) + 1) + epPart;
   return base + epPart;
 }
+function smallPoster(url) {
+  var u = String(url || "").trim();
+  if (!u || /via\.placeholder\.com/.test(u)) return "";
+  return u.replace(/(image\.tmdb\.org\/t\/p\/)(?:w\d+|original)(\/)/, "$1w185$2");
+}
 function renderEpInfo(m, index) {
   var box = document.getElementById("epInfo"); if (!box || !m) return;
   var series = isSeries(m.type), hasEp = series && index != null;
@@ -1355,7 +1374,9 @@ function renderEpInfo(m, index) {
   var kind = series ? "مسلسل" : "فيلم";
   var title = String(m.name || "");
   var nameWithKind = (title.indexOf(kind + " ") === 0) ? title : (kind + " " + title);
-  var lead = "شاهد " + nameWithKind + (hasEp ? " — " + label(index) : "") + " اون لاين على سيما سيما." + (m.type ? " التصنيف: " + m.type + "." : "") + (series ? " القصة الكاملة وباقي الحلقات في صفحة المسلسل." : " القصة الكاملة في صفحة التفاصيل.");
+  var castAll = (((m.tmdbMeta || {}).cast) || []).map(function (c) { return String((c && c.name) || "").trim(); }).filter(Boolean).slice(0, 10);
+  var castTop = castAll.slice(0, 3).join("، ");
+  var lead = "شاهد " + nameWithKind + (hasEp ? " — " + label(index) : "") + " اون لاين على سيما سيما." + (m.type ? " التصنيف: " + m.type + "." : "") + (castTop ? " بطولة: " + castTop + "." : "") + (series ? " القصة الكاملة وباقي الحلقات في صفحة المسلسل." : " القصة الكاملة في صفحة التفاصيل.");
   var chips = [];
   if (m.year) chips.push(m.year);
   if (m.rating && String(m.rating) !== "—") chips.push("⭐ " + m.rating);
@@ -1368,6 +1389,7 @@ function renderEpInfo(m, index) {
   var d = String(m.desc || "").replace(/\s+/g, " ").trim();
   var short = d.length > 300 ? d.slice(0, 300).replace(/\s+\S*$/, "") + "…" : d;
   var href = "#"; try { href = prettyPath(m); } catch (e) {}
+  var castBlock = castAll.length ? '<h2 class="ei-h">' + (series ? "أبطال المسلسل" : "أبطال الفيلم") + '</h2><div class="ei-chips">' + castAll.map(function (n) { return "<span>" + safe(n) + "</span>"; }).join("") + "</div>" : "";
   var faq = "";
   if (hasEp) {
     var epDl = (eps[index] || {}).downloads, hasDl = false;
@@ -1376,10 +1398,14 @@ function renderEpInfo(m, index) {
     if (hasDl) qa.push(["كيف أحمّل " + label(index) + "؟", "اضغط على أحد روابط التحميل الظاهرة في هذه الصفحة، ثم اختر الجودة المناسبة من صفحة التحميل."]);
     faq = '<h2 class="ei-h">أسئلة شائعة</h2><div class="ei-faq">' + qa.map(function (q) { return "<div><h3>" + safe(q[0]) + "</h3><p>" + safe(q[1]) + "</p></div>"; }).join("") + "</div>";
   }
-  box.innerHTML = '<p class="ei-lead">' + safe(lead) + '</p>'
+  var poster = smallPoster(m.img);
+  var posterTag = poster ? '<img class="ei-poster" src="' + safe(poster) + '" width="84" height="126" alt="' + safe("بوستر " + nameWithKind) + '" loading="lazy" decoding="async">' : "";
+  var topInner = '<p class="ei-lead">' + safe(lead) + '</p>'
     + (chips.length ? '<div class="ei-chips">' + chips.map(function (c) { return "<span>" + safe(c) + "</span>"; }).join("") + "</div>" : "")
-    + (links.length ? '<div class="ei-links">' + links.join("") + "</div>" : "")
+    + (links.length ? '<div class="ei-links">' + links.join("") + "</div>" : "");
+  box.innerHTML = (posterTag ? '<div class="ei-top">' + posterTag + '<div class="ei-topt">' + topInner + "</div></div>" : topInner)
     + (short ? '<h2 class="ei-h">نبذة سريعة</h2><p class="ei-desc">' + safe(short) + "</p>" : "")
+    + castBlock
     + faq
     + '<a class="ei-more" href="' + safe(href) + '">← اقرأ القصة والتفاصيل كاملة</a>';
 }

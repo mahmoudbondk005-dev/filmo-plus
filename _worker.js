@@ -87,7 +87,7 @@ function episodeUrlList(row) {
   if (sd && Array.isArray(sd.seasons) && sd.seasons.length) {
     sd.seasons.forEach((s, si) => (Array.isArray(s.episodes) ? s.episodes : []).forEach((ep, ei) => out.push({ p: itemPath(row) + `/season/${si + 1}/episode/${ei + 1}`, label: `${s.name || ("الموسم " + (si + 1))} - ${(ep && ep.title) || ("الحلقة " + (ei + 1))}` })));
   } else {
-    data.filter(x => x && !x.__cimaOverlay && !x.__cimaSeasons).forEach((ep, ei) => out.push({ p: itemPath(row) + `/episode/${ei + 1}`, label: String(ep.title || ("الحلقة " + (ei + 1))) }));
+    data.filter(x => x && !x.__cimaOverlay && !x.__cimaSeasons && !x.__cimaMeta).forEach((ep, ei) => out.push({ p: itemPath(row) + `/episode/${ei + 1}`, label: String(ep.title || ("الحلقة " + (ei + 1))) }));
   }
   return out;
 }
@@ -146,6 +146,8 @@ function injectSeo(html, row, url, extra) {
   if (image) data.image = image;
   if (row.year) data.dateCreated = `${row.year}-01-01`;
   if (row.category) data.genre = row.category;
+  const actors = castNames(row, 10);
+  if (actors.length) data.actor = actors.map(n => ({ "@type": "Person", "name": n }));
   const json = JSON.stringify(data).replace(/</g, "\\u003c");
   const meta = `\n<title>${esc(title)}</title>\n<meta name="description" content="${esc(desc)}">\n<link rel="canonical" href="${esc(url)}">\n<meta property="og:type" content="website">\n<meta property="og:site_name" content="سيما سيما">\n<meta property="og:title" content="${esc(title)}">\n<meta property="og:description" content="${esc(desc)}">\n<meta property="og:url" content="${esc(url)}">${image ? `\n<meta property="og:image" content="${esc(image)}">` : ""}\n<script type="application/ld+json">${json}</script>\n<script type="application/ld+json">${breadcrumbJson(crumbs)}</script>`;
   return html.replace(/<title>[\s\S]*?<\/title>/i, "").replace(/<meta name="description"[^>]*>/i, "").replace(/<link rel="canonical"[^>]*>/i, "").replace(/<meta property="og:(type|site_name|title|description|url|image)"[^>]*>/gi, "").replace("</head>", meta + "\n<style>body:has(#details[style*=\"display: block\"]) #ssr-seo{display:none!important}body:has(#ssr-seo) #details:not([style*=\"display: block\"]){display:none!important}body:has(#ssr-seo) footer{visibility:hidden}body:has(#details[style*=\"display: block\"]) footer{visibility:visible}</style><noscript><style>footer{visibility:visible!important}</style></noscript>\n</head>").replace('<div id="details"', () => ssrBlock(row, { related: extra.related, crumbs }) + '<div id="details"');
@@ -253,7 +255,7 @@ function workerHasSeasons(row) {
 function workerEpisode(row, seasonNumber, episodeNumber) {
   const data = parseEpisodesForWorker(row.episodes);
   const seasonData = data.find(x => x && x.__cimaSeasons === true && x.enabled !== false);
-  let list = data.filter(x => x && !x.__cimaSeasons && !x.__cimaOverlay);
+  let list = data.filter(x => x && !x.__cimaSeasons && !x.__cimaOverlay && !x.__cimaMeta);
   let seasonName = "";
   if (seasonData && Array.isArray(seasonData.seasons) && seasonNumber > 0) {
     const season = seasonData.seasons[seasonNumber - 1];
@@ -275,6 +277,18 @@ function episodeDescription(row, info) {
   const season = info.seasonName ? ` ضمن ${info.seasonName}` : "";
   return `هذه صفحة ${info.title} من مسلسل ${row.title || ""}${season}. رقم الحلقة ${info.episodeNumber} من إجمالي ${info.total} حلقة. يمكنك الانتقال إلى الحلقة السابقة أو التالية والعودة إلى صفحة المسلسل للاطلاع على القصة والتفاصيل الكاملة.`.replace(/\s+/g, " ").trim();
 }
+function smallPoster(url) {
+  const u = String(url || "").trim();
+  if (!u || /via\.placeholder\.com/.test(u)) return "";
+  return u.replace(/(image\.tmdb\.org\/t\/p\/)(?:w\d+|original)(\/)/, "$1w185$2");
+}
+function castNames(row, limit) {
+  const item = parseEpisodesForWorker(row.episodes).find(x => x && x.__cimaMeta);
+  const meta = item && item.__cimaMeta ? item.__cimaMeta : {};
+  let cast = Array.isArray(meta.cast) ? meta.cast : [];
+  if (typeof meta.cast === "string") cast = meta.cast.split("،").map(n => ({ name: n.trim() }));
+  return cast.map(c => String((c && c.name) || "").trim()).filter(Boolean).slice(0, limit || 10);
+}
 function episodeHasDownloads(info) {
   let d = info && info.ep ? info.ep.downloads : null;
   if (typeof d === "string") { try { d = JSON.parse(d); } catch (e) { d = null; } }
@@ -292,7 +306,10 @@ function episodeInfoHtml(row, info, seasonsCount) {
   const title = String(row.title || "");
   const nameWithKind = title.indexOf("مسلسل ") === 0 ? title : "مسلسل " + title;
   const cat = String(row.category || "");
-  const lead = `شاهد ${nameWithKind} — ${label(info.title)} اون لاين على سيما سيما.${cat ? " التصنيف: " + cat + "." : ""} القصة الكاملة وباقي الحلقات في صفحة المسلسل.`;
+  const castAll = castNames(row, 10);
+  const castTop = castAll.slice(0, 3).join("، ");
+  const lead = `شاهد ${nameWithKind} — ${label(info.title)} اون لاين على سيما سيما.${cat ? " التصنيف: " + cat + "." : ""}${castTop ? " بطولة: " + castTop + "." : ""} القصة الكاملة وباقي الحلقات في صفحة المسلسل.`;
+  const castHtml = castAll.length ? `<h2 class="ei-h">أبطال المسلسل</h2><div class="ei-chips">${castAll.map(n => `<span>${esc(n)}</span>`).join("")}</div>` : "";
   const chips = [];
   if (row.year) chips.push(String(row.year));
   if (row.rating && String(row.rating) !== "—") chips.push("⭐ " + row.rating);
@@ -306,10 +323,15 @@ function episodeInfoHtml(row, info, seasonsCount) {
   if (info.episodeNumber < info.total && info.nextTitle) links.push(`<a href="${esc(base + "/episode/" + (info.episodeNumber + 1))}" onclick="return epClick(event, ${info.episodeNumber})">الحلقة التالية: ${esc(label(info.nextTitle))}</a>`);
   const d = episodeDescription(row, info);
   const short = d.length > 300 ? d.slice(0, 300).replace(/\s+\S*$/, "") + "…" : d;
-  return `<section id="epInfo" class="ep-info"><p class="ei-lead">${esc(lead)}</p>` +
+  const poster = smallPoster(row.poster_url);
+  const posterTag = poster ? `<img class="ei-poster" src="${esc(poster)}" width="84" height="126" alt="${esc("بوستر " + nameWithKind)}" loading="lazy" decoding="async">` : "";
+  const topInner = `<p class="ei-lead">${esc(lead)}</p>` +
     `<div class="ei-chips">${chips.map(c => `<span>${esc(c)}</span>`).join("")}</div>` +
-    (links.length ? `<div class="ei-links">${links.join("")}</div>` : "") +
+    (links.length ? `<div class="ei-links">${links.join("")}</div>` : "");
+  const topHtml = posterTag ? `<div class="ei-top">${posterTag}<div class="ei-topt">${topInner}</div></div>` : topInner;
+  return `<section id="epInfo" class="ep-info">` + topHtml +
     (short ? `<h2 class="ei-h">نبذة سريعة</h2><p class="ei-desc">${esc(short)}</p>` : "") +
+    castHtml +
     episodeFaqHtml(nameWithKind, info, sName, label) +
     `<a class="ei-more" href="${esc(itemPath(row))}">← اقرأ القصة والتفاصيل كاملة</a></section>`;
 }
@@ -338,6 +360,8 @@ function injectEpisodeSeo(html, row, url, info, extra) {
   };
   const episodeImage = String(info.ep && (info.ep.poster_url || info.ep.image || info.ep.thumbnail) || row.poster_url || "").trim();
   if (episodeImage) schema.image = episodeImage;
+  const epActors = castNames(row, 10);
+  if (epActors.length) schema.actor = epActors.map(n => ({ "@type": "Person", "name": n }));
   if (info.seasonNumber > 0) schema.partOfSeason = { "@type": "TVSeason", "seasonNumber": info.seasonNumber, "name": info.seasonName };
   out = out.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/i, `<script type="application/ld+json">${JSON.stringify(schema).replace(/</g, "\\u003c")}</script>`);
   return out;
