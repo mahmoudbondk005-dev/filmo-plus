@@ -102,7 +102,7 @@ async function getRelated(row) {
     const id = row.Id ?? row.id;
     if (!cat) return [];
     for (const key of ["Id", "id"]) {
-      const url = `${SUPABASE_URL}/rest/v1/movies?select=${key},title,category&category=eq.${encodeURIComponent(cat)}&${key}=neq.${encodeURIComponent(id)}&order=${key}.desc&limit=6`;
+      const url = `${SUPABASE_URL}/rest/v1/movies?select=${key},title,category&category=eq.${encodeURIComponent(cat)}&${key}=neq.${encodeURIComponent(id)}&order=${key}.desc&limit=12`;
       const r = await fetch(url, { headers: headers() });
       if (!r.ok) continue;
       const data = await r.json();
@@ -111,15 +111,73 @@ async function getRelated(row) {
   } catch (e) {}
   return [];
 }
-function relatedHtml(items) {
+function relatedHtml(items, label) {
   if (!items || !items.length) return "";
-  return `<nav aria-label="أعمال مشابهة" style="margin-top:14px"><div style="font-weight:700;margin-bottom:6px">أعمال مشابهة</div><div style="display:flex;flex-wrap:wrap;gap:8px">` + items.map(r => `<a href="${esc(itemPath(r))}" style="color:#ffb000;text-decoration:none;border:1px solid #202c3e;border-radius:10px;padding:6px 12px;font-size:14px">${esc(r.title)}</a>`).join("") + `</div></nav>`;
+  label = label || "أعمال مشابهة";
+  return `<nav aria-label="${esc(label)}" style="margin-top:14px"><div style="font-weight:700;margin-bottom:6px">${esc(label)}</div><div style="display:flex;flex-wrap:wrap;gap:8px">` + items.map(r => `<a href="${esc(itemPath(r))}" style="color:#ffb000;text-decoration:none;border:1px solid #202c3e;border-radius:10px;padding:6px 12px;font-size:14px">${esc(r.title)}</a>`).join("") + `</div></nav>`;
 }
 function breadcrumbHtml(crumbs) {
   return `<nav aria-label="مسار التنقل" style="font-size:13px;color:#a3a8b3;margin-bottom:10px">` + crumbs.map((c, i) => i < crumbs.length - 1 ? `<a href="${esc(c.url.replace(SITE, "") || "/")}" style="color:#a3a8b3;text-decoration:none">${esc(c.name)}</a>` : `<span>${esc(c.name)}</span>`).join(" › ") + `</nav>`;
 }
 function breadcrumbJson(crumbs) {
   return JSON.stringify({ "@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": crumbs.map((c, i) => ({ "@type": "ListItem", "position": i + 1, "name": c.name, "item": c.url })) }).replace(/</g, "\\u003c");
+}
+function hashId(v) { let h = 0; const t = String(v ?? ""); for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) >>> 0; return h; }
+// قسم نصي مرئي للزائر والزاحف معًا: فقرة تعريفية مبنية من بيانات العمل + أسئلة شائعة + روابط أعمال أخرى
+function aboutHtml(row, related) {
+  const title = String(row.title || "").trim();
+  if (!title) return "";
+  const series = isSeries(row.category);
+  const kind = series ? "مسلسل" : "فيلم";
+  const cat = String(row.category || "").trim();
+  const year = String(row.year || "").trim();
+  const dur = String(row.duration || "").trim();
+  const rating = String(row.rating || "").trim();
+  const cast = castNames(row, 6);
+  let eps = 0;
+  try { eps = series ? episodeUrlList(row).length : 0; } catch (e) {}
+  const h = hashId(row.Id ?? row.id);
+
+  const bits = [];
+  if (cat) bits.push(`ضمن تصنيف ${cat}`);
+  if (year) bits.push(`صدر عام ${year}`);
+  if (dur && !series) bits.push(`مدته ${dur}`);
+  if (series && eps) bits.push(`يتوفر منه ${eps} حلقة على الموقع`);
+  if (rating) bits.push(`بتقييم ${rating}`);
+  const facts = bits.join("، ");
+  const top = cast.slice(0, 4).join("، ");
+
+  const openers = [
+    `يقدّم لك سيما سيما ${kind} «${title}»${facts ? "، وهو عمل " + facts : ""}.`,
+    `${kind} «${title}»${facts ? " " + facts : " متاح الآن على سيما سيما"}، ويمكنك متابعته من صفحة العمل مباشرة.`,
+    `هل تبحث عن ${kind} «${title}»؟ ${facts ? "هذا العمل " + facts + "، " : ""}وهو متاح للمشاهدة على سيما سيما.`,
+    `تعرّف على ${kind} «${title}»${facts ? ": " + facts : ""}، واختر السيرفر المناسب لك من الصفحة أعلاه.`
+  ];
+  const castLines = [
+    `يشارك في العمل ${top}.`,
+    `من أبرز نجوم العمل: ${top}.`,
+    `يضم طاقم العمل ${top}.`,
+    `بطولة ${top}.`
+  ];
+  let text = openers[h % openers.length];
+  if (cast.length) text += " " + castLines[(h >> 3) % castLines.length];
+
+  const faq = [];
+  if (cat) faq.push([`ما تصنيف ${kind} ${title}؟`, `${kind} ${title} ضمن تصنيف ${cat}.`]);
+  if (year) faq.push([`متى صدر ${kind} ${title}؟`, `صدر ${kind} ${title} عام ${year}.`]);
+  if (dur && !series) faq.push([`كم مدة فيلم ${title}؟`, `مدة فيلم ${title} ${dur}.`]);
+  if (series && eps) faq.push([`كم عدد حلقات ${title}؟`, `يتوفر حاليًا على الموقع ${eps} حلقة من ${title}.`]);
+  if (cast.length) faq.push([`من هم أبطال ${kind} ${title}؟`, `من أبرز المشاركين في ${kind} ${title}: ${cast.join("، ")}.`]);
+  faq.push([`كيف أشاهد ${kind} ${title} على سيما سيما؟`, `افتح صفحة ${kind} ${title} واختر أحد السيرفرات المتاحة في الأعلى، وإذا لم يعمل سيرفر جرّب سيرفرًا آخر.`]);
+
+  const jsonld = faq.length >= 2 ? `<script type="application/ld+json">${JSON.stringify({
+    "@context": "https://schema.org", "@type": "FAQPage",
+    "mainEntity": faq.map(q => ({ "@type": "Question", "name": q[0], "acceptedAnswer": { "@type": "Answer", "text": q[1] } }))
+  }).replace(/</g, "\\u003c")}</script>` : "";
+
+  const faqHtml = faq.length >= 2 ? `<h3 style="margin:18px 0 8px;font-size:17px">أسئلة شائعة</h3>` + faq.map(q => `<div style="margin-bottom:10px"><div style="font-weight:700">${esc(q[0])}</div><p style="margin:4px 0 0;color:#a3a8b3;line-height:1.8">${esc(q[1])}</p></div>`).join("") : "";
+
+  return `<section id="seo-extra" class="wrap" style="margin-top:28px"><div style="padding:16px;background:#0f1622;border:1px solid #202c3e;border-radius:16px"><h2 style="margin:0 0 8px;font-size:20px">عن ${esc(kind)} ${esc(title)}</h2><p style="margin:0;line-height:1.9">${esc(text)}</p>${faqHtml}${relatedHtml(related, "اكتشف المزيد")}</div>${jsonld}</section>\n`;
 }
 function ssrBlock(row, extra) {
   extra = extra || {};
@@ -150,7 +208,7 @@ function injectSeo(html, row, url, extra) {
   if (actors.length) data.actor = actors.map(n => ({ "@type": "Person", "name": n }));
   const json = JSON.stringify(data).replace(/</g, "\\u003c");
   const meta = `\n<title>${esc(title)}</title>\n<meta name="description" content="${esc(desc)}">\n<link rel="canonical" href="${esc(url)}">\n<meta property="og:type" content="website">\n<meta property="og:site_name" content="سيما سيما">\n<meta property="og:title" content="${esc(title)}">\n<meta property="og:description" content="${esc(desc)}">\n<meta property="og:url" content="${esc(url)}">${image ? `\n<meta property="og:image" content="${esc(image)}">` : ""}\n<script type="application/ld+json">${json}</script>\n<script type="application/ld+json">${breadcrumbJson(crumbs)}</script>`;
-  return html.replace(/<title>[\s\S]*?<\/title>/i, "").replace(/<meta name="description"[^>]*>/i, "").replace(/<link rel="canonical"[^>]*>/i, "").replace(/<meta property="og:(type|site_name|title|description|url|image)"[^>]*>/gi, "").replace("</head>", meta + "\n<style>body:has(#details[style*=\"display: block\"]) #ssr-seo{display:none!important}body:has(#ssr-seo) #details:not([style*=\"display: block\"]){display:none!important}body:has(#ssr-seo) footer{visibility:hidden}body:has(#details[style*=\"display: block\"]) footer{visibility:visible}</style><noscript><style>footer{visibility:visible!important}</style></noscript>\n</head>").replace('<div id="details"', () => ssrBlock(row, { related: extra.related, crumbs }) + '<div id="details"');
+  return html.replace(/<title>[\s\S]*?<\/title>/i, "").replace(/<meta name="description"[^>]*>/i, "").replace(/<link rel="canonical"[^>]*>/i, "").replace(/<meta property="og:(type|site_name|title|description|url|image)"[^>]*>/gi, "").replace("</head>", meta + "\n<style>body:has(#details[style*=\"display: block\"]) #ssr-seo{display:none!important}body:has(#ssr-seo) #details:not([style*=\"display: block\"]){display:none!important}body:has(#ssr-seo) footer{visibility:hidden}body:has(#details[style*=\"display: block\"]) footer{visibility:visible}</style><noscript><style>footer{visibility:visible!important}</style></noscript>\n</head>").replace('<div id="details"', () => ssrBlock(row, { related: extra.related, crumbs }) + '<div id="details"').replace('<footer', () => aboutHtml(row, extra.related) + '<footer');
 }
 async function loadHtml(env, url, request, paths) {
   for (const p of paths) {
