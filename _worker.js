@@ -30,12 +30,20 @@ function itemPath(row) {
   const kind = isSeries(row.category) ? "series" : "movie";
   return `/${kind}/${encodeURIComponent(slugify(row.title))}~${encodeURIComponent(String(row.Id ?? row.id))}`;
 }
+function trimText(s, max) {
+  s = String(s || "").replace(/\s+/g, " ").trim();
+  if (s.length <= max) return s;
+  let c = s.slice(0, max - 1);
+  const i = c.lastIndexOf(" ");
+  if (i > max * 0.6) c = c.slice(0, i);
+  return c.replace(/[\s\u060C,.;:\u061F!\-]+$/, "") + "\u2026";
+}
 function description(row) {
   const type = isSeries(row.category) ? "مسلسل" : "فيلم";
   const year = row.year ? ` ${row.year}` : "";
   const lead = `مشاهدة وتحميل ${type} ${row.title || ""}${year} كامل اون لاين.`.replace(/\s+/g, " ");
   const d = String(row.description || "").trim().replace(/\s+/g, " ");
-  return (d ? `${lead} ${d}` : `${lead} معلومات العمل وقصته وروابط المشاهدة عبر سيما سيما.`).slice(0, 160);
+  return trimText(d ? `${lead} ${d}` : `${lead} معلومات العمل وقصته وروابط المشاهدة عبر سيما سيما.`, 160);
 }
 async function getMovie(id) {
   let sawOk = false;
@@ -177,7 +185,7 @@ function aboutHtml(row, related) {
 
   const faqHtml = faq.length >= 2 ? `<h3 style="margin:18px 0 8px;font-size:17px">أسئلة شائعة</h3>` + faq.map(q => `<div style="margin-bottom:10px"><div style="font-weight:700">${esc(q[0])}</div><p style="margin:4px 0 0;color:#a3a8b3;line-height:1.8">${esc(q[1])}</p></div>`).join("") : "";
 
-  return `<section id="seo-extra" class="wrap" style="margin-top:28px"><div style="padding:16px;background:#0f1622;border:1px solid #202c3e;border-radius:16px"><h2 style="margin:0 0 8px;font-size:20px">عن ${esc(kind)} ${esc(title)}</h2><p style="margin:0;line-height:1.9">${esc(text)}</p>${faqHtml}${relatedHtml(related, "اكتشف المزيد")}</div>${jsonld}</section>\n`;
+  return `<section id="seo-extra" class="wrap" style="margin-top:28px"><div style="padding:16px;background:#0f1622;border:1px solid #202c3e;border-radius:16px"><h2 style="margin:0 0 8px;font-size:20px">عن ${esc(kind)} ${esc(title)}</h2><p style="margin:0;line-height:1.9">${esc(text)}</p>${faqHtml}</div>${jsonld}</section>\n`;
 }
 function ssrBlock(row, extra) {
   extra = extra || {};
@@ -399,7 +407,7 @@ function injectEpisodeSeo(html, row, url, info, extra) {
   const seasonsCount = (() => { const sd = parseEpisodesForWorker(row.episodes).find(x => x && x.__cimaSeasons === true && x.enabled !== false); return sd && Array.isArray(sd.seasons) ? sd.seasons.length : 0; })();
   const heading = `${/^مسلسل\s/.test(String(row.title || "")) ? "مشاهدة وتحميل" : "مشاهدة وتحميل مسلسل"} ${row.title || ""}${seasonsCount > 1 && info.seasonName ? " " + info.seasonName : ""} ${epName}`.replace(/\s+/g, " ").trim();
   const title = `${heading} | سيما سيما`;
-  const desc = (`${heading}. ` + episodeDescription(row, info)).replace(/\s+/g, " ").slice(0, 160);
+  const desc = trimText(`${heading}. ` + episodeDescription(row, info), 160);
   const crumbs = [{ name: "الرئيسية", url: SITE + "/" }, { name: row.title || "", url: SITE + itemPath(row) }, { name: (seasonsCount > 1 && info.seasonName ? info.seasonName + " " : "") + epName, url }];
   let out = injectSeo(html, row, url, { related: extra.related, crumbs });
   // watch.html الأصلية noindex. لصفحات الحلقات الصحيحة نحدد الفهرسة حسب INDEX_EPISODES.
