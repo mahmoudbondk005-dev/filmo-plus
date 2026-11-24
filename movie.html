@@ -1213,7 +1213,7 @@ loadMovies();
   function build(m,ep){
     var host=document.getElementById("details");if(!host||!m)return;
     var nav=document.getElementById("bcNav");
-    if(!nav){nav=document.createElement("nav");nav.id="bcNav";nav.setAttribute("aria-label","مسار التنقل");nav.style.cssText="font-size:12px;color:#a3a8b3;margin:8px 0;display:flex;flex-wrap:wrap;gap:6px;order:0";
+    if(!nav){nav=document.createElement("nav");nav.id="bcNav";nav.setAttribute("aria-label","مسار التنقل");nav.style.cssText="font-size:12px;color:#a3a8b3;margin:8px 0;padding:0;max-width:none;display:flex;flex-direction:row;flex-wrap:wrap;gap:6px;order:0";
       var back=host.querySelector(".back");
       if(back&&back.nextSibling)host.insertBefore(nav,back.nextSibling);else host.insertBefore(nav,host.firstChild);}
     var name=m.name||m.title||"",p=typeof prettyPath==="function"?prettyPath(m):"/";
