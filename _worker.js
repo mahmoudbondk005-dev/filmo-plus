@@ -125,7 +125,7 @@ function relatedHtml(items, label) {
   return `<nav aria-label="${esc(label)}" style="margin-top:14px"><div style="font-weight:700;margin-bottom:6px">${esc(label)}</div><div style="display:flex;flex-wrap:wrap;gap:8px">` + items.map(r => `<a href="${esc(itemPath(r))}" style="color:#ffb000;text-decoration:none;border:1px solid #202c3e;border-radius:10px;padding:6px 12px;font-size:14px">${esc(r.title)}</a>`).join("") + `</div></nav>`;
 }
 function breadcrumbHtml(crumbs) {
-  return `<nav aria-label="مسار التنقل" style="font-size:13px;color:#a3a8b3;margin-bottom:10px">` + crumbs.map((c, i) => i < crumbs.length - 1 ? `<a href="${esc(c.url.replace(SITE, "") || "/")}" style="color:#a3a8b3;text-decoration:none">${esc(c.name)}</a>` : `<span>${esc(c.name)}</span>`).join(" › ") + `</nav>`;
+  return `<nav aria-label="مسار التنقل" style="display:block;max-width:none;margin:0 0 10px;padding:0;position:static;font-size:13px;color:#a3a8b3">` + crumbs.map((c, i) => i < crumbs.length - 1 ? `<a href="${esc(c.url.replace(SITE, "") || "/")}" style="color:#a3a8b3;text-decoration:none">${esc(c.name)}</a>` : `<span>${esc(c.name)}</span>`).join(" › ") + `</nav>`;
 }
 function breadcrumbJson(crumbs) {
   return JSON.stringify({ "@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": crumbs.map((c, i) => ({ "@type": "ListItem", "position": i + 1, "name": c.name, "item": c.url })) }).replace(/</g, "\\u003c");
